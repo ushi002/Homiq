@@ -62,7 +62,7 @@ Homiq je na samém začátku a hledáme nadšence, kteří nám pomohou:
 * **Doménoví experti:** Rozumíte rozúčtování tepla a legislativě? Potřebujeme vaše rady!
 * **Testeři:** Máte přístup k datům z měřičů? Pomozte nám systém vyladit.
 
-Pokud máte zájem přispět, podívejte se do sekce [CONTRIBUTING.md](CONTRIBUTING.md) (připravujeme) nebo otevřete nové **Issue**.
+Pokud máte zájem přispět, podívejte se do sekce [CONTRIBUTING.md](CONTRIBUTING.md) nebo otevřete nové **Issue**.
 
 ---
 
