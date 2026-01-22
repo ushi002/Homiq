@@ -44,7 +44,8 @@ Projekt stavíme na moderních a udržitelných technologiích:
 * **Frontend:** React / Next.js – responzivní rozhraní pro desktop i mobil.
 * **Integrace:** Podpora MQTT pro IoT brány a CSV/XLSX pro manuální importy.
 
-* Pro detailní popis databázových entit a vztahů se podívejte na náš [Návrh databázového schématu](docs/database_schema.md).
+* Pro detailní popis databázových entit a vztahů se podívejte na [Návrh databázového schématu](docs/database_schema.md).
+* Pro detailní popis datového toku (Data Ingestion Flow) se podívejte na [Popis toku dat](docs/ingestion_flow.md)
 
 ---
 
