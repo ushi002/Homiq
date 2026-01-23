@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv
+pip-log.txt
+
+# Database
+*.db
+*.sqlite3
+database.db
+
+# Node.js / Frontend
+node_modules/
+dist/
+.next/
+out/
+build/
+.DS_Store
+coverage/
+.turbo/
+
+# System
+.DS_Store
+Thumbs.db
