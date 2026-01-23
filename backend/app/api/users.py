@@ -18,11 +18,13 @@ def create_user(
 ):
     # RBAC
     if current_user.role == "admin":
-        pass # Admin can create anyone
-    elif current_user.role == "home_lord" and user.role == "owner":
-        pass # Home Lord can create owners
+        if user.role != "home_lord":
+             raise HTTPException(status_code=403, detail="Admins can only create Home Lords")
+    elif current_user.role == "home_lord":
+        if user.role != "owner":
+             raise HTTPException(status_code=403, detail="Home Lords can only create Owners")
     else:
-        raise HTTPException(status_code=403, detail="Not authorized to create this user")
+        raise HTTPException(status_code=403, detail="Not authorized to create users")
 
     # Hash password
     db_user = User.model_validate(user)
