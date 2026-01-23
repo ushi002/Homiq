@@ -7,9 +7,31 @@ from ..models.property import User, UserCreate, UserRead
 
 router = APIRouter()
 
+from ..core.security import get_password_hash
+from .deps import get_current_user
+
 @router.post("/", response_model=UserRead)
-def create_user(user: UserCreate, session: Session = Depends(get_session)):
+def create_user(
+    user: UserCreate, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    # RBAC
+    if current_user.role == "admin":
+        pass # Admin can create anyone
+    elif current_user.role == "home_lord" and user.role == "owner":
+        pass # Home Lord can create owners
+    else:
+        raise HTTPException(status_code=403, detail="Not authorized to create this user")
+
+    # Hash password
     db_user = User.model_validate(user)
+    db_user.password_hash = get_password_hash(user.password)
+    
+    # Check if email exists
+    if session.exec(select(User).where(User.email == user.email)).first():
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     session.add(db_user)
     session.commit()
     session.refresh(db_user)

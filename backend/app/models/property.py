@@ -17,7 +17,7 @@ class User(UserBase, table=True):
     managed_buildings: List["Building"] = Relationship(back_populates="manager")
 
 class UserCreate(UserBase):
-    pass
+    password: str
 
 class UserRead(UserBase):
     id: uuid.UUID
@@ -42,6 +42,7 @@ class BuildingCreate(BuildingBase):
 
 class BuildingRead(BuildingBase):
     id: uuid.UUID
+    manager_id: Optional[uuid.UUID] = None
 
 # Unit Model
 class UnitBase(SQLModel):

@@ -101,3 +101,30 @@ def read_building_units(
         statement = statement.where(Unit.owner_id == current_user.id)
         
     return session.exec(statement).all()
+
+@router.patch("/{building_id}/assign_manager", response_model=BuildingRead)
+def assign_manager(
+    building_id: uuid.UUID, 
+    manager_id: uuid.UUID, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    
+    # Verify user exists and is a home_lord? Not strictly enforced by model but logical business rule
+    manager = session.get(User, manager_id)
+    if not manager:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    if manager.role != "home_lord":
+        raise HTTPException(status_code=400, detail="User is not a Home Lord")
+
+    building.manager_id = manager_id
+    session.add(building)
+    session.commit()
+    session.refresh(building)
+    return building
