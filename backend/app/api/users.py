@@ -29,6 +29,7 @@ def create_user(
     # Hash password
     db_user = User.model_validate(user)
     db_user.password_hash = get_password_hash(user.password)
+    db_user.created_by_id = current_user.id # Track creator
     
     # Check if email exists
     if session.exec(select(User).where(User.email == user.email)).first():
@@ -40,8 +41,22 @@ def create_user(
     return db_user
 
 @router.get("/", response_model=List[UserRead])
-def read_users(offset: int = 0, limit: int = 100, session: Session = Depends(get_session)):
-    users = session.exec(select(User).offset(offset).limit(limit)).all()
+def read_users(
+    offset: int = 0, 
+    limit: int = 100, 
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    statement = select(User)
+    if current_user.role == "home_lord":
+        # Only see users created by them (Owners)
+        statement = statement.where(User.created_by_id == current_user.id)
+    elif current_user.role == "owner":
+         # Owners shouldn't see anyone really, maybe themselves?
+         statement = statement.where(User.id == current_user.id)
+    # Admin sees all
+    
+    users = session.exec(statement.offset(offset).limit(limit)).all()
     return users
 
 @router.get("/{user_id}", response_model=UserRead)
