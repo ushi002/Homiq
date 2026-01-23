@@ -6,13 +6,15 @@ from sqlmodel import Field, SQLModel, Relationship
 class UserBase(SQLModel):
     email: str = Field(index=True, unique=True)
     full_name: Optional[str] = None
-    role: str = "owner"  # admin, owner, board_member
+    role: str = "owner"  # "admin", "owner", "home_lord"
 
 class User(UserBase, table=True):
     __tablename__ = "users"
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    password_hash: str = Field(default="")
     
     units: List["Unit"] = Relationship(back_populates="owner")
+    managed_buildings: List["Building"] = Relationship(back_populates="manager")
 
 class UserCreate(UserBase):
     pass
@@ -30,6 +32,9 @@ class Building(BuildingBase, table=True):
     __tablename__ = "buildings"
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
     
+    manager_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    manager: Optional[User] = Relationship(back_populates="managed_buildings")
+
     units: List["Unit"] = Relationship(back_populates="building")
 
 class BuildingCreate(BuildingBase):

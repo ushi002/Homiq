@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { authFetch } from '@/lib/api';
 
 interface User {
     id: string;
@@ -18,7 +19,7 @@ export default function UsersPage() {
     }, []);
 
     const fetchUsers = () => {
-        fetch('http://localhost:8000/users/')
+        authFetch('http://localhost:8000/users/')
             .then(res => res.json())
             .then(data => setUsers(data))
             .catch(err => console.error(err));
@@ -27,9 +28,8 @@ export default function UsersPage() {
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch('http://localhost:8000/users/', {
+            const res = await authFetch('http://localhost:8000/users/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newUser)
             });
             if (res.ok) {
@@ -85,7 +85,7 @@ export default function UsersPage() {
                             >
                                 <option value="owner">Owner</option>
                                 <option value="admin">Admin</option>
-                                <option value="board_member">Board Member</option>
+                                <option value="home_lord">Home Lord</option>
                             </select>
                         </div>
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">

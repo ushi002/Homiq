@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { authFetch } from '@/lib/api';
 
 interface Unit {
     id: string;
@@ -13,22 +14,23 @@ interface Building {
     id: string;
     name: string;
     address: string;
+    description: string;
 }
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const [units, setUnits] = useState<Unit[]>([]);
     const [building, setBuilding] = useState<Building | null>(null);
+    const [units, setUnits] = useState<Unit[]>([]);
 
     useEffect(() => {
-        // Fetch building info
-        fetch(`http://localhost:8000/buildings/${id}`)
+        // Fetch building
+        authFetch(`http://localhost:8000/buildings/${id}`)
             .then(res => res.json())
             .then(data => setBuilding(data))
             .catch(err => console.error(err));
 
         // Fetch units
-        fetch(`http://localhost:8000/buildings/${id}/units`)
+        authFetch(`http://localhost:8000/buildings/${id}/units`)
             .then(res => res.json())
             .then(data => setUnits(data))
             .catch(err => console.error(err));
@@ -44,28 +46,27 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 <p className="text-gray-500">{building.address}</p>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                    <h2 className="font-semibold text-gray-700">Units</h2>
-                </div>
-                <ul className="divide-y divide-gray-100">
-                    {units.map((unit) => (
-                        <li key={unit.id} className="hover:bg-gray-50 transition-colors">
-                            <Link href={`/units/${unit.id}`} className="block px-6 py-4 flex justify-between items-center">
-                                <div>
-                                    <span className="font-medium text-gray-900">Unit {unit.unit_number}</span>
-                                    <span className="text-gray-400 text-sm ml-2">Floor {unit.floor}</span>
-                                </div>
-                                <div className="text-gray-500 text-sm">
-                                    {unit.area_m2} m² &rarr;
-                                </div>
-                            </Link>
-                        </li>
-                    ))}
+            <div className="grid grid-cols-1 gap-6">
+                <h2 className="text-xl font-semibold">Units</h2>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <ul className="divide-y divide-gray-100">
+                        {units.map(unit => (
+                            <li key={unit.id} className="hover:bg-gray-50 transition-colors">
+                                <Link href={`/units/${unit.id}`} className="block px-6 py-4 flex justify-between items-center">
+                                    <div>
+                                        <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
+                                        <span className="text-gray-500 ml-4">Floor: {unit.floor}</span>
+                                        <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>
+                                    </div>
+                                    <span className="text-blue-500">View Details &rarr;</span>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
                     {units.length === 0 && (
-                        <li className="px-6 py-8 text-center text-gray-400">No units found in this building.</li>
+                        <div className="p-6 text-center text-gray-400">No units found in this building.</div>
                     )}
-                </ul>
+                </div>
             </div>
         </main>
     );
