@@ -17,6 +17,9 @@ def seed_data():
         print("Seeding data...")
 
         # 0. Create Users (Home Lord & Owners)
+        # Admin
+        admin = User(email="admin@homiq.cz", full_name="System Admin", role="admin", password_hash=get_password_hash("password"))
+
         # Home Lord for Building 1
         lord1 = User(email="lord1@homiq.cz", full_name="Lord Voldemort", role="home_lord", password_hash=get_password_hash("password"))
         # Home Lord for Building 2
@@ -25,10 +28,12 @@ def seed_data():
         # Owner
         owner1 = User(email="jan.novak@example.com", full_name="Jan Novak", role="owner", password_hash=get_password_hash("password"))
 
+        session.add(admin)
         session.add(lord1)
         session.add(lord2)
         session.add(owner1)
         session.commit()
+        session.refresh(admin)
         session.refresh(lord1)
         session.refresh(lord2)
         session.refresh(owner1)

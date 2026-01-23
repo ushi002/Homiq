@@ -85,8 +85,9 @@ export default function LoginPage() {
                 </form>
                 <div className="text-xs text-center text-gray-400">
                     Sample Logins:<br />
-                    lord1@homiq.cz / password<br />
-                    jan.novak@example.com / password
+                    admin@homiq.cz / password (Admin)<br />
+                    lord1@homiq.cz / password (Home Lord)<br />
+                    jan.novak@example.com / password (Owner)
                 </div>
             </div>
         </div>
