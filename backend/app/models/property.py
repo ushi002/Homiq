@@ -11,6 +11,8 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     __tablename__ = "users"
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    
+    units: List["Unit"] = Relationship(back_populates="owner")
 
 class UserCreate(UserBase):
     pass
@@ -42,12 +44,14 @@ class UnitBase(SQLModel):
     floor: int
     area_m2: float
     building_id: uuid.UUID = Field(foreign_key="buildings.id")
+    owner_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
 
 class Unit(UnitBase, table=True):
     __tablename__ = "units"
     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
     
     building: Optional[Building] = Relationship(back_populates="units")
+    owner: Optional[User] = Relationship(back_populates="units")
 
 class UnitCreate(UnitBase):
     pass

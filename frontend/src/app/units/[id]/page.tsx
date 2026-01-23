@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import UserSelect from '@/components/UserSelect';
 
 interface Meter {
     id: string;
@@ -23,37 +24,62 @@ interface MeterWithReadings extends Meter {
 export default function UnitDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
+    const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
+    const [ownerId, setOwnerId] = useState<string>("");
 
     useEffect(() => {
-        // 1. Fetch unit info (skipping for brevity, assuming standard unit endpoint exists if needed)
+        // 1. Fetch unit info
+        fetch(`http://localhost:8000/units/${id}`)
+            .then(res => res.json())
+            .then(data => {
+                setUnit(data);
+                setOwnerId(data.owner_id || "");
+            })
+            .catch(err => console.error(err));
 
-        // 2. Fetch all meters for this unit (Need an endpoint for this, or filter on client. 
-        // START_HACK: Since we don't have GET /units/{id}/meters, I will fetch all meters and filter. 
-        // In production, backend should have this endpoint.)
+        // 2. Fetch meters (existing logic)
         fetch(`http://localhost:8000/telemetry/meters/`)
             .then(res => res.json())
             .then(async (allMeters: any[]) => {
-                // Filter by unit_id
                 const unitMeters = allMeters.filter(m => m.unit_id === id);
-
-                // Fetch readings for each meter
                 const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
                     const readingsRes = await fetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
                     const readings = await readingsRes.json();
-                    return { ...meter, recent_readings: readings.slice(0, 5) }; // Top 5
+                    return { ...meter, recent_readings: readings.slice(0, 5) };
                 }));
-
                 setMeters(metersWithReadings);
             })
             .catch(err => console.error(err));
     }, [id]);
 
+    const handleAssignOwner = async (newOwnerId: string) => {
+        try {
+            const res = await fetch(`http://localhost:8000/units/${id}/assign?owner_id=${newOwnerId}`, {
+                method: 'PATCH'
+            });
+            if (res.ok) {
+                setOwnerId(newOwnerId);
+                // alert("Owner updated!");
+            } else {
+                alert("Failed to update owner");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
-            <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                <h1 className="text-3xl font-bold">Unit Details</h1>
-                <p className="text-gray-500">ID: {id}</p>
+            <div className="mb-6 flex justify-between items-start">
+                <div>
+                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
+                    <h1 className="text-3xl font-bold">Unit Details</h1>
+                    <p className="text-gray-500">Unit Number: {unit?.unit_number}</p>
+                </div>
+                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
+                    <UserSelect value={ownerId} onChange={handleAssignOwner} />
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6">

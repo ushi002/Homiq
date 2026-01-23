@@ -21,11 +21,16 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
-      <header className="mb-8">
-         <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+      <header className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             Homiq Dashboard
-         </h1>
-         <p className="text-gray-500 mt-2">Manage your properties and readings</p>
+          </h1>
+          <p className="text-gray-500 mt-2">Manage your properties and readings</p>
+        </div>
+        <Link href="/users" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+          Manage Users
+        </Link>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -43,9 +48,9 @@ export default function Home() {
           </Link>
         ))}
         {buildings.length === 0 && (
-             <div className="col-span-full text-center py-12 text-gray-400">
-                No buildings found. Check if the backend is running or create one via API.
-             </div>
+          <div className="col-span-full text-center py-12 text-gray-400">
+            No buildings found. Check if the backend is running or create one via API.
+          </div>
         )}
       </div>
     </main>
