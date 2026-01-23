@@ -16,6 +16,13 @@ class User(UserBase, table=True):
     units: List["Unit"] = Relationship(back_populates="owner")
     managed_buildings: List["Building"] = Relationship(back_populates="manager")
 
+    created_by_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    created_by: Optional["User"] = Relationship(
+        sa_relationship_kwargs={"remote_side": "User.id"},
+        back_populates="created_users"
+    )
+    created_users: List["User"] = Relationship(back_populates="created_by")
+
 class UserCreate(UserBase):
     password: str
 
