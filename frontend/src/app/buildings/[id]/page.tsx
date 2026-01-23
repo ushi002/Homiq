@@ -2,6 +2,8 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { authFetch } from '@/lib/api';
+import UserSelect from '@/components/UserSelect';
+import { useAuth } from '@/context/AuthContext';
 
 interface Unit {
     id: string;
@@ -19,8 +21,10 @@ interface Building {
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const [building, setBuilding] = useState<Building | null>(null);
+    const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
     const [units, setUnits] = useState<Unit[]>([]);
+    const { user } = useAuth();
+    const isAdmin = user?.role === 'admin';
 
     useEffect(() => {
         // Fetch building
@@ -38,12 +42,46 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
     if (!building) return <div className="p-8">Loading...</div>;
 
+    const handleAssignManager = async (newManagerId: string) => {
+        if (!isAdmin) return;
+        try {
+            const res = await authFetch(`http://localhost:8000/buildings/${id}/assign_manager?manager_id=${newManagerId}`, {
+                method: 'PATCH'
+            });
+            if (res.ok) {
+                // Update local state or reload
+                const updated = await res.json();
+                setBuilding(updated);
+                alert("Building manager updated!");
+            } else {
+                alert("Failed to update manager");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
                 <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                <h1 className="text-3xl font-bold">{building.name}</h1>
-                <p className="text-gray-500">{building.address}</p>
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-3xl font-bold">{building.name}</h1>
+                        <p className="text-gray-500">{building.address}</p>
+                    </div>
+                    {/* Admin Manager Assignment */}
+                    {isAdmin && (
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-xs w-full">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Home Lord</label>
+                            <UserSelect
+                                value={building.manager_id || ""}
+                                onChange={handleAssignManager}
+                                roleFilter="home_lord"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 gap-6">

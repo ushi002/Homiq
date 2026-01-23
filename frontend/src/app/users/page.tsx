@@ -12,7 +12,7 @@ interface User {
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
-    const [newUser, setNewUser] = useState({ email: '', full_name: '', role: 'owner' });
+    const [newUser, setNewUser] = useState({ email: '', full_name: '', role: 'owner', password: '' });
 
     useEffect(() => {
         fetchUsers();
@@ -33,7 +33,7 @@ export default function UsersPage() {
                 body: JSON.stringify(newUser)
             });
             if (res.ok) {
-                setNewUser({ email: '', full_name: '', role: 'owner' });
+                setNewUser({ email: '', full_name: '', role: 'owner', password: '' });
                 fetchUsers();
             } else {
                 alert("Failed to create user");
@@ -74,6 +74,16 @@ export default function UsersPage() {
                                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                                 value={newUser.full_name}
                                 onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Password</label>
+                            <input
+                                type="password"
+                                required
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                value={newUser.password}
+                                onChange={e => setNewUser({ ...newUser, password: e.target.value })}
                             />
                         </div>
                         <div>
