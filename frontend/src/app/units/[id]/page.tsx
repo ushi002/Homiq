@@ -2,6 +2,8 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import UserSelect from '@/components/UserSelect';
+import { authFetch } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 interface Meter {
     id: string;
@@ -26,10 +28,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [ownerId, setOwnerId] = useState<string>("");
+    const { user } = useAuth(); // Get current user
 
     useEffect(() => {
         // 1. Fetch unit info
-        fetch(`http://localhost:8000/units/${id}`)
+        authFetch(`http://localhost:8000/units/${id}`)
             .then(res => res.json())
             .then(data => {
                 setUnit(data);
@@ -38,12 +41,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .catch(err => console.error(err));
 
         // 2. Fetch meters (existing logic)
-        fetch(`http://localhost:8000/telemetry/meters/`)
+        authFetch(`http://localhost:8000/telemetry/meters/`)
             .then(res => res.json())
             .then(async (allMeters: any[]) => {
                 const unitMeters = allMeters.filter(m => m.unit_id === id);
                 const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
-                    const readingsRes = await fetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
+                    const readingsRes = await authFetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
                     const readings = await readingsRes.json();
                     return { ...meter, recent_readings: readings.slice(0, 5) };
                 }));
@@ -54,7 +57,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     const handleAssignOwner = async (newOwnerId: string) => {
         try {
-            const res = await fetch(`http://localhost:8000/units/${id}/assign?owner_id=${newOwnerId}`, {
+            const res = await authFetch(`http://localhost:8000/units/${id}/assign?owner_id=${newOwnerId}`, {
                 method: 'PATCH'
             });
             if (res.ok) {
@@ -68,6 +71,8 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         }
     };
 
+    const canAssignOwner = user?.role === 'admin' || user?.role === 'home_lord';
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex justify-between items-start">
@@ -76,10 +81,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     <h1 className="text-3xl font-bold">Unit Details</h1>
                     <p className="text-gray-500">Unit Number: {unit?.unit_number}</p>
                 </div>
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-                    <UserSelect value={ownerId} onChange={handleAssignOwner} />
-                </div>
+                {canAssignOwner && (
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
+                        <UserSelect value={ownerId} onChange={handleAssignOwner} />
+                    </div>
+                )}
             </div>
 
             <div className="grid grid-cols-1 gap-6">

@@ -2,6 +2,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from backend.app.core.database import engine
 from backend.app.models.property import Building, Unit, User
 from backend.app.models.telemetry import Meter, MeterReading
+from backend.app.core.security import get_password_hash
 import datetime
 import random
 
@@ -9,17 +10,42 @@ def seed_data():
     SQLModel.metadata.create_all(engine)
     
     with Session(engine) as session:
-        # Check if data exists
-        existing_building = session.exec(select(Building)).first()
-        if existing_building:
+        if session.exec(select(User)).first():
             print("Data already exists. Skipping seed.")
             return
 
         print("Seeding data...")
 
-        # 1. Create Buildings
-        b1 = Building(name="Sunny Side Residence", address="123 Sunshine Blvd, Springfield", description="Modern complex with solar panels.")
-        b2 = Building(name="Old Town Lofts", address="45 Cobblestone Way, Rivertown", description="Historic building renovated in 2020.")
+        # 0. Create Users (Home Lord & Owners)
+        # Home Lord for Building 1
+        lord1 = User(email="lord1@homiq.cz", full_name="Lord Voldemort", role="home_lord", password_hash=get_password_hash("password"))
+        # Home Lord for Building 2
+        lord2 = User(email="lord2@homiq.cz", full_name="Lord Farquaad", role="home_lord", password_hash=get_password_hash("password"))
+        
+        # Owner
+        owner1 = User(email="jan.novak@example.com", full_name="Jan Novak", role="owner", password_hash=get_password_hash("password"))
+
+        session.add(lord1)
+        session.add(lord2)
+        session.add(owner1)
+        session.commit()
+        session.refresh(lord1)
+        session.refresh(lord2)
+        session.refresh(owner1)
+
+        # 1. Create Buildings (Assign Manager)
+        b1 = Building(
+            name="Sunny Side Residence", 
+            address="123 Sunshine Blvd, Springfield", 
+            description="Modern complex with solar panels.",
+            manager_id=lord1.id
+        )
+        b2 = Building(
+            name="Old Town Lofts", 
+            address="45 Cobblestone Way, Rivertown", 
+            description="Historic building renovated in 2020.",
+            manager_id=lord2.id
+        )
         session.add(b1)
         session.add(b2)
         session.commit()
@@ -30,6 +56,8 @@ def seed_data():
         units_b1 = []
         for i in range(1, 11): # 10 units
             u = Unit(building_id=b1.id, unit_number=f"A{i}", floor=1 + (i//4), area_m2=50 + (i*2))
+            if i == 1: # Assign A1 to Jan Novak
+                u.owner_id = owner1.id
             session.add(u)
             units_b1.append(u)
         
@@ -76,7 +104,7 @@ def seed_data():
                 session.add(r)
         
         session.commit()
-        print("Seeding complete! Added 2 buildings, 15 units, 30 meters, and 300 readings.")
+        print("Seeding complete! Added Users (Lords & Owners), Buildings, Units, Meters, and Readings.")
 
 if __name__ == "__main__":
     seed_data()

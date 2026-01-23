@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from 'react';
+import { authFetch } from '@/lib/api';
 
 interface User {
     id: string;
@@ -16,7 +17,7 @@ export default function UserSelect({ value, onChange }: UserSelectProps) {
     const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        fetch('http://localhost:8000/users/')
+        authFetch('http://localhost:8000/users/')
             .then(res => res.json())
             .then(data => setUsers(data))
             .catch(err => console.error(err));
