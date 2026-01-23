@@ -48,7 +48,7 @@ export default function Home() {
           </p>
         </div>
         <div className="space-x-4">
-          {user?.role === 'home_lord' && (
+          {(user?.role === 'home_lord' || user?.role === 'admin') && (
             <Link href="/users" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
               Manage Users
             </Link>
