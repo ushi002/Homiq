@@ -97,7 +97,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             } else {
                 return getWeekNumber(d) === period;
             }
-        });
+        }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()); // Ensure sorted
+    };
+
+    const calculateConsumption = (readings: Reading[]) => {
+        if (readings.length < 2) return 0;
+        const start = readings[0].value;
+        const end = readings[readings.length - 1].value;
+        return (end - start).toFixed(2);
     };
 
     // Meter Creation State
@@ -255,6 +262,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(meter.recent_readings, selectedYear, viewMode, selectedPeriod);
                     const prevReadings = getPeriodReadings(meter.recent_readings, selectedYear - 1, viewMode, selectedPeriod);
 
+                    const currentConsumption = calculateConsumption(currentReadings);
+                    const prevConsumption = calculateConsumption(prevReadings);
+
                     return (
                         <div key={meter.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                             <div className="flex justify-between items-start mb-4">
@@ -268,9 +278,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Current Period Window */}
                                 <div className="border rounded-lg p-3 bg-blue-50/50">
-                                    <h4 className="font-semibold text-sm text-blue-800 mb-2 border-b border-blue-100 pb-1">
-                                        {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear}
-                                    </h4>
+                                    <div className="flex justify-between items-end mb-2 border-b border-blue-100 pb-2">
+                                        <h4 className="font-semibold text-sm text-blue-800">
+                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear}
+                                        </h4>
+                                        <div className="text-right">
+                                            <p className="text-xs text-blue-600 uppercase font-bold">Consumption</p>
+                                            <p className="text-lg font-bold text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
+                                        </div>
+                                    </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {currentReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
@@ -284,9 +300,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
                                 {/* Previous Year Window */}
                                 <div className="border rounded-lg p-3 bg-gray-50/50">
-                                    <h4 className="font-semibold text-sm text-gray-600 mb-2 border-b border-gray-200 pb-1">
-                                        {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear - 1}
-                                    </h4>
+                                    <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
+                                        <h4 className="font-semibold text-sm text-gray-600">
+                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear - 1}
+                                        </h4>
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-500 uppercase font-bold">Consumption</p>
+                                            <p className="text-lg font-bold text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
+                                        </div>
+                                    </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {prevReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-gray-200 last:border-0">
