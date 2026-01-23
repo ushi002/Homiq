@@ -26,3 +26,21 @@ def read_unit(unit_id: uuid.UUID, session: Session = Depends(get_session)):
     if not unit:
         raise HTTPException(status_code=404, detail="Unit not found")
     return unit
+
+@router.patch("/{unit_id}/assign", response_model=UnitRead)
+def assign_owner(unit_id: uuid.UUID, owner_id: uuid.UUID, session: Session = Depends(get_session)):
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    
+    # Verify user exists (optional but good practice)
+    # from ..models.property import User
+    # user = session.get(User, owner_id)
+    # if not user:
+    #    raise HTTPException(status_code=404, detail="User not found")
+
+    unit.owner_id = owner_id
+    session.add(unit)
+    session.commit()
+    session.refresh(unit)
+    return unit
