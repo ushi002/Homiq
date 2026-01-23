@@ -94,17 +94,26 @@ def seed_data():
         for m in meters:
             session.refresh(m)
 
-        # 5. Add Readings
+        # 5. Add Readings (2 years history, weekly)
         for m in meters:
             base_value = 100.0
-            for day in range(10):
-                val = base_value + (day * random.uniform(0.1, 0.5))
-                # Create reading for past days
+            weeks_history = 104
+            
+            for week in range(weeks_history):
+                # Calculate date: 2 years ago + week offset
+                # Start from: now - 104 weeks
+                # Current reading date = (now - 104 weeks) + week
+                reading_date = datetime.datetime.utcnow() - datetime.timedelta(weeks=weeks_history-week)
+                
+                # Random consumption per week (e.g. 2-5 units)
+                consumption = random.uniform(2.0, 5.0)
+                base_value += consumption
+                
                 r = MeterReading(
                     meter_id=m.id, 
-                    value=round(val, 2), 
+                    value=round(base_value, 2), 
                     is_manual=False,
-                    time=datetime.datetime.utcnow() - datetime.timedelta(days=10-day)
+                    time=reading_date
                 )
                 session.add(r)
         
