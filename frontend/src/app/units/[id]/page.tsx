@@ -41,10 +41,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .catch(err => console.error(err));
 
         // 2. Fetch meters (existing logic)
-        authFetch(`http://localhost:8000/telemetry/meters/`)
+        authFetch(`http://localhost:8000/telemetry/meters/?unit_id=${id}`)
             .then(res => res.json())
-            .then(async (allMeters: any[]) => {
-                const unitMeters = allMeters.filter(m => m.unit_id === id);
+            .then(async (unitMeters: any[]) => {
+                // No need to filter client-side anymore
                 const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
                     const readingsRes = await authFetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
                     const readings = await readingsRes.json();
@@ -73,6 +73,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     };
 
     const canAssignOwner = user?.role === 'admin' || user?.role === 'home_lord';
+    const canAddMeter = user?.role === 'admin';
 
     const [selectedYear, setSelectedYear] = useState(2026);
     const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -113,7 +114,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     const handleCreateMeter = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!canAssignOwner) return;
+        if (!canAddMeter) return;
 
         try {
             const res = await authFetch(`http://localhost:8000/telemetry/meters/`, {
@@ -155,7 +156,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             <div className="grid grid-cols-1 gap-6">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold">Meters & Readings</h2>
-                    {canAssignOwner && (
+                    {canAddMeter && (
                         <button
                             onClick={() => setShowMeterForm(!showMeterForm)}
                             className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"

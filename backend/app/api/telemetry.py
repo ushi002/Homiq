@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
@@ -16,18 +16,13 @@ def create_meter(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role not in ["admin", "home_lord"]:
+    if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
         
-    # Check ownership of unit/building
+    # Check if unit exists
     unit = session.get(Unit, meter.unit_id)
     if not unit:
          raise HTTPException(status_code=404, detail="Unit not found")
-         
-    if current_user.role == "home_lord":
-        building = session.get(Building, unit.building_id)
-        if building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
 
     db_meter = Meter.model_validate(meter)
     session.add(db_meter)
@@ -39,15 +34,20 @@ def create_meter(
 def read_meters(
     offset: int = 0, 
     limit: int = 100, 
+    unit_id: Optional[uuid.UUID] = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
     statement = select(Meter)
+    if unit_id:
+        statement = statement.where(Meter.unit_id == unit_id)
+
     if current_user.role == "home_lord":
         # Meters in managed buildings
         statement = statement.join(Unit).join(Building).where(Building.manager_id == current_user.id)
     elif current_user.role == "owner":
         # Meters in owned units
+        # If unit_id is provided, check if owner owns it?
         statement = statement.join(Unit).where(Unit.owner_id == current_user.id)
         
     return session.exec(statement.offset(offset).limit(limit)).all()

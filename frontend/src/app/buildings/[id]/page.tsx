@@ -17,6 +17,8 @@ interface Building {
     name: string;
     address: string;
     description: string;
+    influx_db_name?: string;
+    units_fetched?: boolean;
 }
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +27,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const [units, setUnits] = useState<Unit[]>([]);
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '' });
 
     useEffect(() => {
         // Fetch building
@@ -39,6 +43,17 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             .then(data => setUnits(data))
             .catch(err => console.error(err));
     }, [id]);
+
+    useEffect(() => {
+        if (building) {
+            setEditForm({
+                name: building.name,
+                address: building.address,
+                description: building.description || '',
+                influx_db_name: building.influx_db_name || ''
+            });
+        }
+    }, [building]);
 
     if (!building) return <div className="p-8">Loading...</div>;
 
@@ -61,18 +76,171 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     };
 
+
+    const handleUpdateBuilding = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const res = await authFetch(`http://localhost:8000/buildings/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(editForm)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setBuilding(updated);
+                setIsEditing(false);
+                alert("Building updated successfully!");
+            } else {
+                alert("Failed to update building");
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleFetchUnits = async () => {
+        if (!confirm("Are you sure you want to fetch units from InfluxDB? This might take a moment.")) return;
+
+        try {
+            const res = await authFetch(`http://localhost:8000/buildings/${id}/fetch_units`, {
+                method: 'POST'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                alert(`Sync Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                // Reload units
+                window.location.reload();
+            } else {
+                const err = await res.json();
+                alert(`Failed: ${err.detail || 'Unknown error'}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred while fetching units.");
+        }
+    };
+
+    const handleDeleteUnits = async () => {
+        if (!confirm("Are you sure you want to DELETE ALL UNITS? This action cannot be undone and will delete all units, meters, and readings associated with this building.")) return;
+        if (!confirm("Please confirm again: DELETE ALL UNITS?")) return;
+
+        try {
+            const res = await authFetch(`http://localhost:8000/buildings/${id}/units`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                const data = await res.json();
+                alert(`Deletion Complete!\nUnits Deleted: ${data.deleted_units}\nMeters Deleted: ${data.deleted_meters}`);
+                window.location.reload();
+            } else {
+                alert("Failed to delete units");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred");
+        }
+    };
+
+    const handleDeleteBuilding = async () => {
+        if (!confirm("Are you sure you want to DELETE THIS BUILDING? This action is irreversible.")) return;
+
+        try {
+            const res = await authFetch(`http://localhost:8000/buildings/${id}`, {
+                method: 'DELETE'
+            });
+            if (res.ok) {
+                alert("Building deleted successfully");
+                window.location.href = "/"; // Redirect to dashboard
+            } else {
+                alert("Failed to delete building");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("An error occurred");
+        }
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
                 <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
                 <div className="flex justify-between items-start">
-                    <div>
-                        <h1 className="text-3xl font-bold">{building.name}</h1>
-                        <p className="text-gray-500">{building.address}</p>
+                    <div className="max-w-2xl w-full">
+                        {isEditing ? (
+                            <form onSubmit={handleUpdateBuilding} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.name}
+                                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.address}
+                                        onChange={e => setEditForm({ ...editForm, address: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Database Name</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.influx_db_name}
+                                        onChange={e => setEditForm({ ...editForm, influx_db_name: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        placeholder="e.g. homiq_db_01"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                                    <textarea
+                                        value={editForm.description}
+                                        onChange={e => setEditForm({ ...editForm, description: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        rows={3}
+                                    />
+                                </div>
+                                <div className="flex space-x-2">
+                                    <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                        Save Changes
+                                    </button>
+                                    <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        ) : (
+                            <>
+                                <h1 className="text-3xl font-bold">{building.name}</h1>
+                                <p className="text-gray-500">{building.address}</p>
+                                {building.influx_db_name && (
+                                    <div className="mt-2 text-sm bg-purple-50 text-purple-700 px-3 py-1 rounded-full inline-block">
+                                        InfluxDB: {building.influx_db_name}
+                                    </div>
+                                )}
+                                {building.description && <p className="text-gray-600 mt-2">{building.description}</p>}
+
+                                {isAdmin && (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                        Edit Details
+                                    </button>
+                                )}
+                            </>
+                        )}
                     </div>
                     {/* Admin Manager Assignment */}
                     {isAdmin && (
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-xs w-full">
+                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-xs w-full ml-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Home Lord</label>
                             <UserSelect
                                 value={building.manager_id || ""}
@@ -85,7 +253,43 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                <h2 className="text-xl font-semibold">Units</h2>
+                <div className="flex justify-between items-center">
+                    <h2 className="text-xl font-semibold">Units</h2>
+                    {isAdmin && (
+                        <div className="space-x-2">
+                            <button
+                                onClick={handleFetchUnits}
+                                disabled={building.units_fetched}
+                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    : "bg-purple-100 text-purple-700 hover:bg-purple-200"
+                                    }`}
+                            >
+                                {building.units_fetched ? "Units Fetched" : "Fetch Units"}
+                            </button>
+                            <button
+                                onClick={handleDeleteUnits}
+                                disabled={!building.units_fetched}
+                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-red-50 text-red-600 hover:bg-red-100"
+                                    }`}
+                            >
+                                Delete All Units
+                            </button>
+                            <button
+                                onClick={handleDeleteBuilding}
+                                disabled={building.units_fetched}
+                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
+                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                        : "bg-red-600 text-white hover:bg-red-700"
+                                    }`}
+                            >
+                                Delete Building
+                            </button>
+                        </div>
+                    )}
+                </div>
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <ul className="divide-y divide-gray-100">
                         {units.map(unit => (
