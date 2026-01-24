@@ -40,19 +40,32 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             })
             .catch(err => console.error(err));
 
-        // 2. Fetch meters (existing logic)
-        authFetch(`http://localhost:8000/telemetry/meters/?unit_id=${id}`)
-            .then(res => res.json())
-            .then(async (unitMeters: any[]) => {
-                // No need to filter client-side anymore
+        // 2. Sync and Fetch
+        const fetchMeters = async () => {
+            // First sync readings from InfluxDB (automatic, best effort)
+            try {
+                await authFetch(`http://localhost:8000/units/${id}/sync_readings`, { method: 'POST' });
+            } catch (e) {
+                console.error("Sync failed, proceeding to load cached data", e);
+            }
+
+            // Then load meters and readings
+            try {
+                const res = await authFetch(`http://localhost:8000/telemetry/meters/?unit_id=${id}`);
+                const unitMeters: any[] = await res.json();
+
                 const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
                     const readingsRes = await authFetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
                     const readings = await readingsRes.json();
-                    return { ...meter, recent_readings: readings }; // Show all readings
+                    return { ...meter, recent_readings: readings };
                 }));
                 setMeters(metersWithReadings);
-            })
-            .catch(err => console.error(err));
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        fetchMeters();
     }, [id]);
 
 
