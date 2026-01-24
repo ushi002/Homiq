@@ -97,3 +97,34 @@ def parse_series_tags(series_str: str) -> Dict[str, str]:
             k, v = part.split('=', 1)
             tags[k] = v
     return tags
+
+def get_meter_readings(db_name: str, serial_number: str, measurement: str = None) -> List[Tuple[str, float]]:
+    """
+    Fetches readings for a specific meter serial number.
+    Returns list of (time, value).
+    """
+    readings = []
+    
+    # If measurement is not known, we might have to search all?
+    # But usually we know it from meter type. 
+    # For now, let's assume we search all known measurements if not provided?
+    # Or better, search distinct ones.
+    
+    measurements_to_check = [measurement] if measurement else ['sv_l', 'tv_l', 'teplo_kWh']
+    
+    for meas in measurements_to_check:
+        if not meas: continue
+        
+        # Query value where sn = serial_number
+        q = f'SELECT "value" FROM "{meas}" WHERE "sn" = \'{serial_number}\''
+        data = query_influx(db_name, q)
+        
+        if data.get('results'):
+            for result in data['results']:
+                if 'series' in result:
+                    for series in result['series']:
+                        for value in series['values']:
+                            # value is [time, value]
+                            readings.append((value[0], value[1]))
+                            
+    return readings
