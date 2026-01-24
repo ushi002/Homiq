@@ -96,7 +96,7 @@ def read_building_units(
     if current_user.role == "home_lord" and building.manager_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
         
-    statement = select(Unit).where(Unit.building_id == building_id)
+    statement = select(Unit).where(Unit.building_id == building_id).order_by(Unit.unit_number)
     
     if current_user.role == "owner":
         # Owner can only see their own units
