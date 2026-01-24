@@ -49,9 +49,14 @@ export default function Home() {
         </div>
         <div className="space-x-4">
           {(user?.role === 'home_lord' || user?.role === 'admin') && (
-            <Link href="/users" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
-              Manage Users
-            </Link>
+            <>
+              <Link href="/buildings/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
+                + New Building
+              </Link>
+              <Link href="/users" className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors shadow-sm">
+                Manage Users
+              </Link>
+            </>
           )}
           <button
             onClick={logout}

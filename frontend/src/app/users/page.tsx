@@ -51,6 +51,25 @@ export default function UsersPage() {
         }
     };
 
+    const handleDeleteUser = async (userId: string) => {
+        if (!confirm("Are you sure you want to delete this user?")) return;
+
+        try {
+            const res = await authFetch(`http://localhost:8000/users/${userId}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                fetchUsers(); // Refresh list
+            } else {
+                const err = await res.json();
+                alert(`Failed to delete user: ${err.detail}`);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
@@ -124,15 +143,26 @@ export default function UsersPage() {
                     <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
                         {users.map(user => (
                             <li key={user.id} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50">
-                                <div>
+                                <div className="flex-1">
                                     <p className="font-medium text-gray-900">{user.full_name}</p>
                                     <p className="text-sm text-gray-500">{user.email}</p>
                                 </div>
-                                <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                <div className="flex items-center space-x-4">
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                                         user.role === 'home_lord' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                                    }`}>
-                                    {user.role === 'home_lord' ? 'Home Lord' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                                </span>
+                                        }`}>
+                                        {user.role === 'home_lord' ? 'Home Lord' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                    </span>
+                                    {/* Delete Button - Only show if current user is creator? Logic handled by backend, but we can optimistically show it or show for all and let backend fail */}
+                                    {/* For better UX, maybe we should check if we can delete. But backend check is strict. */}
+                                    <button
+                                        onClick={() => handleDeleteUser(user.id)}
+                                        className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                        title="Delete User"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </li>
                         ))}
                         {users.length === 0 && (

@@ -65,3 +65,21 @@ def read_user(user_id: uuid.UUID, session: Session = Depends(get_session)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
+
+@router.delete("/{user_id}")
+def delete_user(
+    user_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Check permissions: Can only delete users created by themselves
+    if user.created_by_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to delete this user")
+        
+    session.delete(user)
+    session.commit()
+    return {"ok": True}

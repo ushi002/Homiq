@@ -34,6 +34,8 @@ class BuildingBase(SQLModel):
     name: str
     address: str
     description: Optional[str] = None
+    influx_db_name: Optional[str] = None
+    units_fetched: bool = Field(default=False)
 
 class Building(BuildingBase, table=True):
     __tablename__ = "buildings"
@@ -46,6 +48,13 @@ class Building(BuildingBase, table=True):
 
 class BuildingCreate(BuildingBase):
     pass
+
+class BuildingUpdate(SQLModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    description: Optional[str] = None
+    influx_db_name: Optional[str] = None
+    units_fetched: Optional[bool] = None
 
 class BuildingRead(BuildingBase):
     id: uuid.UUID
