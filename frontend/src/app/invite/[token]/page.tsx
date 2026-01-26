@@ -1,0 +1,107 @@
+"use client";
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+
+export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+    const { token } = React.use(params);
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
+    const { login, logout } = useAuth();
+
+    // Clear any existing session when landing on invite page
+    React.useEffect(() => {
+        logout(false);
+    }, []);
+
+    const handleAcceptInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (password !== confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
+
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters");
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const res = await fetch('http://localhost:8000/accept-invite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ token, password }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                // Use context login to ensure state and localStorage are consistent
+                login(data.access_token, data.user_id, data.role, data.full_name);
+            } else {
+                const err = await res.json();
+                setError(err.detail || 'Failed to accept invite');
+            }
+        } catch (err) {
+            console.error(err);
+            setError('An unexpected error occurred');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <main className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-4">
+            <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full border border-gray-100">
+                <div className="text-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-900">Welcome to Homiq</h1>
+                    <p className="text-gray-500 mt-2">Please set your password to activate your account.</p>
+                </div>
+
+                {error && (
+                    <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleAcceptInvite} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">New Password</label>
+                        <input
+                            type="password"
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input
+                            type="password"
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium disabled:opacity-70"
+                    >
+                        {isLoading ? 'Activating...' : 'Activate Account'}
+                    </button>
+                </form>
+            </div>
+        </main>
+    );
+}

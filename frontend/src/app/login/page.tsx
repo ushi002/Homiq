@@ -28,7 +28,7 @@ export default function LoginPage() {
             }
 
             const data = await res.json();
-            login(data.access_token, data.user_id, data.role);
+            login(data.access_token, data.user_id, data.role, data.full_name);
         } catch (err) {
             setError('Invalid email or password');
         }

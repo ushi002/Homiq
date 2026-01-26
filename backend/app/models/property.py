@@ -1,12 +1,16 @@
 import uuid
 from typing import Optional, List
 from sqlmodel import Field, SQLModel, Relationship
+from datetime import datetime
 
 # User Model
 class UserBase(SQLModel):
     email: str = Field(index=True, unique=True)
     full_name: Optional[str] = None
-    role: str = "owner"  # "admin", "owner", "home_lord"
+    role: str = "home_lord" # admin, home_lord, owner
+    invite_token: Optional[str] = None
+    invite_expires_at: Optional[datetime] = None
+    status: str = Field(default="active") # active, pending
 
 class User(UserBase, table=True):
     __tablename__ = "users"
@@ -24,7 +28,7 @@ class User(UserBase, table=True):
     created_users: List["User"] = Relationship(back_populates="created_by")
 
 class UserCreate(UserBase):
-    password: str
+    password: Optional[str] = None
 
 class UserRead(UserBase):
     id: uuid.UUID
