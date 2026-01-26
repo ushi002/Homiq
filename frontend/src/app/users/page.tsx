@@ -9,17 +9,21 @@ interface User {
     email: string;
     full_name: string;
     role: string;
+    invite_token?: string;
+    status?: string;
 }
 
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
-    const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '', password: '' });
+    const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
     const { user: currentUser } = useAuth();
+    const [origin, setOrigin] = useState('');
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
 
     useEffect(() => {
+        setOrigin(window.location.origin);
         fetchUsers();
         // Set default role
         setNewUser(prev => ({ ...prev, role: currentUser?.role === 'admin' ? 'home_lord' : 'owner' }));
@@ -40,7 +44,7 @@ export default function UsersPage() {
                 body: JSON.stringify(newUser)
             });
             if (res.ok) {
-                setNewUser({ email: '', full_name: '', role: allowedRole, password: '' });
+                setNewUser({ email: '', full_name: '', role: allowedRole });
                 fetchUsers();
             } else {
                 const err = await res.json();
@@ -70,6 +74,12 @@ export default function UsersPage() {
         }
     };
 
+    const copyInviteLink = (token: string) => {
+        const link = `${origin}/invite/${token}`;
+        navigator.clipboard.writeText(link);
+        alert("Invite link copied to clipboard: " + link);
+    }
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
@@ -81,7 +91,7 @@ export default function UsersPage() {
 
                 {/* Create User Form */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-                    <h2 className="text-lg font-semibold mb-4">Add New {currentUser?.role === 'admin' ? 'Home Lord' : 'Owner'}</h2>
+                    <h2 className="text-lg font-semibold mb-4">Invite New {currentUser?.role === 'admin' ? 'Home Lord' : 'Owner'}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -103,16 +113,7 @@ export default function UsersPage() {
                                 onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
                             />
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Password</label>
-                            <input
-                                type="password"
-                                required
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                                value={newUser.password}
-                                onChange={e => setNewUser({ ...newUser, password: e.target.value })}
-                            />
-                        </div>
+                        {/* Password field removed for invite flow */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Role</label>
                             <select
@@ -130,7 +131,7 @@ export default function UsersPage() {
                             </p>
                         </div>
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                            Create User
+                            Send Invite
                         </button>
                     </form>
                 </div>
@@ -142,27 +143,37 @@ export default function UsersPage() {
                     </div>
                     <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
                         {users.map(user => (
-                            <li key={user.id} className="px-6 py-4 flex justify-between items-center hover:bg-gray-50">
-                                <div className="flex-1">
-                                    <p className="font-medium text-gray-900">{user.full_name}</p>
-                                    <p className="text-sm text-gray-500">{user.email}</p>
+                            <li key={user.id} className="px-6 py-4 flex flex-col hover:bg-gray-50">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                        <p className="font-medium text-gray-900">{user.full_name}</p>
+                                        <p className="text-sm text-gray-500">{user.email}</p>
+                                    </div>
+                                    <div className="flex items-center space-x-4">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                            user.role === 'home_lord' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                                            }`}>
+                                            {user.role === 'home_lord' ? 'Home Lord' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                        </span>
+                                        <button
+                                            onClick={() => handleDeleteUser(user.id)}
+                                            className="text-red-500 hover:text-red-700 text-sm font-medium"
+                                            title="Delete User"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex items-center space-x-4">
-                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
-                                        user.role === 'home_lord' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                                        }`}>
-                                        {user.role === 'home_lord' ? 'Home Lord' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                                    </span>
-                                    {/* Delete Button - Only show if current user is creator? Logic handled by backend, but we can optimistically show it or show for all and let backend fail */}
-                                    {/* For better UX, maybe we should check if we can delete. But backend check is strict. */}
-                                    <button
-                                        onClick={() => handleDeleteUser(user.id)}
-                                        className="text-red-500 hover:text-red-700 text-sm font-medium"
-                                        title="Delete User"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
+                                {user.invite_token && user.status === 'pending' && (
+                                    <div className="mt-2 bg-amber-50 p-2 rounded border border-amber-100 flex justify-between items-center">
+                                        <span className="text-sm text-amber-800">
+                                            Pending Invite: <code className="bg-white px-1 py-0.5 rounded border border-amber-200 text-xs">{`${origin}/invite/${user.invite_token}`}</code>
+                                        </span>
+                                        <button onClick={() => copyInviteLink(user.invite_token!)} className="text-xs text-blue-600 hover:underline">
+                                            Copy Link
+                                        </button>
+                                    </div>
+                                )}
                             </li>
                         ))}
                         {users.length === 0 && (

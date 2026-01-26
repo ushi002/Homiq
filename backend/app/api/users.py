@@ -26,11 +26,21 @@ def create_user(
     else:
         raise HTTPException(status_code=403, detail="Not authorized to create users")
 
-    # Hash password
+    # Logic for invite vs password
     db_user = User.model_validate(user)
-    db_user.password_hash = get_password_hash(user.password)
     db_user.created_by_id = current_user.id # Track creator
     
+    if user.password:
+        db_user.password_hash = get_password_hash(user.password)
+        db_user.status = "active"
+    else:
+        # Generate invite
+        import secrets
+        from datetime import datetime, timedelta
+        db_user.invite_token = secrets.token_urlsafe(32)
+        db_user.invite_expires_at = datetime.utcnow() + timedelta(hours=48)
+        db_user.status = "pending"
+
     # Check if email exists
     if session.exec(select(User).where(User.email == user.email)).first():
         raise HTTPException(status_code=400, detail="Email already registered")

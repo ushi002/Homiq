@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
     token: string | null;
-    user: { id: string; role: string } | null;
-    login: (token: string, user_id: string, role: string) => void;
-    logout: () => void;
+    user: { id: string; role: string; full_name?: string } | null;
+    login: (token: string, user_id: string, role: string, full_name?: string) => void;
+    logout: (shouldRedirect?: boolean) => void;
     isAuthenticated: boolean;
 }
 
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [token, setToken] = useState<string | null>(null);
-    const [user, setUser] = useState<{ id: string; role: string } | null>(null);
+    const [user, setUser] = useState<{ id: string; role: string; full_name?: string } | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -33,8 +33,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    const login = (newToken: string, user_id: string, role: string) => {
-        const userData = { id: user_id, role };
+    const login = (newToken: string, user_id: string, role: string, full_name?: string) => {
+        const userData = { id: user_id, role, full_name };
         setToken(newToken);
         setUser(userData);
         localStorage.setItem('token', newToken);
@@ -42,12 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         router.push('/');
     };
 
-    const logout = () => {
+    const logout = (shouldRedirect: boolean = true) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        router.push('/login');
+        if (shouldRedirect) {
+            router.push('/login');
+        }
     };
 
     return (

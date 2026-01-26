@@ -44,7 +44,7 @@ export default function Home() {
             Homiq Dashboard
           </h1>
           <p className="text-gray-500 mt-2">
-            Welcome, <span className="font-semibold text-gray-800">{user?.role}</span>
+            Welcome, <span className="font-semibold text-gray-800">{user?.full_name || user?.role}</span>
           </p>
         </div>
         <div className="space-x-4">
@@ -59,7 +59,7 @@ export default function Home() {
             </>
           )}
           <button
-            onClick={logout}
+            onClick={() => logout()}
             className="bg-red-50 text-red-600 border border-red-100 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors shadow-sm"
           >
             Logout
