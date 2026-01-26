@@ -10,7 +10,9 @@ export default function CreateBuilding() {
         name: '',
         address: '',
         description: '',
-        influx_db_name: ''
+        influx_db_name: '',
+        influx_unit_tag: '',
+        influx_measurements: ''
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +76,27 @@ export default function CreateBuilding() {
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
                             placeholder="e.g. homiq_db_01"
                         />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">InfluxDB Unit Tag</label>
+                        <input
+                            type="text"
+                            value={form.influx_unit_tag}
+                            onChange={e => setForm({ ...form, influx_unit_tag: e.target.value })}
+                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            placeholder="e.g. unit (default) or jednotka"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements (Optional)</label>
+                        <input
+                            type="text"
+                            value={form.influx_measurements}
+                            onChange={e => setForm({ ...form, influx_measurements: e.target.value })}
+                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            placeholder="e.g. sv_l[m3,Cold Water], tea_kwh[kWh,Heating]"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Format: tag[unit,name], ...</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Description</label>

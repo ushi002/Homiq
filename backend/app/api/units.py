@@ -88,7 +88,7 @@ def assign_owner(
 
 # Import needed models for sync
 from ..models.telemetry import Meter, MeterReading
-from ..core.influx_utils import get_meter_readings
+from ..core.influx_utils import get_meter_readings, parse_measurements_config
 from datetime import datetime
 
 @router.post("/{unit_id}/sync_readings")
@@ -120,48 +120,66 @@ def sync_unit_readings(
     if not building.influx_db_name:
          return {"message": "No InfluxDB configured", "readings_synced": 0}
 
+    # Parse measurements config
+    if building.influx_measurements:
+        measurements_config = parse_measurements_config(building.influx_measurements)
+    else:
+        # Default fallback
+        measurements_config = {
+            'sv_l': {'type': 'water_cold', 'uom': 'm3'},
+            'tv_l': {'type': 'water_hot', 'uom': 'm3'},
+            'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
+        }
+
     # Get meters for unit
     meters = session.exec(select(Meter).where(Meter.unit_id == unit_id)).all()
     
     total_synced = 0
     
     for meter in meters:
-        # Determine measurement based on type
-        # 'water_cold', 'water_hot', 'heat', 'electricity'
-        measurement = None
-        if meter.type == 'water_cold': measurement = 'sv_l'
-        elif meter.type == 'water_hot': measurement = 'tv_l'
-        elif meter.type == 'heat': measurement = 'teplo_kWh'
+        # We need to look up readings for this meter.
+        # We don't know exactly which measurement it came from unless we stored it?
+        # But we can try all measurements that match its type OR just all measurements?
+        # Simpler: Iterate all configured measurements. If a reading exists for this meter's SN in that measurement, take it.
+        # This is robust because SN should be unique globally or at least within the building/db context.
         
-        readings = get_meter_readings(building.influx_db_name, meter.serial_number, measurement)
+        found_readings = False
         
-        for (time_str, value) in readings:
-            # Parse time "2024-01-01T00:00:00Z"
-            # Influx returns ISO string usually.
-            # Convert to datetime
-            try:
-                dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-            except ValueError:
-                continue
-
-            # Check if reading exists
-            # Optimized way: Composite key check or upsert?
-            # For now, simple check.
-            existing = session.exec(select(MeterReading).where(
-                MeterReading.meter_id == meter.id, 
-                MeterReading.time == dt
-            )).first()
+        for meas_name, meta in measurements_config.items():
+            # Optimization: Only check measurements that match the meter type?
+            # if meta['type'] != meter.type: continue 
             
-            if not existing:
-                new_reading = MeterReading(
-                    meter_id=meter.id,
-                    value=value,
-                    time=dt,
-                    is_manual=False
-                )
-                session.add(new_reading)
-                total_synced += 1
+            readings = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name)
+            
+            if readings:
+                found_readings = True
+                for (time_str, value) in readings:
+                    try:
+                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                    except ValueError:
+                        continue
+
+                    # Check if reading exists
+                    existing = session.exec(select(MeterReading).where(
+                        MeterReading.meter_id == meter.id, 
+                        MeterReading.time == dt
+                    )).first()
+                    
+                    if not existing:
+                        new_reading = MeterReading(
+                            meter_id=meter.id,
+                            value=value,
+                            time=dt,
+                            is_manual=False
+                        )
+                        session.add(new_reading)
+                        total_synced += 1
                 
-        session.commit() # Commit per meter
+                # If we found readings in one measurement, should we stop? 
+                # Probably yes, a meter typically reports to one measurement.
+                # break 
+        
+        if found_readings:
+            session.commit() # Commit per meter
 
     return {"message": "Readings synced", "readings_synced": total_synced}

@@ -35,6 +35,8 @@ class BuildingBase(SQLModel):
     address: str
     description: Optional[str] = None
     influx_db_name: Optional[str] = None
+    influx_unit_tag: Optional[str] = None
+    influx_measurements: Optional[str] = None
     units_fetched: bool = Field(default=False)
 
 class Building(BuildingBase, table=True):
@@ -54,6 +56,8 @@ class BuildingUpdate(SQLModel):
     address: Optional[str] = None
     description: Optional[str] = None
     influx_db_name: Optional[str] = None
+    influx_unit_tag: Optional[str] = None
+    influx_measurements: Optional[str] = None
     units_fetched: Optional[bool] = None
 
 class BuildingRead(BuildingBase):
