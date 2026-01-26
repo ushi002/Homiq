@@ -33,7 +33,6 @@ def get_unique_units(db_name: str, unit_tag: str = None) -> Set[str]:
                         for value in series['values']:
                             units.add(value[1]) # value[0] is key name, value[1] is value
     
-    print(f"Found unique units: {units} using tag(s) {tags_to_check}") # DEBUG
     return units
 
 def infer_meter_type(measurement_name: str) -> str:
@@ -120,12 +119,10 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
              
              for sn_tag in sn_tags_to_check:
                  q = f'SHOW TAG VALUES FROM "{measurement}" WITH KEY = "{sn_tag}" WHERE "{tag}" = \'{unit_name}\''
-                 print(f"Querying Influx: {q}") # DEBUG
                  res = query_influx(db_name, q)
                  if res.get('results') and res['results'][0].get('series'):
                      data = res
                      found_sn_tag = sn_tag
-                     print(f"Found meters for tag {tag} using sn_tag {sn_tag}: {data}") # DEBUG
                      break
              if data: break # Found meters via one of the unit tags
         
@@ -142,7 +139,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
                                     'type': meta['type'],
                                     'unit_of_measure': meta['uom']
                                 })
-                                print(f"Found meter: {sn} type={meta['type']}") # DEBUG
                             
     return meters
 

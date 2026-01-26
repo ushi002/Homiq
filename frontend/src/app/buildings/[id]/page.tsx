@@ -103,15 +103,32 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     };
 
     const handleFetchUnits = async () => {
-        if (!confirm("Are you sure you want to fetch units from InfluxDB? This might take a moment.")) return;
+        const isReload = building.units_fetched;
+        const message = isReload
+            ? "WARNING: RELOADING units will DELETE ALL existing units, meters, and READINGS for this building, and then re-fetch them. This action cannot be undone. Start Reload?"
+            : "Are you sure you want to fetch units from InfluxDB? This might take a moment.";
+
+        if (!confirm(message)) return;
 
         try {
+            if (isReload) {
+                // Delete existing first
+                const delRes = await authFetch(`http://localhost:8000/buildings/${id}/units`, {
+                    method: 'DELETE'
+                });
+                if (!delRes.ok) {
+                    const err = await delRes.json();
+                    alert(`Failed to clean up existing units: ${err.detail}`);
+                    return;
+                }
+            }
+
             const res = await authFetch(`http://localhost:8000/buildings/${id}/fetch_units`, {
                 method: 'POST'
             });
             if (res.ok) {
                 const data = await res.json();
-                alert(`Sync Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                alert(`${isReload ? 'Reload' : 'Sync'} Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
                 // Reload units
                 window.location.reload();
             } else {
@@ -284,13 +301,12 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         <div className="space-x-2">
                             <button
                                 onClick={handleFetchUnits}
-                                disabled={building.units_fetched}
                                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
                                     : "bg-purple-100 text-purple-700 hover:bg-purple-200"
                                     }`}
                             >
-                                {building.units_fetched ? "Units Fetched" : "Fetch Units"}
+                                {building.units_fetched ? "Reload Units" : "Fetch Units"}
                             </button>
                             <button
                                 onClick={handleDeleteUnits}
