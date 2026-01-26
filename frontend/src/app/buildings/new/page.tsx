@@ -18,7 +18,7 @@ export default function CreateBuilding() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await authFetch('http://localhost:8000/buildings/', {
+            const res = await authFetch('/buildings/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(form)

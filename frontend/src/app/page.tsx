@@ -20,7 +20,7 @@ export default function Home() {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    authFetch('http://localhost:8000/buildings/')
+    authFetch('/buildings/')
       .then(res => res.json())
       .then(data => setBuildings(data))
       .catch(err => console.error(err));

@@ -1,3 +1,5 @@
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 export async function authFetch(url: string, options: RequestInit = {}) {
     const token = localStorage.getItem('token');
     const headers = {
@@ -6,7 +8,8 @@ export async function authFetch(url: string, options: RequestInit = {}) {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
 
-    const res = await fetch(url, { ...options, headers });
+    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+    const res = await fetch(fullUrl, { ...options, headers });
 
     if (res.status === 401) {
         // Redirect to login if unauthorized and clear token

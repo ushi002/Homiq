@@ -1,8 +1,8 @@
 from sqlmodel import Session, SQLModel, create_engine, select
-from backend.app.core.database import engine
-from backend.app.models.property import Building, Unit, User
-from backend.app.models.telemetry import Meter, MeterReading
-from backend.app.core.security import get_password_hash
+from app.core.database import engine
+from app.models.property import Building, Unit, User
+from app.models.telemetry import Meter, MeterReading
+from app.core.security import get_password_hash
 import datetime
 import random
 
