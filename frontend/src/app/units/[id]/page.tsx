@@ -32,7 +32,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     useEffect(() => {
         // 1. Fetch unit info
-        authFetch(`http://localhost:8000/units/${id}`)
+        authFetch(`/units/${id}`)
             .then(res => res.json())
             .then(data => {
                 setUnit(data);
@@ -44,18 +44,18 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         const fetchMeters = async () => {
             // First sync readings from InfluxDB (automatic, best effort)
             try {
-                await authFetch(`http://localhost:8000/units/${id}/sync_readings`, { method: 'POST' });
+                await authFetch(`/units/${id}/sync_readings`, { method: 'POST' });
             } catch (e) {
                 console.error("Sync failed, proceeding to load cached data", e);
             }
 
             // Then load meters and readings
             try {
-                const res = await authFetch(`http://localhost:8000/telemetry/meters/?unit_id=${id}`);
+                const res = await authFetch(`/telemetry/meters/?unit_id=${id}`);
                 const unitMeters: any[] = await res.json();
 
                 const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
-                    const readingsRes = await authFetch(`http://localhost:8000/telemetry/meters/${meter.id}/readings`);
+                    const readingsRes = await authFetch(`/telemetry/meters/${meter.id}/readings`);
                     const readings = await readingsRes.json();
                     return { ...meter, recent_readings: readings };
                 }));
@@ -71,7 +71,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     const handleAssignOwner = async (email: string) => {
         try {
-            const res = await authFetch(`http://localhost:8000/units/${id}/assign_by_email?email=${encodeURIComponent(email)}`, {
+            const res = await authFetch(`/units/${id}/assign_by_email?email=${encodeURIComponent(email)}`, {
                 method: 'POST'
             });
             if (res.ok) {

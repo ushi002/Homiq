@@ -34,13 +34,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
     useEffect(() => {
         // Fetch building
-        authFetch(`http://localhost:8000/buildings/${id}`)
+        authFetch(`/buildings/${id}`)
             .then(res => res.json())
             .then(data => setBuilding(data))
             .catch(err => console.error(err));
 
         // Fetch units
-        authFetch(`http://localhost:8000/buildings/${id}/units`)
+        authFetch(`/buildings/${id}/units`)
             .then(res => res.json())
             .then(data => setUnits(data))
             .catch(err => console.error(err));
@@ -64,7 +64,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const handleAssignManager = async (newManagerId: string) => {
         if (!isAdmin) return;
         try {
-            const res = await authFetch(`http://localhost:8000/buildings/${id}/assign_manager?manager_id=${newManagerId}`, {
+            const res = await authFetch(`/buildings/${id}/assign_manager?manager_id=${newManagerId}`, {
                 method: 'PATCH'
             });
             if (res.ok) {
@@ -84,7 +84,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const handleUpdateBuilding = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await authFetch(`http://localhost:8000/buildings/${id}`, {
+            const res = await authFetch(`/buildings/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editForm)
@@ -113,7 +113,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         try {
             if (isReload) {
                 // Use Reload Endpoint to preserve owners
-                const res = await authFetch(`http://localhost:8000/buildings/${id}/reload_units`, {
+                const res = await authFetch(`/buildings/${id}/reload_units`, {
                     method: 'POST'
                 });
 
@@ -127,7 +127,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 }
             } else {
                 // Initial Fetch
-                const res = await authFetch(`http://localhost:8000/buildings/${id}/fetch_units`, {
+                const res = await authFetch(`/buildings/${id}/fetch_units`, {
                     method: 'POST'
                 });
                 if (res.ok) {
@@ -150,7 +150,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         if (!confirm("Please confirm again: DELETE ALL UNITS?")) return;
 
         try {
-            const res = await authFetch(`http://localhost:8000/buildings/${id}/units`, {
+            const res = await authFetch(`/buildings/${id}/units`, {
                 method: 'DELETE'
             });
             if (res.ok) {
@@ -170,7 +170,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         if (!confirm("Are you sure you want to DELETE THIS BUILDING? This action is irreversible.")) return;
 
         try {
-            const res = await authFetch(`http://localhost:8000/buildings/${id}`, {
+            const res = await authFetch(`/buildings/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) {

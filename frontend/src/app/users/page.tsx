@@ -30,7 +30,7 @@ export default function UsersPage() {
     }, [currentUser]);
 
     const fetchUsers = () => {
-        authFetch('http://localhost:8000/users/')
+        authFetch('/users/')
             .then(res => res.json())
             .then(data => setUsers(data))
             .catch(err => console.error(err));
@@ -39,7 +39,7 @@ export default function UsersPage() {
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await authFetch('http://localhost:8000/users/', {
+            const res = await authFetch('/users/', {
                 method: 'POST',
                 body: JSON.stringify(newUser)
             });
@@ -59,7 +59,7 @@ export default function UsersPage() {
         if (!confirm("Are you sure you want to delete this user?")) return;
 
         try {
-            const res = await authFetch(`http://localhost:8000/users/${userId}`, {
+            const res = await authFetch(`/users/${userId}`, {
                 method: 'DELETE'
             });
 
@@ -95,7 +95,7 @@ export default function UsersPage() {
 
     const saveEdit = async (userId: string) => {
         try {
-            const res = await authFetch(`http://localhost:8000/users/${userId}`, {
+            const res = await authFetch(`/users/${userId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ full_name: editName })

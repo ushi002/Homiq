@@ -7,3 +7,4 @@ python-multipart
 httpx
 python-jose[cryptography]
 passlib[argon2]
+requests

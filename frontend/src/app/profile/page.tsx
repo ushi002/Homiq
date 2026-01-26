@@ -22,7 +22,7 @@ export default function ProfilePage() {
         setMessage('');
 
         try {
-            const res = await authFetch('http://localhost:8000/users/me', {
+            const res = await authFetch('/users/me', {
                 method: 'PATCH',
                 body: JSON.stringify({ full_name: fullName })
             });
@@ -131,7 +131,7 @@ function ChangePasswordForm() {
 
         setIsLoading(true);
         try {
-            const res = await authFetch('http://localhost:8000/users/me/password', {
+            const res = await authFetch('/users/me/password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ old_password: passwords.old_password, new_password: passwords.new_password })
