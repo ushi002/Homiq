@@ -33,6 +33,10 @@ class UserCreate(UserBase):
 class UserUpdate(SQLModel):
     full_name: Optional[str] = None
 
+class UserPasswordChange(SQLModel):
+    old_password: str
+    new_password: str
+
 class UserRead(UserBase):
     id: uuid.UUID
 

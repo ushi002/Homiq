@@ -3,11 +3,13 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..models.property import User, UserCreate, UserRead, UserUpdate
+from sqlmodel import Session, select
+from ..core.database import get_session
+from ..models.property import User, UserCreate, UserRead, UserUpdate, UserPasswordChange
 
 router = APIRouter()
 
-from ..core.security import get_password_hash
+from ..core.security import get_password_hash, verify_password
 from .deps import get_current_user
 
 @router.post("/", response_model=UserRead)
@@ -146,3 +148,17 @@ def update_user(
     session.commit()
     session.refresh(user)
     return user
+
+@router.post("/me/password")
+def change_password(
+    password_change: UserPasswordChange,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if not verify_password(password_change.old_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Incorrect old password")
+        
+    current_user.password_hash = get_password_hash(password_change.new_password)
+    session.add(current_user)
+    session.commit()
+    return {"message": "Password updated successfully"}

@@ -16,9 +16,8 @@ def create_building(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    # Only Admin can create buildings? Or Home Lord too?
-    # For now, let's allow Admin and Home Lord
-    if current_user.role not in ["admin", "home_lord"]:
+    # Only Admin can create buildings
+    if current_user.role != "admin":
        raise HTTPException(status_code=403, detail="Not authorized")
        
     db_building = Building.model_validate(building)

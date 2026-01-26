@@ -104,7 +104,98 @@ export default function ProfilePage() {
                         </button>
                     </form>
                 </div>
+
+                {/* Change Password Section */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-800">Change Password</h2>
+                    <ChangePasswordForm />
+                </div>
             </div>
         </main>
+    );
+}
+
+function ChangePasswordForm() {
+    const [passwords, setPasswords] = useState({ old_password: '', new_password: '', confirm_password: '' });
+    const [message, setMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setMessage('');
+
+        if (passwords.new_password !== passwords.confirm_password) {
+            setMessage('New passwords do not match.');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const res = await authFetch('http://localhost:8000/users/me/password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ old_password: passwords.old_password, new_password: passwords.new_password })
+            });
+
+            if (res.ok) {
+                setMessage('Password changed successfully!');
+                setPasswords({ old_password: '', new_password: '', confirm_password: '' });
+            } else {
+                const err = await res.json();
+                setMessage(`Failed: ${err.detail}`);
+            }
+        } catch (err) {
+            console.error(err);
+            setMessage('An error occurred.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            {message && (
+                <div className={`p-3 rounded-md text-sm ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                    {message}
+                </div>
+            )}
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Old Password</label>
+                <input
+                    type="password"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    value={passwords.old_password}
+                    onChange={e => setPasswords({ ...passwords, old_password: e.target.value })}
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">New Password</label>
+                <input
+                    type="password"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    value={passwords.new_password}
+                    onChange={e => setPasswords({ ...passwords, new_password: e.target.value })}
+                />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                <input
+                    type="password"
+                    required
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    value={passwords.confirm_password}
+                    onChange={e => setPasswords({ ...passwords, confirm_password: e.target.value })}
+                />
+            </div>
+            <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+            >
+                {isLoading ? 'Updating...' : 'Update Password'}
+            </button>
+        </form>
     );
 }
