@@ -80,6 +80,38 @@ export default function UsersPage() {
         alert("Invite link copied to clipboard: " + link);
     }
 
+    const [editingUser, setEditingUser] = useState<string | null>(null);
+    const [editName, setEditName] = useState('');
+
+    const startEdit = (user: User) => {
+        setEditingUser(user.id);
+        setEditName(user.full_name || '');
+    };
+
+    const cancelEdit = () => {
+        setEditingUser(null);
+        setEditName('');
+    };
+
+    const saveEdit = async (userId: string) => {
+        try {
+            const res = await authFetch(`http://localhost:8000/users/${userId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ full_name: editName })
+            });
+            if (res.ok) {
+                fetchUsers();
+                setEditingUser(null);
+            } else {
+                const err = await res.json();
+                alert(`Failed to update user: ${err.detail}`);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
@@ -91,7 +123,7 @@ export default function UsersPage() {
 
                 {/* Create User Form */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-                    <h2 className="text-lg font-semibold mb-4">Invite New {currentUser?.role === 'admin' ? 'Home Lord' : 'Owner'}</h2>
+                    <h2 className="text-lg font-semibold mb-4">Invite New User</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -117,16 +149,18 @@ export default function UsersPage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Role</label>
                             <select
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-gray-100 cursor-not-allowed"
+                                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-white`}
                                 value={newUser.role}
-                                disabled
+                                onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                                disabled={currentUser?.role !== 'admin'}
                             >
                                 <option value="home_lord">Home Lord</option>
                                 <option value="owner">Owner</option>
+                                <option value="admin">Admin</option>
                             </select>
                             <p className="text-xs text-gray-500 mt-1">
                                 {currentUser?.role === 'admin'
-                                    ? "Admins can only create Home Lords."
+                                    ? "Admins can create Home Lords, Owners, and other Admins."
                                     : "Home Lords can only create Owners."}
                             </p>
                         </div>
@@ -146,7 +180,25 @@ export default function UsersPage() {
                             <li key={user.id} className="px-6 py-4 flex flex-col hover:bg-gray-50">
                                 <div className="flex justify-between items-center">
                                     <div className="flex-1">
-                                        <p className="font-medium text-gray-900">{user.full_name}</p>
+                                        {editingUser === user.id ? (
+                                            <div className="flex items-center space-x-2">
+                                                <input
+                                                    type="text"
+                                                    value={editName}
+                                                    onChange={e => setEditName(e.target.value)}
+                                                    className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+                                                />
+                                                <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">Save</button>
+                                                <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">Cancel</button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center space-x-2">
+                                                <p className="font-medium text-gray-900">{user.full_name}</p>
+                                                <button onClick={() => startEdit(user)} className="text-xs text-blue-400 hover:text-blue-600">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                                                </button>
+                                            </div>
+                                        )}
                                         <p className="text-sm text-gray-500">{user.email}</p>
                                     </div>
                                     <div className="flex items-center space-x-4">
