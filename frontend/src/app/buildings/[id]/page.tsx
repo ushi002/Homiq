@@ -112,28 +112,32 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
         try {
             if (isReload) {
-                // Delete existing first
-                const delRes = await authFetch(`http://localhost:8000/buildings/${id}/units`, {
-                    method: 'DELETE'
+                // Use Reload Endpoint to preserve owners
+                const res = await authFetch(`http://localhost:8000/buildings/${id}/reload_units`, {
+                    method: 'POST'
                 });
-                if (!delRes.ok) {
-                    const err = await delRes.json();
-                    alert(`Failed to clean up existing units: ${err.detail}`);
-                    return;
-                }
-            }
 
-            const res = await authFetch(`http://localhost:8000/buildings/${id}/fetch_units`, {
-                method: 'POST'
-            });
-            if (res.ok) {
-                const data = await res.json();
-                alert(`${isReload ? 'Reload' : 'Sync'} Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
-                // Reload units
-                window.location.reload();
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Reload Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert(`Failed to reload: ${err.detail || 'Unknown error'}`);
+                }
             } else {
-                const err = await res.json();
-                alert(`Failed: ${err.detail || 'Unknown error'}`);
+                // Initial Fetch
+                const res = await authFetch(`http://localhost:8000/buildings/${id}/fetch_units`, {
+                    method: 'POST'
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(`Sync Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                    window.location.reload();
+                } else {
+                    const err = await res.json();
+                    alert(`Failed: ${err.detail || 'Unknown error'}`);
+                }
             }
         } catch (err) {
             console.error(err);

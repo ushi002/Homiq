@@ -231,6 +231,95 @@ def fetch_units_from_influx(
         "units_fetched": building.units_fetched
     }
 
+@router.post("/{building_id}/reload_units")
+def reload_building_units(
+    building_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    
+    if not building.influx_db_name:
+         raise HTTPException(status_code=400, detail="Building has no InfluxDB database configured")
+
+    # 1. Backup Owner Map
+    existing_units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+    owner_map = {u.unit_number: u.owner_id for u in existing_units if u.owner_id}
+    
+    # 2. Delete All Units & Meters (Clean slate)
+    for unit in existing_units:
+        # Delete meters
+        meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
+        for meter in meters:
+            # Delete readings
+            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
+            for reading in readings:
+                session.delete(reading)
+            session.delete(meter)
+        
+        # Delete unit
+        session.delete(unit)
+    
+    # Commit deletion to ensure clean state before re-creation? 
+    # Or keep in transaction. Keeping in transaction is safer if subsequent fails.
+    
+    # 3. Fetch from Influx
+    influx_units = get_unique_units(building.influx_db_name, building.influx_unit_tag)
+    
+    created_units = 0
+    connected_meters = 0
+
+    for unit_name in influx_units:
+        # Create Unit
+        # Restore owner if exists
+        restored_owner_id = owner_map.get(unit_name)
+        
+        db_unit = Unit(
+            unit_number=unit_name,
+            floor=0, 
+            area_m2=0.0,
+            building_id=building_id,
+            owner_id=restored_owner_id # RESTORED
+        )
+        session.add(db_unit)
+        session.commit() # Commit needed to get ID for meters
+        session.refresh(db_unit)
+        created_units += 1
+        
+        # 4. Fetch Meters for Unit
+        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements)
+        for meter_data in meters:
+             # Create Meter
+             # (Since we deleted everything, we assume new meters)
+             db_meter = Meter(
+                 serial_number=meter_data['serial_number'],
+                 type=meter_data['type'],
+                 unit_of_measure=meter_data['unit_of_measure'],
+                 unit_id=db_unit.id
+             )
+             session.add(db_meter)
+             connected_meters += 1
+        session.commit()
+
+    # Update units_fetched flag
+    if len(influx_units) > 0:
+        building.units_fetched = True
+        session.add(building)
+        session.commit()
+    
+    return {
+        "message": "Reload complete (owners restored)", 
+        "units_created": created_units, 
+        "meters_connected": connected_meters, 
+        "units_found": len(influx_units),
+        "units_fetched": building.units_fetched
+    }
+
 @router.delete("/{building_id}/units")
 def delete_all_building_units(
     building_id: uuid.UUID,

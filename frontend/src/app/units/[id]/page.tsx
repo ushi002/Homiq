@@ -86,7 +86,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     };
 
     const canAssignOwner = user?.role === 'admin' || user?.role === 'home_lord';
-    const canAddMeter = user?.role === 'admin';
+
 
     const [selectedYear, setSelectedYear] = useState(2026);
     const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
@@ -121,34 +121,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         return (end - start).toFixed(2);
     };
 
-    // Meter Creation State
-    const [newMeter, setNewMeter] = useState({ serial_number: '', type: 'water_cold', unit_of_measure: 'm3' });
-    const [showMeterForm, setShowMeterForm] = useState(false);
 
-    const handleCreateMeter = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!canAddMeter) return;
-
-        try {
-            const res = await authFetch(`http://localhost:8000/telemetry/meters/`, {
-                method: 'POST',
-                body: JSON.stringify({ ...newMeter, unit_id: id })
-            });
-
-            if (res.ok) {
-                // Refresh meters
-                alert("Meter added!");
-                setShowMeterForm(false);
-                setNewMeter({ serial_number: '', type: 'water_cold', unit_of_measure: 'm3' });
-                // Trigger reload logic (simplified by just reloading page or re-fetching - doing crude re-fetch here would be verbose, ideally refactor fetch into function)
-                window.location.reload();
-            } else {
-                alert("Failed to add meter");
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
 
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
@@ -169,58 +142,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             <div className="grid grid-cols-1 gap-6">
                 <div className="flex justify-between items-center">
                     <h2 className="text-xl font-semibold">Meters & Readings</h2>
-                    {canAddMeter && (
-                        <button
-                            onClick={() => setShowMeterForm(!showMeterForm)}
-                            className="bg-green-600 text-white px-3 py-1 rounded-md text-sm hover:bg-green-700"
-                        >
-                            {showMeterForm ? 'Cancel' : '+ Add Meter'}
-                        </button>
-                    )}
                 </div>
-
-                {showMeterForm && (
-                    <div className="bg-white p-6 rounded-xl shadow-sm border border-green-200 mb-4">
-                        <h3 className="font-semibold mb-4">Add New Meter</h3>
-                        <form onSubmit={handleCreateMeter} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Serial Number</label>
-                                <input
-                                    required
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm"
-                                    value={newMeter.serial_number}
-                                    onChange={e => setNewMeter({ ...newMeter, serial_number: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Type</label>
-                                <select
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm"
-                                    value={newMeter.type}
-                                    onChange={e => setNewMeter({ ...newMeter, type: e.target.value })}
-                                >
-                                    <option value="water_cold">Water (Cold)</option>
-                                    <option value="water_hot">Water (Hot)</option>
-                                    <option value="electricity">Electricity</option>
-                                    <option value="gas">Gas</option>
-                                    <option value="heat">Heat</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Unit</label>
-                                <input
-                                    required
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 text-sm"
-                                    value={newMeter.unit_of_measure}
-                                    onChange={e => setNewMeter({ ...newMeter, unit_of_measure: e.target.value })}
-                                />
-                            </div>
-                            <button type="submit" className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 text-sm h-10">
-                                Save Meter
-                            </button>
-                        </form>
-                    </div>
-                )}
 
                 {/* Comparative Controls */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
