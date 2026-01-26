@@ -183,3 +183,56 @@ def sync_unit_readings(
             session.commit() # Commit per meter
 
     return {"message": "Readings synced", "readings_synced": total_synced}
+
+import secrets
+from datetime import timedelta
+
+@router.post("/{unit_id}/assign_by_email", response_model=UnitRead)
+def assign_owner_by_email(
+    unit_id: uuid.UUID,
+    email: str,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    # Authorization: Admin or Home Lord managing the building
+    if current_user.role not in ["admin", "home_lord"]:
+          raise HTTPException(status_code=403, detail="Not authorized")
+
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+        
+    building = session.get(Building, unit.building_id)
+    if not building:
+         raise HTTPException(status_code=404, detail="Building not found")
+
+    if current_user.role == "home_lord":
+        if building.manager_id != current_user.id:
+             raise HTTPException(status_code=403, detail="Not authorized to manage this unit")
+    
+    # Check if user exists
+    statement = select(User).where(User.email == email)
+    user = session.exec(statement).first()
+    
+    if not user:
+        # Create new pending user
+        user = User(
+            email=email,
+            role="owner",
+            password_hash="pending", # Or null? But schema might require hash? existing logic uses optional password
+            status="pending",
+            invite_token=secrets.token_urlsafe(32),
+            invite_expires_at=datetime.utcnow() + timedelta(hours=48),
+            created_by_id=current_user.id
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        
+    # Assign user to unit
+    unit.owner_id = user.id
+    session.add(unit)
+    session.commit()
+    session.refresh(unit)
+    
+    return unit

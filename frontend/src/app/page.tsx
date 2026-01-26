@@ -44,7 +44,7 @@ export default function Home() {
             Homiq Dashboard
           </h1>
           <p className="text-gray-500 mt-2">
-            Welcome, <span className="font-semibold text-gray-800">{user?.full_name || user?.role}</span>
+            Welcome, <Link href="/profile" className="font-semibold text-gray-800 hover:text-blue-600 hover:underline">{user?.full_name || user?.role}</Link>
           </p>
         </div>
         <div className="space-x-4">

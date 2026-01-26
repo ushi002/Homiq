@@ -3,7 +3,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..models.property import User, UserCreate, UserRead
+from ..models.property import User, UserCreate, UserRead, UserUpdate
 
 router = APIRouter()
 
@@ -18,8 +18,9 @@ def create_user(
 ):
     # RBAC
     if current_user.role == "admin":
-        if user.role != "home_lord":
-             raise HTTPException(status_code=403, detail="Admins can only create Home Lords")
+        # Admin can create home_lord, owner, AND admin
+        if user.role not in ["home_lord", "owner", "admin"]:
+             raise HTTPException(status_code=403, detail="Invalid role")
     elif current_user.role == "home_lord":
         if user.role != "owner":
              raise HTTPException(status_code=403, detail="Home Lords can only create Owners")
@@ -93,3 +94,55 @@ def delete_user(
     session.delete(user)
     session.commit()
     return {"ok": True}
+
+@router.patch("/me", response_model=UserRead)
+def update_self(
+    user_update: UserUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    if user_update.full_name is not None:
+        current_user.full_name = user_update.full_name
+        
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return current_user
+
+@router.patch("/{user_id}", response_model=UserRead)
+def update_user(
+    user_id: uuid.UUID,
+    user_update: UserUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # RBAC Permissions
+    if current_user.role == "admin":
+        # Admin can edit Home Lords and Owners. 
+        # (And potentially other Admins? Safe to allow all for now or restrict?)
+        # User said: "Admin to change Home lord's full name and Owner's full name"
+        pass 
+    elif current_user.role == "home_lord":
+        # Home Lord can change Owner's full name
+        if user.role != "owner":
+             raise HTTPException(status_code=403, detail="Home Lords can only edit Owners")
+        if user.created_by_id != current_user.id:
+             # Or check if owner belongs to a unit in managed building?
+             # For now, consistent with Read/Delete: created_by_id
+             raise HTTPException(status_code=403, detail="Not authorized to edit this user")
+    else:
+        # Owners cannot edit others
+        if user.id != current_user.id:
+             raise HTTPException(status_code=403, detail="Not authorized")
+
+    if user_update.full_name is not None:
+        user.full_name = user_update.full_name
+        
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user

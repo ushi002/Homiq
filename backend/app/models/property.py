@@ -30,6 +30,9 @@ class User(UserBase, table=True):
 class UserCreate(UserBase):
     password: Optional[str] = None
 
+class UserUpdate(SQLModel):
+    full_name: Optional[str] = None
+
 class UserRead(UserBase):
     id: uuid.UUID
 
@@ -88,3 +91,4 @@ class UnitCreate(UnitBase):
 
 class UnitRead(UnitBase):
     id: uuid.UUID
+    owner: Optional[UserRead] = None

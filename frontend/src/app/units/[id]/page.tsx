@@ -69,19 +69,23 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     }, [id]);
 
 
-    const handleAssignOwner = async (newOwnerId: string) => {
+    const handleAssignOwner = async (email: string) => {
         try {
-            const res = await authFetch(`http://localhost:8000/units/${id}/assign?owner_id=${newOwnerId}`, {
-                method: 'PATCH'
+            const res = await authFetch(`http://localhost:8000/units/${id}/assign_by_email?email=${encodeURIComponent(email)}`, {
+                method: 'POST'
             });
             if (res.ok) {
-                setOwnerId(newOwnerId);
-                // alert("Owner updated!");
+                const updatedUnit = await res.json();
+                setUnit(updatedUnit); // Update entire unit object to get populated owner
+                setOwnerId(updatedUnit.owner_id);
+                // alert("Owner assigned successfully!");
             } else {
-                alert("Failed to update owner");
+                const err = await res.json();
+                alert(`Failed to assign owner: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
+            alert("An error occurred");
         }
     };
 
@@ -132,9 +136,39 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     <p className="text-gray-500">Unit Number: {unit?.unit_number}</p>
                 </div>
                 {canAssignOwner && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Owner</label>
-                        <UserSelect value={ownerId} onChange={handleAssignOwner} />
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-sm w-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Assign Owner by Email</label>
+                        <form onSubmit={(e) => {
+                            e.preventDefault();
+                            const form = e.target as HTMLFormElement;
+                            const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                            handleAssignOwner(email);
+                        }} className="flex space-x-2">
+                            <input
+                                name="email"
+                                type="email"
+                                placeholder="owner@example.com"
+                                className="flex-1 rounded-md border-gray-300 shadow-sm border p-2 text-sm"
+                                required
+                            />
+                            <button
+                                type="submit"
+                                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
+                            >
+                                Assign
+                            </button>
+                        </form>
+                        <p className="text-xs text-gray-500 mt-1">
+                            If the user doesn't exist, they will be invited automatically.
+                        </p>
+                        {unit?.owner && (
+                            <div className="mt-2 p-2 bg-green-50 text-green-800 text-xs rounded border border-green-100">
+                                <p className="font-semibold">Current Owner:</p>
+                                <p>{unit.owner.full_name || unit.owner.email}</p>
+                                {unit.owner.full_name && <p className="text-gray-500">{unit.owner.email}</p>}
+                            </div>
+                        )}
+                        {!unit?.owner && ownerId && <p className="text-xs text-gray-400 mt-1">Owner ID: {ownerId.slice(0, 8)}...</p>}
                     </div>
                 )}
             </div>
