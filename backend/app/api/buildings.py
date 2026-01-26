@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
-from ..models.telemetry import Meter, MeterCreate
+from ..models.telemetry import Meter, MeterCreate, MeterReading
 from ..core.influx_utils import get_unique_units, get_unit_meters
 from .deps import get_current_user
 
@@ -171,7 +171,7 @@ def fetch_units_from_influx(
          raise HTTPException(status_code=400, detail="Building has no InfluxDB database configured")
 
     # 1. Fetch Unique Units
-    influx_units = get_unique_units(building.influx_db_name)
+    influx_units = get_unique_units(building.influx_db_name, building.influx_unit_tag)
     
     created_units = 0
     connected_meters = 0
@@ -193,7 +193,7 @@ def fetch_units_from_influx(
             created_units += 1
         
         # 2. Fetch Meters for Unit
-        meters = get_unit_meters(building.influx_db_name, unit_name)
+        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements)
         for meter_data in meters:
             # Check if meter exists
             db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()
@@ -258,11 +258,11 @@ def delete_all_building_units(
         # Get meters
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
-            # Delete readings first (no cascade config in models)
-            # Actually, we didn't import MeterReading here.
-            # Assuming just deleting Meters is okay if we are consistent.
-            # But let's verify if readings need deletion. 
-            # Ideally we should clean up everything.
+            # Delete readings first
+            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
+            for reading in readings:
+                session.delete(reading)
+            
             session.delete(meter)
             deleted_meters += 1
         
@@ -300,6 +300,10 @@ def delete_building(
         # 2. Delete meters for each unit
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
+            # Delete readings first
+            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
+            for reading in readings:
+                session.delete(reading)
             session.delete(meter)
         
         # 3. Delete unit

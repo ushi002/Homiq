@@ -18,6 +18,8 @@ interface Building {
     address: string;
     description: string;
     influx_db_name?: string;
+    influx_unit_tag?: string;
+    influx_measurements?: string;
     units_fetched?: boolean;
 }
 
@@ -28,7 +30,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { user } = useAuth();
     const isAdmin = user?.role === 'admin';
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '' });
+    const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_measurements: '' });
 
     useEffect(() => {
         // Fetch building
@@ -50,7 +52,9 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 name: building.name,
                 address: building.address,
                 description: building.description || '',
-                influx_db_name: building.influx_db_name || ''
+                influx_db_name: building.influx_db_name || '',
+                influx_unit_tag: building.influx_unit_tag || '',
+                influx_measurements: building.influx_measurements || ''
             });
         }
     }, [building]);
@@ -199,6 +203,27 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     />
                                 </div>
                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Unit Tag</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.influx_unit_tag}
+                                        onChange={e => setEditForm({ ...editForm, influx_unit_tag: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        placeholder="e.g. unit (default) or jednotka"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements (Optional)</label>
+                                    <input
+                                        type="text"
+                                        value={editForm.influx_measurements}
+                                        onChange={e => setEditForm({ ...editForm, influx_measurements: e.target.value })}
+                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        placeholder="e.g. sv_l[m3,Cold Water], tea_kwh[kWh,Heating]"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-1">Format: tag[unit,name], ...</p>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-medium text-gray-700">Description</label>
                                     <textarea
                                         value={editForm.description}
@@ -271,8 +296,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 onClick={handleDeleteUnits}
                                 disabled={!building.units_fetched}
                                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
-                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                        : "bg-red-50 text-red-600 hover:bg-red-100"
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    : "bg-red-50 text-red-600 hover:bg-red-100"
                                     }`}
                             >
                                 Delete All Units
@@ -281,8 +306,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 onClick={handleDeleteBuilding}
                                 disabled={building.units_fetched}
                                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
-                                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                        : "bg-red-600 text-white hover:bg-red-700"
+                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    : "bg-red-600 text-white hover:bg-red-700"
                                     }`}
                             >
                                 Delete Building
