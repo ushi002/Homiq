@@ -30,7 +30,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [ownerId, setOwnerId] = useState<string>("");
     const { user } = useAuth(); // Get current user
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
 
     useEffect(() => {
         // 1. Fetch unit info
@@ -220,7 +220,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         >
                             {viewMode === 'month'
                                 ? Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                                    <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('default', { month: 'long' })}</option>
+                                    <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: 'long' })}</option>
                                 ))
                                 : Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
@@ -252,7 +252,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-blue-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-blue-100 pb-2">
                                         <h4 className="font-semibold text-sm text-blue-800">
-                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear}
+                                            {viewMode === 'month' ? new Date(2000, selectedPeriod - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear}
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
@@ -262,7 +262,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {currentReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
-                                                <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString()}</span>
+                                                <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
                                                 <span className="font-bold">{reading.value}</span>
                                             </div>
                                         ))}
@@ -274,7 +274,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-gray-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
                                         <h4 className="font-semibold text-sm text-gray-600">
-                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear - 1}
+                                            {viewMode === 'month' ? new Date(2000, selectedPeriod - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear - 1}
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
@@ -284,7 +284,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {prevReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-gray-200 last:border-0">
-                                                <span className="text-gray-500 text-xs">{new Date(reading.time).toLocaleDateString()}</span>
+                                                <span className="text-gray-500 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
                                                 <span className="font-medium text-gray-700">{reading.value}</span>
                                             </div>
                                         ))}
