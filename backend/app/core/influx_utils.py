@@ -1,7 +1,9 @@
 import requests
 from typing import List, Dict, Set, Tuple
 
-INFLUX_HOST = "http://localhost:8086"
+import os
+
+INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
 
 def query_influx(db_name: str, query: str) -> dict:
     url = f"{INFLUX_HOST}/query"

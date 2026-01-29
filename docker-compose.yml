@@ -7,6 +7,10 @@ services:
     #   - "8000:8000" # Exposed via Nginx
     volumes:
       - ./backend/database.db:/app/database.db
+    environment:
+      - INFLUX_HOST=http://host.docker.internal:8086
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: always
 
   frontend:
