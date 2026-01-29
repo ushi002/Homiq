@@ -293,16 +293,30 @@ def reload_building_units(
         # 4. Fetch Meters for Unit
         meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements)
         for meter_data in meters:
-             # Create Meter
-             # (Since we deleted everything, we assume new meters)
-             db_meter = Meter(
-                 serial_number=meter_data['serial_number'],
-                 type=meter_data['type'],
-                 unit_of_measure=meter_data['unit_of_measure'],
-                 unit_id=db_unit.id
-             )
-             session.add(db_meter)
-             connected_meters += 1
+             # Check if meter exists (it might have been created in a previous loop iteration for another unit)
+             db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()
+             
+             if not db_meter:
+                 db_meter = Meter(
+                     serial_number=meter_data['serial_number'],
+                     type=meter_data['type'],
+                     unit_of_measure=meter_data['unit_of_measure'],
+                     unit_id=db_unit.id
+                 )
+                 session.add(db_meter)
+                 connected_meters += 1
+             else:
+                 # Meter exists (duplicate serial number found in Influx result for different unit?)
+                 # Update it to point to this unit, or just skip?
+                 # If we update, it might "steal" the meter from the previous unit. 
+                 # Given the data structure, let's assume valid reassignment or just update.
+                 if db_meter.unit_id != db_unit.id:
+                     db_meter.unit_id = db_unit.id
+                     session.add(db_meter)
+                 # We don't increment connected_meters if we are just moving it, or maybe we do? 
+                 # Let's count it as "connected" to this unit.
+                 connected_meters += 1
+        
         session.commit()
 
     # Update units_fetched flag

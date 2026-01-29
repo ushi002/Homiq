@@ -84,12 +84,7 @@ export default function LoginPage() {
                         </button>
                     </div>
                 </form>
-                <div className="text-xs text-center text-gray-400">
-                    Sample Logins:<br />
-                    admin@homiq.cz / password (Admin)<br />
-                    lord1@homiq.cz / password (Home Lord)<br />
-                    jan.novak@example.com / password (Owner)
-                </div>
+
             </div>
         </div>
     );

@@ -32,6 +32,80 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_measurements: '' });
 
+    // Measurements UI State
+    interface MeasurementItem {
+        id: string;
+        name: string;
+        uom: string;
+        type: string;
+    }
+    const [measurementsList, setMeasurementsList] = useState<MeasurementItem[]>([]);
+
+    // Helper: Parse string "sv_l[m3,Cold Water], ..." to objects
+    const parseMeasurements = (str: string): MeasurementItem[] => {
+        if (!str) return [];
+        const parts = str.split(/,(?![^\[]*\])/); // Split by comma ignoring brackets
+        return parts.map(part => {
+            part = part.trim();
+            if (!part) return null;
+            let name = part;
+            let uom = '';
+            let type = '';
+
+            if (part.includes('[') && part.endsWith(']')) {
+                const [n, content] = part.split('[');
+                name = n.trim();
+                const inner = content.slice(0, -1); // remove closing ]
+                if (inner.includes(',')) {
+                    const [u, t] = inner.split(',', 2);
+                    uom = u.trim();
+                    type = t.trim();
+                } else {
+                    uom = inner.trim();
+                }
+            }
+            return { id: Math.random().toString(36).substr(2, 9), name, uom, type };
+        }).filter(Boolean) as MeasurementItem[];
+    };
+
+    // Helper: Serialize objects back to string
+    const serializeMeasurements = (items: MeasurementItem[]): string => {
+        return items.map(m => {
+            if (!m.name.trim()) return null;
+            const name = m.name.trim();
+            const uom = m.uom.trim();
+            const type = m.type.trim();
+
+            if (uom || type) {
+                // name[uom,type]
+                let content = uom;
+                if (type) {
+                    content = `${uom},${type}`;
+                }
+                return `${name}[${content}]`;
+            }
+            return name;
+        }).filter(Boolean).join(', ');
+    };
+
+    const addMeasurement = () => {
+        setMeasurementsList([...measurementsList, { id: Math.random().toString(36).substr(2, 9), name: '', uom: '', type: '' }]);
+    };
+
+    const removeMeasurement = (index: number) => {
+        const newList = [...measurementsList];
+        newList.splice(index, 1);
+        setMeasurementsList(newList);
+        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+    };
+
+    const updateMeasurement = (index: number, field: keyof MeasurementItem, value: string) => {
+        const newList = [...measurementsList];
+        newList[index] = { ...newList[index], [field]: value };
+        setMeasurementsList(newList);
+        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+    };
+
     useEffect(() => {
         // Fetch building
         authFetch(`/buildings/${id}`)
@@ -56,6 +130,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 influx_unit_tag: building.influx_unit_tag || '',
                 influx_measurements: building.influx_measurements || ''
             });
+            setMeasurementsList(parseMeasurements(building.influx_measurements || ''));
         }
     }, [building]);
 
@@ -233,16 +308,66 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         placeholder="e.g. unit (default) or jednotka"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={editForm.influx_measurements}
-                                        onChange={e => setEditForm({ ...editForm, influx_measurements: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        placeholder="e.g. sv_l[m3,Cold Water], tea_kwh[kWh,Heating]"
-                                    />
-                                    <p className="text-xs text-gray-500 mt-1">Format: tag[unit,name], ...</p>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements</label>
+                                        <button
+                                            type="button"
+                                            onClick={addMeasurement}
+                                            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100"
+                                        >
+                                            + Add Row
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        {measurementsList.map((item, index) => (
+                                            <div key={item.id} className="flex gap-2 items-center">
+                                                <div className="flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={item.name}
+                                                        onChange={e => updateMeasurement(index, 'name', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                                        placeholder="Measurement (e.g. sv_l)"
+                                                        required
+                                                    />
+                                                </div>
+                                                <div className="w-24">
+                                                    <input
+                                                        type="text"
+                                                        value={item.uom}
+                                                        onChange={e => updateMeasurement(index, 'uom', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                                        placeholder="Unit (m3)"
+                                                    />
+                                                </div>
+                                                <div className="w-32">
+                                                    <input
+                                                        type="text"
+                                                        value={item.type}
+                                                        onChange={e => updateMeasurement(index, 'type', e.target.value)}
+                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                                        placeholder="Type (Cold Water)"
+                                                    />
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeMeasurement(index)}
+                                                    className="text-red-500 hover:text-red-700 p-2"
+                                                    title="Remove"
+                                                >
+                                                    &times;
+                                                </button>
+                                            </div>
+                                        ))}
+                                        {measurementsList.length === 0 && (
+                                            <p className="text-sm text-gray-400 italic text-center py-2 border border-dashed rounded-md">
+                                                No measurements configured. Click "+ Add Row" to define.
+                                            </p>
+                                        )}
+                                    </div>
+                                    <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Description</label>
