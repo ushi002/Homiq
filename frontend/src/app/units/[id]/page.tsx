@@ -80,14 +80,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 const updatedUnit = await res.json();
                 setUnit(updatedUnit); // Update entire unit object to get populated owner
                 setOwnerId(updatedUnit.owner_id);
-                // alert("Owner assigned successfully!");
+                // alert(t.messages.successAssignOwner);
             } else {
                 const err = await res.json();
-                alert(`Failed to assign owner: ${err.detail}`);
+                alert(`${t.messages.errorAssignOwner}: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred");
+            alert(t.messages.errorGeneric);
         }
     };
 

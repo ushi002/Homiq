@@ -148,12 +148,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 // Update local state or reload
                 const updated = await res.json();
                 setBuilding(updated);
-                alert("Building manager updated!");
+                alert(t.messages.successUpdateManager);
             } else {
-                alert("Failed to update manager");
+                alert(t.messages.errorUpdateManager);
             }
         } catch (err) {
             console.error(err);
+            alert(t.messages.errorGeneric);
         }
     };
 
@@ -170,22 +171,23 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 const updated = await res.json();
                 setBuilding(updated);
                 setIsEditing(false);
-                alert("Building updated successfully!");
+                alert(t.messages.successUpdateBuilding);
             } else {
-                alert("Failed to update building");
+                alert(t.messages.errorUpdateBuilding);
             }
         } catch (err) {
             console.error(err);
+            alert(t.messages.errorGeneric);
         }
     };
 
     const handleFetchUnits = async () => {
         const isReload = building.units_fetched;
         const message = isReload
-            ? "WARNING: RELOADING units will DELETE ALL existing units, meters, and READINGS for this building, and then re-fetch them. This action cannot be undone. Start Reload?"
-            : "Are you sure you want to fetch units from InfluxDB? This might take a moment.";
+            ? t.messages.confirmReloadUnits
+            : t.messages.confirmReloadUnits.split('\n\n')[1]; // approximate reuse or new key
 
-        if (!confirm(message)) return;
+        if (!confirm(t.messages.confirmReloadUnits)) return;
 
         try {
             if (isReload) {
@@ -196,11 +198,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
                 if (res.ok) {
                     const data = await res.json();
-                    alert(`Reload Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                    alert(t.messages.successReloadUnits
+                        .replace('{created}', data.units_created)
+                        .replace('{connected}', data.meters_connected));
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert(`Failed to reload: ${err.detail || 'Unknown error'}`);
+                    alert(`${t.messages.errorReloadUnits}: ${err.detail || 'Unknown error'}`);
                 }
             } else {
                 // Initial Fetch
@@ -209,22 +213,24 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    alert(`Sync Complete!\nUnits Created: ${data.units_created}\nMeters Connected: ${data.meters_connected}`);
+                    alert(t.messages.successSyncUnits
+                        .replace('{created}', data.units_created)
+                        .replace('{connected}', data.meters_connected));
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert(`Failed: ${err.detail || 'Unknown error'}`);
+                    alert(`${t.messages.errorSyncUnits}: ${err.detail || 'Unknown error'}`);
                 }
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred while fetching units.");
+            alert(t.messages.errorFetchUnits);
         }
     };
 
     const handleDeleteUnits = async () => {
-        if (!confirm("Are you sure you want to DELETE ALL UNITS? This action cannot be undone and will delete all units, meters, and readings associated with this building.")) return;
-        if (!confirm("Please confirm again: DELETE ALL UNITS?")) return;
+        if (!confirm(t.messages.confirmDeleteAllUnits)) return;
+        if (!confirm(t.messages.confirmDeleteAllUnitsFinal)) return;
 
         try {
             const res = await authFetch(`/buildings/${id}/units`, {
@@ -232,33 +238,35 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             });
             if (res.ok) {
                 const data = await res.json();
-                alert(`Deletion Complete!\nUnits Deleted: ${data.deleted_units}\nMeters Deleted: ${data.deleted_meters}`);
+                alert(t.messages.successDeleteAllUnits
+                    .replace('{deletedUnits}', data.deleted_units)
+                    .replace('{deletedMeters}', data.deleted_meters));
                 window.location.reload();
             } else {
-                alert("Failed to delete units");
+                alert(t.messages.errorDeleteAllUnits);
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred");
+            alert(t.messages.errorGeneric);
         }
     };
 
     const handleDeleteBuilding = async () => {
-        if (!confirm("Are you sure you want to DELETE THIS BUILDING? This action is irreversible.")) return;
+        if (!confirm(t.messages.confirmDeleteBuilding)) return;
 
         try {
             const res = await authFetch(`/buildings/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) {
-                alert("Building deleted successfully");
+                alert(t.messages.successDeleteBuilding);
                 window.location.href = "/"; // Redirect to dashboard
             } else {
-                alert("Failed to delete building");
+                alert(t.messages.errorDeleteBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred");
+            alert(t.messages.errorGeneric);
         }
     };
 

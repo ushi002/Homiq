@@ -103,4 +103,33 @@ export interface Translations {
         errorPassword: string;
         errorMismatch: string;
     };
+    messages: {
+        successCreateUser: string;
+        errorCreateUser: string;
+        confirmDeleteUser: string;
+        errorDeleteUser: string;
+        inviteCopied: string;
+        errorUpdateUser: string;
+        successAssignOwner: string;
+        errorAssignOwner: string;
+        errorGeneric: string;
+        successUpdateManager: string;
+        errorUpdateManager: string;
+        successUpdateBuilding: string;
+        errorUpdateBuilding: string;
+        confirmReloadUnits: string;
+        successReloadUnits: string;
+        errorReloadUnits: string;
+        successSyncUnits: string;
+        errorSyncUnits: string;
+        errorFetchUnits: string;
+        confirmDeleteAllUnits: string;
+        confirmDeleteAllUnitsFinal: string;
+        successDeleteAllUnits: string;
+        errorDeleteAllUnits: string;
+        confirmDeleteBuilding: string;
+        successDeleteBuilding: string;
+        errorDeleteBuilding: string;
+        errorCreateBuilding: string;
+    };
 }

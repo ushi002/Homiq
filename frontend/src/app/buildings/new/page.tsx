@@ -83,11 +83,11 @@ export default function CreateBuilding() {
                 const newBuilding = await res.json();
                 router.push(`/buildings/${newBuilding.id}`);
             } else {
-                alert("Failed to create building");
+                alert(t.messages.errorCreateBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert("An error occurred");
+            alert(t.messages.errorGeneric);
         }
     };
 
