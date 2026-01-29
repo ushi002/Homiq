@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { authFetch } from '@/lib/api';
 import UserSelect from '@/components/UserSelect';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Unit {
     id: string;
@@ -31,6 +32,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const isAdmin = user?.role === 'admin';
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_measurements: '' });
+    const { t } = useLanguage();
 
     // Measurements UI State
     interface MeasurementItem {
@@ -134,7 +136,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [building]);
 
-    if (!building) return <div className="p-8">Loading...</div>;
+    if (!building) return <div className="p-8">{t.common.loading}</div>;
 
     const handleAssignManager = async (newManagerId: string) => {
         if (!isAdmin) return;
@@ -263,13 +265,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
+                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
                 <div className="flex justify-between items-start">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
                             <form onSubmit={handleUpdateBuilding} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                                    <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
                                     <input
                                         type="text"
                                         value={editForm.name}
@@ -279,7 +281,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Address</label>
+                                    <label className="block text-sm font-medium text-gray-700">{t.building.address}</label>
                                     <input
                                         type="text"
                                         value={editForm.address}
@@ -289,7 +291,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Database Name</label>
+                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxDbName}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_db_name}
@@ -299,7 +301,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">InfluxDB Unit Tag</label>
+                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxUnitTag}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_unit_tag}
@@ -310,13 +312,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 </div>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements</label>
+                                        <label className="block text-sm font-medium text-gray-700">{t.building.influxMeasurements}</label>
                                         <button
                                             type="button"
                                             onClick={addMeasurement}
                                             className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100"
                                         >
-                                            + Add Row
+                                            {t.building.addMeasurement}
                                         </button>
                                     </div>
 
@@ -329,7 +331,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                         value={item.name}
                                                         onChange={e => updateMeasurement(index, 'name', e.target.value)}
                                                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder="Measurement (e.g. sv_l)"
+                                                        placeholder={t.building.measurementName}
                                                         required
                                                     />
                                                 </div>
@@ -339,7 +341,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                         value={item.uom}
                                                         onChange={e => updateMeasurement(index, 'uom', e.target.value)}
                                                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder="Unit (m3)"
+                                                        placeholder={t.building.measurementUnit}
                                                     />
                                                 </div>
                                                 <div className="w-32">
@@ -348,7 +350,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                         value={item.type}
                                                         onChange={e => updateMeasurement(index, 'type', e.target.value)}
                                                         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder="Type (Cold Water)"
+                                                        placeholder={t.building.measurementType}
                                                     />
                                                 </div>
                                                 <button
@@ -363,14 +365,14 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         ))}
                                         {measurementsList.length === 0 && (
                                             <p className="text-sm text-gray-400 italic text-center py-2 border border-dashed rounded-md">
-                                                No measurements configured. Click "+ Add Row" to define.
+                                                {t.building.measurementsPlaceholder}
                                             </p>
                                         )}
                                     </div>
                                     <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                                    <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
                                     <textarea
                                         value={editForm.description}
                                         onChange={e => setEditForm({ ...editForm, description: e.target.value })}
@@ -380,10 +382,10 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 </div>
                                 <div className="flex space-x-2">
                                     <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                                        Save Changes
+                                        {t.common.save}
                                     </button>
                                     <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
-                                        Cancel
+                                        {t.common.cancel}
                                     </button>
                                 </div>
                             </form>
@@ -391,7 +393,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                             <>
                                 <h1 className="text-3xl font-bold">{building.name}</h1>
                                 <p className="text-gray-500">{building.address}</p>
-                                {building.influx_db_name && (
+                                {isAdmin && building.influx_db_name && (
                                     <div className="mt-2 text-sm bg-purple-50 text-purple-700 px-3 py-1 rounded-full inline-block">
                                         InfluxDB: {building.influx_db_name}
                                     </div>
@@ -403,7 +405,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         onClick={() => setIsEditing(true)}
                                         className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
                                     >
-                                        Edit Details
+                                        {t.common.edit}
                                     </button>
                                 )}
                             </>
@@ -412,7 +414,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     {/* Admin Manager Assignment */}
                     {isAdmin && (
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-xs w-full ml-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Assigned Home Lord</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.building.assignedHomeLord}</label>
                             <UserSelect
                                 value={building.manager_id || ""}
                                 onChange={handleAssignManager}
@@ -425,7 +427,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Units</h2>
+                    <h2 className="text-xl font-semibold">{t.building.units}</h2>
                     {isAdmin && (
                         <div className="space-x-2">
                             <button
@@ -435,7 +437,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     : "bg-purple-100 text-purple-700 hover:bg-purple-200"
                                     }`}
                             >
-                                {building.units_fetched ? "Reload Units" : "Fetch Units"}
+                                {building.units_fetched ? t.building.reloadUnits : t.building.fetchUnits}
                             </button>
                             <button
                                 onClick={handleDeleteUnits}
@@ -445,7 +447,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     : "bg-red-50 text-red-600 hover:bg-red-100"
                                     }`}
                             >
-                                Delete All Units
+                                {t.building.deleteAllUnits}
                             </button>
                             <button
                                 onClick={handleDeleteBuilding}
@@ -455,7 +457,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     : "bg-red-600 text-white hover:bg-red-700"
                                     }`}
                             >
-                                Delete Building
+                                {t.building.deleteBuilding}
                             </button>
                         </div>
                     )}
@@ -467,16 +469,16 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 <Link href={`/units/${unit.id}`} className="block px-6 py-4 flex justify-between items-center">
                                     <div>
                                         <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
-                                        <span className="text-gray-500 ml-4">Floor: {unit.floor}</span>
+                                        <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>
                                         <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>
                                     </div>
-                                    <span className="text-blue-500">View Details &rarr;</span>
+                                    <span className="text-blue-500">{t.building.viewDetails} &rarr;</span>
                                 </Link>
                             </li>
                         ))}
                     </ul>
                     {units.length === 0 && (
-                        <div className="p-6 text-center text-gray-400">No units found in this building.</div>
+                        <div className="p-6 text-center text-gray-400">{t.building.noUnits}</div>
                     )}
                 </div>
             </div>

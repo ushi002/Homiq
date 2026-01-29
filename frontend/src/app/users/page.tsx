@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface User {
     id: string;
@@ -18,6 +19,7 @@ export default function UsersPage() {
     const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
     const { user: currentUser } = useAuth();
     const [origin, setOrigin] = useState('');
+    const { t } = useLanguage();
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
@@ -115,18 +117,18 @@ export default function UsersPage() {
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                <h1 className="text-3xl font-bold">User Management</h1>
+                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.users.backToDashboard}</Link>
+                <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Create User Form */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-                    <h2 className="text-lg font-semibold mb-4">Invite New User</h2>
+                    <h2 className="text-lg font-semibold mb-4">{t.users.inviteNew}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                            <label className="block text-sm font-medium text-gray-700">{t.common.email}</label>
                             <input
                                 type="email"
                                 required
@@ -136,7 +138,7 @@ export default function UsersPage() {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                            <label className="block text-sm font-medium text-gray-700">{t.users.fullName}</label>
                             <input
                                 type="text"
                                 required
@@ -147,25 +149,25 @@ export default function UsersPage() {
                         </div>
                         {/* Password field removed for invite flow */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Role</label>
+                            <label className="block text-sm font-medium text-gray-700">{t.users.role}</label>
                             <select
                                 className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-white`}
                                 value={newUser.role}
                                 onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                                 disabled={currentUser?.role !== 'admin'}
                             >
-                                <option value="home_lord">Home Lord</option>
-                                <option value="owner">Owner</option>
-                                <option value="admin">Admin</option>
+                                <option value="home_lord">{t.users.roleHomeLord}</option>
+                                <option value="owner">{t.users.roleOwner}</option>
+                                <option value="admin">{t.users.roleAdmin}</option>
                             </select>
                             <p className="text-xs text-gray-500 mt-1">
                                 {currentUser?.role === 'admin'
-                                    ? "Admins can create Home Lords, Owners, and other Admins."
-                                    : "Home Lords can only create Owners."}
+                                    ? t.users.adminInfo
+                                    : t.users.homeLordInfo}
                             </p>
                         </div>
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
-                            Send Invite
+                            {t.users.sendInvite}
                         </button>
                     </form>
                 </div>
@@ -173,7 +175,7 @@ export default function UsersPage() {
                 {/* User List */}
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                        <h2 className="font-semibold text-gray-700">All Users</h2>
+                        <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
                     </div>
                     <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
                         {users.map(user => (
@@ -188,8 +190,8 @@ export default function UsersPage() {
                                                     onChange={e => setEditName(e.target.value)}
                                                     className="border rounded px-2 py-1 text-sm w-full max-w-xs"
                                                 />
-                                                <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">Save</button>
-                                                <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">Cancel</button>
+                                                <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{t.common.save}</button>
+                                                <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{t.common.cancel}</button>
                                             </div>
                                         ) : (
                                             <div className="flex items-center space-x-2">
@@ -205,31 +207,33 @@ export default function UsersPage() {
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                                             user.role === 'home_lord' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                             }`}>
-                                            {user.role === 'home_lord' ? 'Home Lord' : user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                            {user.role === 'home_lord' ? t.users.roleHomeLord :
+                                                user.role === 'admin' ? t.users.roleAdmin :
+                                                    t.users.roleOwner}
                                         </span>
                                         <button
                                             onClick={() => handleDeleteUser(user.id)}
                                             className="text-red-500 hover:text-red-700 text-sm font-medium"
                                             title="Delete User"
                                         >
-                                            Delete
+                                            {t.common.delete}
                                         </button>
                                     </div>
                                 </div>
                                 {user.invite_token && user.status === 'pending' && (
                                     <div className="mt-2 bg-amber-50 p-2 rounded border border-amber-100 flex justify-between items-center">
                                         <span className="text-sm text-amber-800">
-                                            Pending Invite: <code className="bg-white px-1 py-0.5 rounded border border-amber-200 text-xs">{`${origin}/invite/${user.invite_token}`}</code>
+                                            {t.users.pendingInvite}: <code className="bg-white px-1 py-0.5 rounded border border-amber-200 text-xs">{`${origin}/invite/${user.invite_token}`}</code>
                                         </span>
                                         <button onClick={() => copyInviteLink(user.invite_token!)} className="text-xs text-blue-600 hover:underline">
-                                            Copy Link
+                                            {t.users.copyLink}
                                         </button>
                                     </div>
                                 )}
                             </li>
                         ))}
                         {users.length === 0 && (
-                            <li className="px-6 py-8 text-center text-gray-400">No users found.</li>
+                            <li className="px-6 py-8 text-center text-gray-400">{t.unit.noData}</li>
                         )}
                     </ul>
                 </div>

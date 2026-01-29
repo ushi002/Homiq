@@ -1,0 +1,106 @@
+export interface Translations {
+    common: {
+        loading: string;
+        backToDashboard: string;
+        save: string;
+        cancel: string;
+        edit: string;
+        delete: string;
+        signIn: string;
+        email: string;
+        password: string;
+        logout: string;
+        yes: string;
+        no: string;
+        confirmDelete: string;
+    };
+    login: {
+        title: string;
+        subtitle: string;
+        error: string;
+    };
+    dashboard: {
+        title: string;
+        addBuilding: string;
+        noBuildings: string;
+        managedBy: string;
+        manageUsers: string;
+    };
+    building: {
+        name: string;
+        address: string;
+        description: string;
+        influxDbName: string;
+        influxUnitTag: string;
+        influxMeasurements: string;
+        assignedHomeLord: string;
+        units: string;
+        fetchUnits: string;
+        reloadUnits: string;
+        deleteAllUnits: string;
+        deleteBuilding: string;
+        noUnits: string;
+        floor: string;
+        area: string;
+        viewDetails: string;
+        addMeasurement: string;
+        measurementName: string;
+        measurementUnit: string;
+        measurementType: string;
+        measurementsPlaceholder: string;
+    };
+    unit: {
+        title: string;
+        unitNumber: string;
+        assignOwner: string;
+        assign: string;
+        assignPlaceholder: string;
+        inviteInfo: string;
+        currentOwner: string;
+        ownerId: string;
+        meters: string;
+        year: string;
+        viewMode: string;
+        selectMonth: string;
+        selectWeek: string;
+        consumption: string;
+        noData: string;
+        noMeters: string;
+        month: string;
+        week: string;
+    };
+    users: {
+        title: string;
+        inviteNew: string;
+        fullName: string;
+        role: string;
+        sendInvite: string;
+        backToDashboard: string;
+        allUsers: string;
+        pendingInvite: string;
+        copyLink: string;
+        roleAdmin: string;
+        roleHomeLord: string;
+        roleOwner: string;
+        deleteUser: string;
+        adminInfo: string;
+        homeLordInfo: string;
+    };
+    profile: {
+        title: string;
+        email: string;
+        role: string;
+        fullName: string;
+        saveChanges: string;
+        changePassword: string;
+        oldPassword: string;
+        newPassword: string;
+        confirmPassword: string;
+        updatePassword: string;
+        successUpdate: string;
+        successPassword: string;
+        errorUpdate: string;
+        errorPassword: string;
+        errorMismatch: string;
+    };
+}

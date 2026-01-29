@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 import { authFetch } from '@/lib/api';
 
 export default function ProfilePage() {
     const { user, login, token } = useAuth(); // Need login to update local state
+    const { t } = useLanguage();
     const [fullName, setFullName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -29,7 +31,7 @@ export default function ProfilePage() {
 
             if (res.ok) {
                 const updatedUser = await res.json();
-                setMessage('Profile updated successfully!');
+                setMessage(t.profile.successUpdate);
 
                 // Update Context/LocalStorage
                 // We reuse existing token but update user details
@@ -37,11 +39,11 @@ export default function ProfilePage() {
                     login(token, user.id, user.role, updatedUser.full_name);
                 }
             } else {
-                setMessage('Failed to update profile.');
+                setMessage(t.profile.errorUpdate);
             }
         } catch (err) {
             console.error(err);
-            setMessage('An error occurred.');
+            setMessage(t.login.error);
         } finally {
             setIsLoading(false);
         }
@@ -51,20 +53,20 @@ export default function ProfilePage() {
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                    <h1 className="text-3xl font-bold">Your Profile</h1>
+                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                    <h1 className="text-3xl font-bold">{t.profile.title}</h1>
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {message && (
-                            <div className={`p-3 rounded-md text-sm ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                            <div className={`p-3 rounded-md text-sm ${message.includes(t.profile.successUpdate) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                                 {message}
                             </div>
                         )}
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-500">Email</label>
+                            <label className="block text-sm font-medium text-gray-500">{t.profile.email}</label>
                             <input
                                 type="text"
                                 value={user?.role === 'admin' ? 'admin@homiq.cz' : '...'} // actually we don't have email in context user object, only id/role/fullname. 
@@ -79,14 +81,14 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Role</label>
+                            <label className="block text-sm font-medium text-gray-700">{t.profile.role}</label>
                             <div className="mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600 sm:text-sm capitalize">
                                 {user?.role.replace('_', ' ')}
                             </div>
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+                            <label className="block text-sm font-medium text-gray-700">{t.profile.fullName}</label>
                             <input
                                 type="text"
                                 value={fullName}
@@ -100,14 +102,14 @@ export default function ProfilePage() {
                             disabled={isLoading}
                             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                         >
-                            {isLoading ? 'Saving...' : 'Save Changes'}
+                            {isLoading ? t.common.loading : t.profile.saveChanges}
                         </button>
                     </form>
                 </div>
 
                 {/* Change Password Section */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
-                    <h2 className="text-lg font-semibold mb-4 text-gray-800">Change Password</h2>
+                    <h2 className="text-lg font-semibold mb-4 text-gray-800">{t.profile.changePassword}</h2>
                     <ChangePasswordForm />
                 </div>
             </div>
@@ -115,17 +117,18 @@ export default function ProfilePage() {
     );
 }
 
-function ChangePasswordForm() {
+const ChangePasswordForm = () => {
     const [passwords, setPasswords] = useState({ old_password: '', new_password: '', confirm_password: '' });
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { t } = useLanguage();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setMessage('');
 
         if (passwords.new_password !== passwords.confirm_password) {
-            setMessage('New passwords do not match.');
+            setMessage(t.profile.errorMismatch);
             return;
         }
 
@@ -138,15 +141,15 @@ function ChangePasswordForm() {
             });
 
             if (res.ok) {
-                setMessage('Password changed successfully!');
+                setMessage(t.profile.successPassword);
                 setPasswords({ old_password: '', new_password: '', confirm_password: '' });
             } else {
                 const err = await res.json();
-                setMessage(`Failed: ${err.detail}`);
+                setMessage(`${t.profile.errorPassword}${err.detail}`);
             }
         } catch (err) {
             console.error(err);
-            setMessage('An error occurred.');
+            setMessage(t.login.error);
         } finally {
             setIsLoading(false);
         }
@@ -155,12 +158,12 @@ function ChangePasswordForm() {
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             {message && (
-                <div className={`p-3 rounded-md text-sm ${message.includes('success') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                <div className={`p-3 rounded-md text-sm ${message.includes(t.profile.successPassword) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                     {message}
                 </div>
             )}
             <div>
-                <label className="block text-sm font-medium text-gray-700">Old Password</label>
+                <label className="block text-sm font-medium text-gray-700">{t.profile.oldPassword}</label>
                 <input
                     type="password"
                     required
@@ -170,7 +173,7 @@ function ChangePasswordForm() {
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">New Password</label>
+                <label className="block text-sm font-medium text-gray-700">{t.profile.newPassword}</label>
                 <input
                     type="password"
                     required
@@ -180,7 +183,7 @@ function ChangePasswordForm() {
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Confirm New Password</label>
+                <label className="block text-sm font-medium text-gray-700">{t.profile.confirmPassword}</label>
                 <input
                     type="password"
                     required
@@ -194,7 +197,7 @@ function ChangePasswordForm() {
                 disabled={isLoading}
                 className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
             >
-                {isLoading ? 'Updating...' : 'Update Password'}
+                {isLoading ? t.common.loading : t.profile.updatePassword}
             </button>
         </form>
     );
