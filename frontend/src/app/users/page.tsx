@@ -50,7 +50,7 @@ export default function UsersPage() {
                 fetchUsers();
             } else {
                 const err = await res.json();
-                alert(`Failed to create user: ${err.detail}`);
+                alert(`${t.messages.errorCreateUser}: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
@@ -58,7 +58,7 @@ export default function UsersPage() {
     };
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm("Are you sure you want to delete this user?")) return;
+        if (!confirm(t.messages.confirmDeleteUser)) return;
 
         try {
             const res = await authFetch(`/users/${userId}`, {
@@ -69,7 +69,7 @@ export default function UsersPage() {
                 fetchUsers(); // Refresh list
             } else {
                 const err = await res.json();
-                alert(`Failed to delete user: ${err.detail}`);
+                alert(`${t.messages.errorDeleteUser}: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
@@ -79,8 +79,8 @@ export default function UsersPage() {
     const copyInviteLink = (token: string) => {
         const link = `${origin}/invite/${token}`;
         navigator.clipboard.writeText(link);
-        alert("Invite link copied to clipboard: " + link);
-    }
+        alert(`${t.messages.inviteCopied}: ${link}`);
+    };
 
     const [editingUser, setEditingUser] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
@@ -107,7 +107,7 @@ export default function UsersPage() {
                 setEditingUser(null);
             } else {
                 const err = await res.json();
-                alert(`Failed to update user: ${err.detail}`);
+                alert(`${t.messages.errorUpdateUser}: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
