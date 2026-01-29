@@ -4,6 +4,7 @@ import Link from 'next/link';
 import UserSelect from '@/components/UserSelect';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface Meter {
     id: string;
@@ -29,6 +30,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [ownerId, setOwnerId] = useState<string>("");
     const { user } = useAuth(); // Get current user
+    const { t } = useLanguage();
 
     useEffect(() => {
         // 1. Fetch unit info
@@ -131,13 +133,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex justify-between items-start">
                 <div>
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                    <h1 className="text-3xl font-bold">Unit Details</h1>
-                    <p className="text-gray-500">Unit Number: {unit?.unit_number}</p>
+                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                    <h1 className="text-3xl font-bold">{t.unit.title}</h1>
+                    <p className="text-gray-500">{t.unit.unitNumber}: {unit?.unit_number}</p>
                 </div>
                 {canAssignOwner && (
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-sm w-full">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Assign Owner by Email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
                         <form onSubmit={(e) => {
                             e.preventDefault();
                             const form = e.target as HTMLFormElement;
@@ -147,7 +149,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             <input
                                 name="email"
                                 type="email"
-                                placeholder="owner@example.com"
+                                placeholder={t.unit.assignPlaceholder}
                                 className="flex-1 rounded-md border-gray-300 shadow-sm border p-2 text-sm"
                                 required
                             />
@@ -155,33 +157,33 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 type="submit"
                                 className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
                             >
-                                Assign
+                                {t.unit.assign}
                             </button>
                         </form>
                         <p className="text-xs text-gray-500 mt-1">
-                            If the user doesn't exist, they will be invited automatically.
+                            {t.unit.inviteInfo}
                         </p>
                         {unit?.owner && (
                             <div className="mt-2 p-2 bg-green-50 text-green-800 text-xs rounded border border-green-100">
-                                <p className="font-semibold">Current Owner:</p>
+                                <p className="font-semibold">{t.unit.currentOwner}:</p>
                                 <p>{unit.owner.full_name || unit.owner.email}</p>
                                 {unit.owner.full_name && <p className="text-gray-500">{unit.owner.email}</p>}
                             </div>
                         )}
-                        {!unit?.owner && ownerId && <p className="text-xs text-gray-400 mt-1">Owner ID: {ownerId.slice(0, 8)}...</p>}
+                        {!unit?.owner && ownerId && <p className="text-xs text-gray-400 mt-1">{t.unit.ownerId}: {ownerId.slice(0, 8)}...</p>}
                     </div>
                 )}
             </div>
 
             <div className="grid grid-cols-1 gap-6">
                 <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">Meters & Readings</h2>
+                    <h2 className="text-xl font-semibold">{t.unit.meters}</h2>
                 </div>
 
                 {/* Comparative Controls */}
                 <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">Year</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select
                             value={selectedYear}
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
@@ -191,25 +193,25 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">View Mode</label>
+                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.viewMode}</label>
                         <div className="flex mt-1 border rounded-md overflow-hidden">
                             <button
                                 onClick={() => setViewMode('month')}
                                 className={`px-3 py-1 text-sm ${viewMode === 'month' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-white text-gray-600'}`}
                             >
-                                Month
+                                {t.unit.month}
                             </button>
                             <button
                                 onClick={() => setViewMode('week')}
                                 className={`px-3 py-1 text-sm ${viewMode === 'week' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-white text-gray-600'}`}
                             >
-                                Week
+                                {t.unit.week}
                             </button>
                         </div>
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase">
-                            {viewMode === 'month' ? 'Select Month' : 'Select Week'}
+                            {viewMode === 'month' ? t.unit.selectMonth : t.unit.selectWeek}
                         </label>
                         <select
                             value={selectedPeriod}
@@ -221,7 +223,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('default', { month: 'long' })}</option>
                                 ))
                                 : Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
-                                    <option key={w} value={w}>Week {w}</option>
+                                    <option key={w} value={w}>{t.unit.week} {w}</option>
                                 ))
                             }
                         </select>
@@ -250,10 +252,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-blue-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-blue-100 pb-2">
                                         <h4 className="font-semibold text-sm text-blue-800">
-                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear}
+                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear}
                                         </h4>
                                         <div className="text-right">
-                                            <p className="text-xs text-blue-600 uppercase font-bold">Consumption</p>
+                                            <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
                                             <p className="text-lg font-bold text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
@@ -264,7 +266,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                                 <span className="font-bold">{reading.value}</span>
                                             </div>
                                         ))}
-                                        {currentReadings.length === 0 && <p className="text-xs text-gray-400 italic">No data.</p>}
+                                        {currentReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
                                     </div>
                                 </div>
 
@@ -272,10 +274,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-gray-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
                                         <h4 className="font-semibold text-sm text-gray-600">
-                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `Week ${selectedPeriod}`} {selectedYear - 1}
+                                            {viewMode === 'month' ? new Date(0, selectedPeriod - 1).toLocaleString('default', { month: 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear - 1}
                                         </h4>
                                         <div className="text-right">
-                                            <p className="text-xs text-gray-500 uppercase font-bold">Consumption</p>
+                                            <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
                                             <p className="text-lg font-bold text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
@@ -286,7 +288,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                                 <span className="font-medium text-gray-700">{reading.value}</span>
                                             </div>
                                         ))}
-                                        {prevReadings.length === 0 && <p className="text-xs text-gray-400 italic">No data.</p>}
+                                        {prevReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
                                     </div>
                                 </div>
                             </div>
@@ -295,7 +297,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 })}
                 {meters.length === 0 && (
                     <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">
-                        No meters installed in this unit.
+                        {t.unit.noMeters}
                     </div>
                 )}
             </div>

@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function CreateBuilding() {
     const router = useRouter();
+    const { t } = useLanguage();
     const [form, setForm] = useState({
         name: '',
         address: '',
@@ -15,13 +17,66 @@ export default function CreateBuilding() {
         influx_measurements: ''
     });
 
+    // Measurements UI State
+    interface MeasurementItem {
+        id: string;
+        name: string;
+        uom: string;
+        type: string;
+    }
+    const [measurementsList, setMeasurementsList] = useState<MeasurementItem[]>([]);
+
+    // Helper: Serialize objects back to string
+    const serializeMeasurements = (items: MeasurementItem[]): string => {
+        return items.map(m => {
+            if (!m.name.trim()) return null;
+            const name = m.name.trim();
+            const uom = m.uom.trim();
+            const type = m.type.trim();
+
+            if (uom || type) {
+                // name[uom,type]
+                let content = uom;
+                if (type) {
+                    content = `${uom},${type}`;
+                }
+                return `${name}[${content}]`;
+            }
+            return name;
+        }).filter(Boolean).join(', ');
+    };
+
+    const addMeasurement = () => {
+        setMeasurementsList([...measurementsList, { id: Math.random().toString(36).substr(2, 9), name: '', uom: '', type: '' }]);
+    };
+
+    const removeMeasurement = (index: number) => {
+        const newList = [...measurementsList];
+        newList.splice(index, 1);
+        setMeasurementsList(newList);
+        setForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+    };
+
+    const updateMeasurement = (index: number, field: keyof MeasurementItem, value: string) => {
+        const newList = [...measurementsList];
+        newList[index] = { ...newList[index], [field]: value };
+        setMeasurementsList(newList);
+        setForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            // Ensure measurements are synced before submit
+            const finalForm = {
+                ...form,
+                influx_measurements: serializeMeasurements(measurementsList)
+            };
+
             const res = await authFetch('/buildings/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form)
+                body: JSON.stringify(finalForm)
             });
 
             if (res.ok) {
@@ -40,13 +95,13 @@ export default function CreateBuilding() {
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans flex items-center justify-center">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-lg w-full">
                 <div className="mb-6">
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">&larr; Back to Dashboard</Link>
-                    <h1 className="text-2xl font-bold text-gray-800">Create New Building</h1>
+                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                    <h1 className="text-2xl font-bold text-gray-800">{t.dashboard.addBuilding}</h1>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Name</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
                         <input
                             type="text"
                             value={form.name}
@@ -57,7 +112,7 @@ export default function CreateBuilding() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Address</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.address}</label>
                         <input
                             type="text"
                             value={form.address}
@@ -68,7 +123,7 @@ export default function CreateBuilding() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">InfluxDB Database Name</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.influxDbName}</label>
                         <input
                             type="text"
                             value={form.influx_db_name}
@@ -78,7 +133,7 @@ export default function CreateBuilding() {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">InfluxDB Unit Tag</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.influxUnitTag}</label>
                         <input
                             type="text"
                             value={form.influx_unit_tag}
@@ -87,19 +142,70 @@ export default function CreateBuilding() {
                             placeholder="e.g. unit (default) or jednotka"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">InfluxDB Measurements (Optional)</label>
-                        <input
-                            type="text"
-                            value={form.influx_measurements}
-                            onChange={e => setForm({ ...form, influx_measurements: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. sv_l[m3,Cold Water], tea_kwh[kWh,Heating]"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Format: tag[unit,name], ...</p>
+
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                            <label className="block text-sm font-medium text-gray-700">{t.building.influxMeasurements}</label>
+                            <button
+                                type="button"
+                                onClick={addMeasurement}
+                                className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100"
+                            >
+                                {t.building.addMeasurement}
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            {measurementsList.map((item, index) => (
+                                <div key={item.id} className="flex gap-2 items-center">
+                                    <div className="flex-1">
+                                        <input
+                                            type="text"
+                                            value={item.name}
+                                            onChange={e => updateMeasurement(index, 'name', e.target.value)}
+                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                            placeholder={t.building.measurementName}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="w-24">
+                                        <input
+                                            type="text"
+                                            value={item.uom}
+                                            onChange={e => updateMeasurement(index, 'uom', e.target.value)}
+                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                            placeholder={t.building.measurementUnit}
+                                        />
+                                    </div>
+                                    <div className="w-32">
+                                        <input
+                                            type="text"
+                                            value={item.type}
+                                            onChange={e => updateMeasurement(index, 'type', e.target.value)}
+                                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                            placeholder={t.building.measurementType}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeMeasurement(index)}
+                                        className="text-red-500 hover:text-red-700 p-2"
+                                        title="Remove"
+                                    >
+                                        &times;
+                                    </button>
+                                </div>
+                            ))}
+                            {measurementsList.length === 0 && (
+                                <p className="text-sm text-gray-400 italic text-center py-2 border border-dashed rounded-md">
+                                    {t.building.measurementsPlaceholder}
+                                </p>
+                            )}
+                        </div>
                     </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Description</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
                         <textarea
                             value={form.description}
                             onChange={e => setForm({ ...form, description: e.target.value })}
@@ -109,7 +215,7 @@ export default function CreateBuilding() {
                         />
                     </div>
                     <button type="submit" className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm mt-2">
-                        Create Building
+                        {t.dashboard.addBuilding}
                     </button>
                 </form>
             </div>
