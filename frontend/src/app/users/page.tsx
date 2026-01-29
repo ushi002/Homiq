@@ -78,8 +78,46 @@ export default function UsersPage() {
 
     const copyInviteLink = (token: string) => {
         const link = `${origin}/invite/${token}`;
-        navigator.clipboard.writeText(link);
-        alert(`${t.messages.inviteCopied}: ${link}`);
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(link)
+                .then(() => alert(`${t.messages.inviteCopied}: ${link}`))
+                .catch(err => {
+                    console.error('Async: Could not copy text: ', err);
+                    fallbackCopyTextToClipboard(link);
+                });
+        } else {
+            fallbackCopyTextToClipboard(link);
+        }
+    };
+
+    const fallbackCopyTextToClipboard = (text: string) => {
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+
+        // Ensure it's not visible but part of DOM
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                alert(`${t.messages.inviteCopied}: ${text}`);
+            } else {
+                console.error('Fallback: unable to copy');
+                prompt("Copy this link manually:", text);
+            }
+        } catch (err) {
+            console.error('Fallback: Oops, unable to copy', err);
+            prompt("Copy this link manually:", text);
+        }
+
+        document.body.removeChild(textArea);
     };
 
     const [editingUser, setEditingUser] = useState<string | null>(null);
