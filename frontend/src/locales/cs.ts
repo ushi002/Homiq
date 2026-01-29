@@ -136,5 +136,17 @@ export const cs: Translations = {
         successDeleteBuilding: 'Budova úspěšně smazána',
         errorDeleteBuilding: 'Nepodařilo se smazat budovu',
         errorCreateBuilding: 'Nepodařilo se vytvořit budovu',
+    },
+    invite: {
+        welcome: 'Vítejte v Homiq',
+        setPasswordMessage: 'Pro aktivaci účtu si prosím nastavte heslo.',
+        newPassword: 'Nové heslo',
+        confirmPassword: 'Potvrzení hesla',
+        activateAccount: 'Aktivovat účet',
+        activating: 'Aktivuji...',
+        passwordMatchError: 'Hesla se neshodují',
+        passwordLengthError: 'Heslo musí mít alespoň 8 znaků',
+        genericError: 'Došlo k neočekávané chybě',
+        failedToAccept: 'Nepodařilo se přijmout pozvánku',
     }
 };

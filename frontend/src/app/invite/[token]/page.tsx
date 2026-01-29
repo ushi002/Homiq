@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = React.use(params);
@@ -11,6 +12,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const { login, logout } = useAuth();
+    const { t } = useLanguage();
 
     // Clear any existing session when landing on invite page
     React.useEffect(() => {
@@ -22,12 +24,12 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         setError('');
 
         if (password !== confirmPassword) {
-            setError("Passwords do not match");
+            setError(t.invite.passwordMatchError);
             return;
         }
 
         if (password.length < 8) {
-            setError("Password must be at least 8 characters");
+            setError(t.invite.passwordLengthError);
             return;
         }
 
@@ -49,11 +51,11 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 login(data.access_token, data.user_id, data.role, data.full_name);
             } else {
                 const err = await res.json();
-                setError(err.detail || 'Failed to accept invite');
+                setError(err.detail || t.invite.failedToAccept);
             }
         } catch (err) {
             console.error(err);
-            setError('An unexpected error occurred');
+            setError(t.invite.genericError);
         } finally {
             setIsLoading(false);
         }
@@ -63,8 +65,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         <main className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-4">
             <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full border border-gray-100">
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-900">Welcome to Homiq</h1>
-                    <p className="text-gray-500 mt-2">Please set your password to activate your account.</p>
+                    <h1 className="text-2xl font-bold text-gray-900">{t.invite.welcome}</h1>
+                    <p className="text-gray-500 mt-2">{t.invite.setPasswordMessage}</p>
                 </div>
 
                 {error && (
@@ -75,7 +77,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
                 <form onSubmit={handleAcceptInvite} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">New Password</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.invite.newPassword}</label>
                         <input
                             type="password"
                             required
@@ -85,7 +87,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <label className="block text-sm font-medium text-gray-700">{t.invite.confirmPassword}</label>
                         <input
                             type="password"
                             required
@@ -99,7 +101,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                         disabled={isLoading}
                         className="w-full bg-blue-600 text-white py-3 px-4 rounded-md hover:bg-blue-700 transition-colors font-medium disabled:opacity-70"
                     >
-                        {isLoading ? 'Activating...' : 'Activate Account'}
+                        {isLoading ? t.invite.activating : t.invite.activateAccount}
                     </button>
                 </form>
             </div>
