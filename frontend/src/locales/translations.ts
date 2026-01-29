@@ -135,4 +135,16 @@ export interface Translations {
         errorDeleteBuilding: string;
         errorCreateBuilding: string;
     };
+    invite: {
+        welcome: string;
+        setPasswordMessage: string;
+        newPassword: string;
+        confirmPassword: string;
+        activateAccount: string;
+        activating: string;
+        passwordMatchError: string;
+        passwordLengthError: string;
+        genericError: string;
+        failedToAccept: string;
+    };
 }

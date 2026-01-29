@@ -136,5 +136,17 @@ export const en: Translations = {
         successDeleteBuilding: 'Building deleted successfully',
         errorDeleteBuilding: 'Failed to delete building',
         errorCreateBuilding: 'Failed to create building',
+    },
+    invite: {
+        welcome: 'Welcome to Homiq',
+        setPasswordMessage: 'Please set your password to activate your account.',
+        newPassword: 'New Password',
+        confirmPassword: 'Confirm Password',
+        activateAccount: 'Activate Account',
+        activating: 'Activating...',
+        passwordMatchError: 'Passwords do not match',
+        passwordLengthError: 'Password must be at least 8 characters',
+        genericError: 'An unexpected error occurred',
+        failedToAccept: 'Failed to accept invite',
     }
 };
