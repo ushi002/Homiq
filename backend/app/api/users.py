@@ -89,8 +89,12 @@ def delete_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    # Check permissions: Can only delete users created by themselves
-    if user.created_by_id != current_user.id:
+    # Check permissions
+    if current_user.role == "admin":
+        # Admin can delete anyone
+        pass
+    elif user.created_by_id != current_user.id:
+        # Others (Home Lord) can only delete users they created
         raise HTTPException(status_code=403, detail="Not authorized to delete this user")
         
     session.delete(user)

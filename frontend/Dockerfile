@@ -8,7 +8,9 @@ COPY . .
 # OR we can rely on runtime config if we were using it, but simpler here:
 # We'll expect it to be passed as build-arg or just default.
 # For now, let's assume standard build.
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
+# Default to localhost, but allow override
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN npm run build
 
 # Production Stage

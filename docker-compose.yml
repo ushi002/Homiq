@@ -3,18 +3,32 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000" # Exposed via Nginx
     volumes:
       - ./backend/database.db:/app/database.db
     restart: always
 
   frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://34.134.140.126/api
+    # ports:
+    #   - "3000:3000" # Exposed via Nginx
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://34.134.140.126/api
     depends_on:
+      - backend
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - frontend
       - backend
     restart: always
