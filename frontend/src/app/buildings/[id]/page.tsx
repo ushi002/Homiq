@@ -318,67 +318,92 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         placeholder="e.g. unit (default) or jednotka"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <label className="block text-sm font-medium text-gray-700">{t.building.influxMeasurements}</label>
-                                        <button
-                                            type="button"
-                                            onClick={addMeasurement}
-                                            className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded hover:bg-blue-100"
-                                        >
-                                            {t.building.addMeasurement}
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        {measurementsList.map((item, index) => (
-                                            <div key={item.id} className="flex gap-2 items-center">
-                                                <div className="flex-1">
-                                                    <input
-                                                        type="text"
-                                                        value={item.name}
-                                                        onChange={e => updateMeasurement(index, 'name', e.target.value)}
-                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder={t.building.measurementName}
-                                                        required
-                                                    />
-                                                </div>
-                                                <div className="w-24">
-                                                    <input
-                                                        type="text"
-                                                        value={item.uom}
-                                                        onChange={e => updateMeasurement(index, 'uom', e.target.value)}
-                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder={t.building.measurementUnit}
-                                                    />
-                                                </div>
-                                                <div className="w-32">
-                                                    <input
-                                                        type="text"
-                                                        value={item.type}
-                                                        onChange={e => updateMeasurement(index, 'type', e.target.value)}
-                                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
-                                                        placeholder={t.building.measurementType}
-                                                    />
-                                                </div>
+                                <div className="space-y-6">
+                                    {[
+                                        { type: 'water_cold', label: t.building.categoryColdWater, color: 'text-blue-600', bg: 'bg-blue-50' },
+                                        { type: 'water_hot', label: t.building.categoryHotWater, color: 'text-red-600', bg: 'bg-red-50' },
+                                        { type: 'heat', label: t.building.categoryHeat, color: 'text-orange-600', bg: 'bg-orange-50' }
+                                    ].map(category => (
+                                        <div key={category.type} className="border rounded-md p-4 bg-gray-50/50">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <h3 className={`font-semibold text-sm ${category.color}`}>{category.label}</h3>
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeMeasurement(index)}
-                                                    className="text-red-500 hover:text-red-700 p-2"
-                                                    title="Remove"
+                                                    onClick={() => {
+                                                        const newId = Math.random().toString(36).substr(2, 9);
+                                                        setMeasurementsList([...measurementsList, { id: newId, name: '', uom: '', type: category.type }]);
+                                                    }}
+                                                    className={`text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm`}
                                                 >
-                                                    &times;
+                                                    + {t.building.addMeasurement}
                                                 </button>
                                             </div>
-                                        ))}
-                                        {measurementsList.length === 0 && (
-                                            <p className="text-sm text-gray-400 italic text-center py-2 border border-dashed rounded-md">
-                                                {t.building.measurementsPlaceholder}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
+
+                                            <div className="space-y-2">
+                                                {measurementsList.filter(m => {
+                                                    const mType = m.type.toLowerCase();
+                                                    if (category.type === 'water_cold') return mType.includes('cold') || mType === 'sv' || mType === 'water_cold';
+                                                    if (category.type === 'water_hot') return mType.includes('hot') || mType === 'tv' || mType === 'water_hot';
+                                                    if (category.type === 'heat') return mType.includes('heat') || mType === 'teplo';
+                                                    return false;
+                                                }).map((item) => (
+                                                    <div key={item.id} className="flex gap-2 items-center">
+                                                        <div className="flex-1">
+                                                            <input
+                                                                type="text"
+                                                                value={item.name}
+                                                                onChange={e => {
+                                                                    const newList = measurementsList.map(m => m.id === item.id ? { ...m, name: e.target.value } : m);
+                                                                    setMeasurementsList(newList);
+                                                                    setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+                                                                }}
+                                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                                                placeholder={t.building.measurementName}
+                                                            />
+                                                        </div>
+                                                        <div className="w-24">
+                                                            <input
+                                                                type="text"
+                                                                value={item.uom}
+                                                                onChange={e => {
+                                                                    const newList = measurementsList.map(m => m.id === item.id ? { ...m, uom: e.target.value } : m);
+                                                                    setMeasurementsList(newList);
+                                                                    setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+                                                                }}
+                                                                className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 text-sm"
+                                                                placeholder={t.building.measurementUnit}
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newList = measurementsList.filter(m => m.id !== item.id);
+                                                                setMeasurementsList(newList);
+                                                                setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
+                                                            }}
+                                                            className="text-red-500 hover:text-red-700 p-2"
+                                                            title="Remove"
+                                                        >
+                                                            &times;
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                                {measurementsList.filter(m => {
+                                                    const mType = m.type.toLowerCase();
+                                                    if (category.type === 'water_cold') return mType.includes('cold') || mType === 'sv' || mType === 'water_cold';
+                                                    if (category.type === 'water_hot') return mType.includes('hot') || mType === 'tv' || mType === 'water_hot';
+                                                    if (category.type === 'heat') return mType.includes('heat') || mType === 'teplo';
+                                                    return false;
+                                                }).length === 0 && (
+                                                        <p className="text-xs text-gray-400 italic text-center py-2">
+                                                            {t.unit.noData}
+                                                        </p>
+                                                    )}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
+                                <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
                                     <textarea
@@ -490,6 +515,6 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     )}
                 </div>
             </div>
-        </main>
+        </main >
     );
 }

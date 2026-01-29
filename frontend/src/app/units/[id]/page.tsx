@@ -241,7 +241,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <div key={meter.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
-                                    <h3 className="font-bold text-gray-800">{meter.type.toUpperCase()}</h3>
+                                    <h3 className="font-bold text-gray-800">
+                                        {(() => {
+                                            const type = meter.type.toLowerCase();
+                                            if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
+                                            if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
+                                            if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
+                                            return meter.type; // Fallback
+                                        })()}
+                                    </h3>
                                     <p className="text-sm text-gray-500 font-mono">{meter.serial_number}</p>
                                 </div>
                                 <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{meter.unit_of_measure}</span>
