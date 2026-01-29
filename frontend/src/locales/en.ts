@@ -49,7 +49,10 @@ export const en: Translations = {
         measurementName: 'Measurement (e.g. sv_l)',
         measurementUnit: 'Unit (m3)',
         measurementType: 'Type (Cold Water)',
-        measurementsPlaceholder: 'No measurements configured. Click "+ Add Row" to define.'
+        measurementsPlaceholder: 'No measurements configured. Click "+ Add Row" to define.',
+        categoryColdWater: 'Cold Water Meters',
+        categoryHotWater: 'Hot Water Meters',
+        categoryHeat: 'Heat Meters',
     },
     unit: {
         title: 'Unit Details',

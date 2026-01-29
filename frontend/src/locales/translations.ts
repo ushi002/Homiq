@@ -48,6 +48,9 @@ export interface Translations {
         measurementUnit: string;
         measurementType: string;
         measurementsPlaceholder: string;
+        categoryColdWater: string;
+        categoryHotWater: string;
+        categoryHeat: string;
     };
     unit: {
         title: string;

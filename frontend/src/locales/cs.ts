@@ -49,7 +49,10 @@ export const cs: Translations = {
         measurementName: 'Měření (např. sv_l)',
         measurementUnit: 'Jednotka (m3)',
         measurementType: 'Typ (Studená voda)',
-        measurementsPlaceholder: 'Žádná měření. Klikněte na "+ Přidat řádek".'
+        measurementsPlaceholder: 'Žádná měření. Klikněte na "+ Přidat řádek".',
+        categoryColdWater: 'Studená Voda',
+        categoryHotWater: 'Teplá Voda',
+        categoryHeat: 'Teplo',
     },
     unit: {
         title: 'Detail Jednotky',
