@@ -37,6 +37,7 @@ export const en: Translations = {
         influxDeviceTag: 'InfluxDB Device Tag (optional)',
         influxMeasurements: 'InfluxDB Measurements',
         assignedHomeLord: 'Assigned Home Lord',
+        totalPeriod: '{{startDate}} – {{endDate}}',
         units: 'Units',
         fetchUnits: 'Fetch Units',
         reloadUnits: 'Reload Units',

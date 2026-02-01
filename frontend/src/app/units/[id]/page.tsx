@@ -242,22 +242,75 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentConsumption = calculateConsumption(currentReadings);
                     const prevConsumption = calculateConsumption(prevReadings);
 
+                    const getYearReadings = (readings: Reading[], year: number) => {
+                        return readings.filter(r => new Date(r.time).getFullYear() === year)
+                            .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+                    };
+
+                    const currentYearReadings = getYearReadings(meter.recent_readings, selectedYear);
+                    let currentStartDate = new Date(selectedYear, 0, 1);
+                    let currentEndDate = new Date(); // Default to today for current year
+
+                    if (currentYearReadings.length > 0) {
+                        currentEndDate = new Date(currentYearReadings[currentYearReadings.length - 1].time);
+                    } else if (selectedYear !== new Date().getFullYear()) {
+                        currentEndDate = new Date(selectedYear, 11, 31);
+                    }
+
+
+                    let prevYearReadings = getYearReadings(meter.recent_readings, selectedYear - 1);
+                    let prevStartDate = new Date(selectedYear - 1, 0, 1);
+                    let prevEndDate = new Date(selectedYear - 1, 11, 31);
+
+                    // Filter previous year to same date as current year (YTD comparison)
+                    if (currentYearReadings.length > 0) {
+                        const lastReading = currentYearReadings[currentYearReadings.length - 1];
+                        const lastDate = new Date(lastReading.time);
+                        // Create cutoff date: same month/day but previous year
+                        const cutoffDate = new Date(selectedYear - 1, lastDate.getMonth(), lastDate.getDate(), 23, 59, 59);
+                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= cutoffDate);
+                        prevEndDate = cutoffDate;
+                    } else if (selectedYear === new Date().getFullYear()) {
+                        const today = new Date();
+                        prevEndDate = new Date(selectedYear - 1, today.getMonth(), today.getDate());
+                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= prevEndDate);
+                    }
+
+                    const currentYearTotal = calculateConsumption(currentYearReadings);
+                    const prevYearTotal = calculateConsumption(prevYearReadings);
+
+                    const formatDate = (d: Date) => d.toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US');
+
                     return (
                         <div key={meter.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <div className="flex justify-between items-start mb-4">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                 <div>
-                                    <h3 className="font-bold text-gray-800">
-                                        {(() => {
-                                            const type = meter.type.toLowerCase();
-                                            if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
-                                            if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
-                                            if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
-                                            return meter.type; // Fallback
-                                        })()}
-                                    </h3>
-                                    <p className="text-sm text-gray-500 font-mono">{meter.serial_number}</p>
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <h3 className="font-bold text-gray-800 text-lg">
+                                            {(() => {
+                                                const type = meter.type.toLowerCase();
+                                                if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
+                                                if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
+                                                if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
+                                                return meter.type; // Fallback
+                                            })()}
+                                        </h3>
+                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-mono border border-gray-200">{meter.serial_number}</span>
+                                    </div>
+
+                                    {/* Yearly Totals Badges */}
+                                    <div className="flex flex-wrap gap-2 text-xs">
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== "0.00" ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(currentStartDate)).replace('{{endDate}}', formatDate(currentEndDate))}:</span>
+                                            <span className="font-mono font-bold">{currentYearTotal}</span> {meter.unit_of_measure}
+                                        </span>
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== "0.00" ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
+                                            <span className="font-mono font-bold">{prevYearTotal}</span> {meter.unit_of_measure}
+                                        </span>
+                                    </div>
                                 </div>
-                                <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">{meter.unit_of_measure}</span>
+                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{meter.unit_of_measure}</span>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
