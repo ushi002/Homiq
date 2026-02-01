@@ -34,6 +34,7 @@ export const en: Translations = {
         description: 'Description',
         influxDbName: 'InfluxDB Database Name',
         influxUnitTag: 'InfluxDB Unit Tag',
+        influxDeviceTag: 'InfluxDB Device Tag (optional)',
         influxMeasurements: 'InfluxDB Measurements',
         assignedHomeLord: 'Assigned Home Lord',
         units: 'Units',

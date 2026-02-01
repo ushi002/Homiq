@@ -32,6 +32,7 @@ export interface Translations {
         description: string;
         influxDbName: string;
         influxUnitTag: string;
+        influxDeviceTag: string;
         influxMeasurements: string;
         assignedHomeLord: string;
         units: string;

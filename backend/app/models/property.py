@@ -47,6 +47,7 @@ class BuildingBase(SQLModel):
     description: Optional[str] = None
     influx_db_name: Optional[str] = None
     influx_unit_tag: Optional[str] = None
+    influx_device_tag: Optional[str] = None
     influx_measurements: Optional[str] = None
     units_fetched: bool = Field(default=False)
 
@@ -68,6 +69,7 @@ class BuildingUpdate(SQLModel):
     description: Optional[str] = None
     influx_db_name: Optional[str] = None
     influx_unit_tag: Optional[str] = None
+    influx_device_tag: Optional[str] = None
     influx_measurements: Optional[str] = None
     units_fetched: Optional[bool] = None
 

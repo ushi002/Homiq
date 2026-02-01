@@ -34,6 +34,7 @@ export const cs: Translations = {
         description: 'Popis',
         influxDbName: 'Název InfluxDB databáze',
         influxUnitTag: 'Tag jednotky',
+        influxDeviceTag: 'Tag zařízení (nepovinné)',
         influxMeasurements: 'Měření (InfluxDB)',
         assignedHomeLord: 'Přirazený Správce',
         units: 'Jednotky',
