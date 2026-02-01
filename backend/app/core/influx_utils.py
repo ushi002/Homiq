@@ -157,7 +157,7 @@ def parse_series_tags(series_str: str) -> Dict[str, str]:
             tags[k.strip()] = v.strip()
     return tags
 
-def get_meter_readings(db_name: str, serial_number: str, measurement: str = None) -> List[Tuple[str, float]]:
+def get_meter_readings(db_name: str, serial_number: str, measurement: str = None, device_tag: str = None) -> List[Tuple[str, float]]:
     """
     Fetches readings for a specific meter serial number.
     Returns list of (time, value).
@@ -171,7 +171,7 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
     
     measurements_to_check = [measurement] if measurement else ['sv_l', 'tv_l', 'teplo_kWh']
     
-    sn_tags_to_check = ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id', 't2deveui']
+    sn_tags_to_check = [device_tag] if device_tag else ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id', 't2deveui']
 
     for meas in measurements_to_check:
         if not meas: continue
