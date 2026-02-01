@@ -149,7 +149,7 @@ def sync_unit_readings(
             # Optimization: Only check measurements that match the meter type?
             # if meta['type'] != meter.type: continue 
             
-            readings = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name)
+            readings = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name, building.influx_device_tag)
             
             if readings:
                 found_readings = True
