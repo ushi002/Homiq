@@ -236,11 +236,33 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 </div>
 
                 {meters.map(meter => {
-                    const currentReadings = getPeriodReadings(meter.recent_readings, selectedYear, viewMode, selectedPeriod);
-                    const prevReadings = getPeriodReadings(meter.recent_readings, selectedYear - 1, viewMode, selectedPeriod);
+                    // Sort all readings by time once
+                    const sortedReadings = [...meter.recent_readings].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-                    const currentConsumption = calculateConsumption(currentReadings);
-                    const prevConsumption = calculateConsumption(prevReadings);
+                    const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, selectedPeriod);
+                    const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, selectedPeriod);
+
+                    const calculatePeriodConsumption = (periodReadings: Reading[]) => {
+                        if (periodReadings.length < 1) return "0.00";
+                        if (periodReadings.length === 1) return "0.00";
+
+                        const first = periodReadings[0];
+                        const last = periodReadings[periodReadings.length - 1];
+
+                        // Try to find the next reading in the full sorted list to close the period
+                        const lastIndex = sortedReadings.findIndex(r => r.id === last.id && r.time === last.time);
+                        let endValue = last.value;
+
+                        if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
+                            // We have a next reading!
+                            endValue = sortedReadings[lastIndex + 1].value;
+                        }
+
+                        return (endValue - first.value).toFixed(2);
+                    };
+
+                    const currentConsumption = calculatePeriodConsumption(currentReadings);
+                    const prevConsumption = calculatePeriodConsumption(prevReadings);
 
                     const getYearReadings = (readings: Reading[], year: number) => {
                         return readings.filter(r => new Date(r.time).getFullYear() === year)
