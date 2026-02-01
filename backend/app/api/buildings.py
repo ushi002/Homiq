@@ -192,7 +192,7 @@ def fetch_units_from_influx(
             created_units += 1
         
         # 2. Fetch Meters for Unit
-        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements)
+        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements, building.influx_device_tag)
         for meter_data in meters:
             # Check if meter exists
             db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()
@@ -291,7 +291,7 @@ def reload_building_units(
         created_units += 1
         
         # 4. Fetch Meters for Unit
-        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements)
+        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements, building.influx_device_tag)
         for meter_data in meters:
              # Check if meter exists (it might have been created in a previous loop iteration for another unit)
              db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()

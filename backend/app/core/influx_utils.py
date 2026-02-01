@@ -23,7 +23,7 @@ def get_unique_units(db_name: str, unit_tag: str = None) -> Set[str]:
     units = set()
     
     # Check provided tag or defaults
-    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka', 't1unit']
+    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka']
 
     # Check 'unit' tag in sv_l (Cold Water)
     for tag in tags_to_check:
@@ -84,7 +84,7 @@ def parse_measurements_config(config_str: str) -> Dict[str, Dict]:
         }
     return measurements
 
-def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurements_config: str = None) -> List[Dict]:
+def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurements_config: str = None, device_tag: str = None) -> List[Dict]:
     """
     Finds meters for a specific unit.
     Returns list of dicts: {'serial_number': str, 'type': str, 'unit_of_measure': str}
@@ -102,7 +102,7 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
             'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
         }
 
-    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka', 't1unit']
+    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka']
 
     for measurement, meta in measurements.items():
         # Query series for this unit to find serial numbers (sn) and specs
@@ -110,7 +110,7 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
         # Try finding serial numbers (sn) for this unit
         data = {}
         # Guess common serial number tag keys
-        sn_tags_to_check = ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id', 't2deveui']
+        sn_tags_to_check = [device_tag] if device_tag else ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id']
         
         found_sn_tag = None
         
