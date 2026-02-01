@@ -189,7 +189,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                             className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                         >
-                            {[2026, 2025, 2024, 2023].map(y => <option key={y} value={y}>{y}</option>)}
+                            {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
