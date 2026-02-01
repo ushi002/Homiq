@@ -35,6 +35,7 @@ export interface Translations {
         influxDeviceTag: string;
         influxMeasurements: string;
         assignedHomeLord: string;
+        totalPeriod: string;
         units: string;
         fetchUnits: string;
         reloadUnits: string;

@@ -37,6 +37,7 @@ export const cs: Translations = {
         influxDeviceTag: 'Tag zařízení (nepovinné)',
         influxMeasurements: 'Měření (InfluxDB)',
         assignedHomeLord: 'Přirazený Správce',
+        totalPeriod: '{{startDate}} – {{endDate}}',
         units: 'Jednotky',
         fetchUnits: 'Načíst jednotky',
         reloadUnits: 'Znovu načíst jednotky',
