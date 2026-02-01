@@ -106,16 +106,21 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
     };
 
+    // Helper: Get ISO Week Year
+    const getISOWeekYear = (d: Date) => {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        return d.getUTCFullYear();
+    };
+
     const getPeriodReadings = (readings: Reading[], year: number, mode: 'month' | 'week', period: number) => {
         return readings.filter(r => {
             const d = new Date(r.time);
-            const rYear = d.getFullYear();
-            if (rYear !== year) return false;
 
             if (mode === 'month') {
-                return (d.getMonth() + 1) === period;
+                return d.getFullYear() === year && (d.getMonth() + 1) === period;
             } else {
-                return getWeekNumber(d) === period;
+                return getISOWeekYear(d) === year && getWeekNumber(d) === period;
             }
         }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()); // Ensure sorted
     };
@@ -264,14 +269,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {currentReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
                                                 <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
-                                                <span className="font-bold">{reading.value}</span>
+                                                <span className="font-bold font-mono">{reading.value}</span>
                                             </div>
                                         ))}
                                         {currentReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
@@ -286,14 +291,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
                                         {prevReadings.map(reading => (
                                             <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-gray-200 last:border-0">
                                                 <span className="text-gray-500 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
-                                                <span className="font-medium text-gray-700">{reading.value}</span>
+                                                <span className="font-medium font-mono text-gray-700">{reading.value}</span>
                                             </div>
                                         ))}
                                         {prevReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
