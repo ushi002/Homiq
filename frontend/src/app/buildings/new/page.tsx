@@ -14,6 +14,7 @@ export default function CreateBuilding() {
         description: '',
         influx_db_name: '',
         influx_unit_tag: '',
+        influx_device_tag: '',
         influx_measurements: ''
     });
 
@@ -130,6 +131,7 @@ export default function CreateBuilding() {
                             onChange={e => setForm({ ...form, influx_db_name: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
                             placeholder="e.g. homiq_db_01"
+                            required
                         />
                     </div>
                     <div>
@@ -140,6 +142,18 @@ export default function CreateBuilding() {
                             onChange={e => setForm({ ...form, influx_unit_tag: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
                             placeholder="e.g. unit (default) or jednotka"
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">{t.building.influxDeviceTag}</label>
+                        <input
+                            type="text"
+                            value={form.influx_device_tag}
+                            onChange={e => setForm({ ...form, influx_device_tag: e.target.value })}
+                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            placeholder="e.g. sn, serial, t2deveui"
+                            required
                         />
                     </div>
 

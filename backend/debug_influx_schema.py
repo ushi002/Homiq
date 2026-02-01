@@ -4,7 +4,7 @@ import os
 import json
 
 INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
-DB_NAME = "svjcornovova28a34db"
+DB_NAME = "svjnuselska731db"
 
 def query(q):
     url = f"{INFLUX_HOST}/query"
