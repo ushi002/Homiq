@@ -19,7 +19,7 @@ export default function UserSelect({ value, onChange, roleFilter }: UserSelectPr
     const [users, setUsers] = useState<User[]>([]);
 
     useEffect(() => {
-        authFetch('http://localhost:8000/users/')
+        authFetch('/users/')
             .then(res => res.json())
             .then((data: User[]) => {
                 if (roleFilter) {
