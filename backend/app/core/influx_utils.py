@@ -23,7 +23,7 @@ def get_unique_units(db_name: str, unit_tag: str = None) -> Set[str]:
     units = set()
     
     # Check provided tag or defaults
-    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka']
+    tags_to_check = [unit_tag] if unit_tag else []
 
     # Check 'unit' tag in sv_l (Cold Water)
     for tag in tags_to_check:
@@ -102,7 +102,7 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
             'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
         }
 
-    tags_to_check = [unit_tag] if unit_tag else ['unit', 'jednotka']
+    tags_to_check = [unit_tag] if unit_tag else []
 
     for measurement, meta in measurements.items():
         # Query series for this unit to find serial numbers (sn) and specs
@@ -110,7 +110,7 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
         # Try finding serial numbers (sn) for this unit
         data = {}
         # Guess common serial number tag keys
-        sn_tags_to_check = [device_tag] if device_tag else ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id']
+        sn_tags_to_check = [device_tag] if device_tag else []
         
         found_sn_tag = None
         
@@ -171,7 +171,7 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
     
     measurements_to_check = [measurement] if measurement else ['sv_l', 'tv_l', 'teplo_kWh']
     
-    sn_tags_to_check = [device_tag] if device_tag else ['sn', 'serial', 'serial_number', 'device', 'device_id', 'meter_id', 't2deveui']
+    sn_tags_to_check = [device_tag] if device_tag else []
 
     for meas in measurements_to_check:
         if not meas: continue
