@@ -43,25 +43,32 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .catch(err => console.error(err));
 
         // 2. Sync and Fetch
+        // 2. Fetch Meters and Readings (Optimized)
         const fetchMeters = async () => {
-            // First sync readings from InfluxDB (automatic, best effort)
-            try {
-                await authFetch(`/units/${id}/sync_readings`, { method: 'POST' });
-            } catch (e) {
-                console.error("Sync failed, proceeding to load cached data", e);
-            }
-
-            // Then load meters and readings
+            // 1. Get Meters List (Fast, SQL)
             try {
                 const res = await authFetch(`/telemetry/meters/?unit_id=${id}`);
                 const unitMeters: any[] = await res.json();
 
-                const metersWithReadings = await Promise.all(unitMeters.map(async (meter) => {
-                    const readingsRes = await authFetch(`/telemetry/meters/${meter.id}/readings`);
-                    const readings = await readingsRes.json();
-                    return { ...meter, recent_readings: readings };
-                }));
-                setMeters(metersWithReadings);
+                // Set meters immediately with empty readings to show structure
+                setMeters(unitMeters.map(m => ({ ...m, recent_readings: [] })));
+
+                // 2. Fetch Readings from Influx (Direct, One Call)
+                try {
+                    const readingsRes = await authFetch(`/units/${id}/readings_influx`);
+                    const readingsMap = await readingsRes.json();
+
+                    // Merge measurements
+                    const metersWithReadings = unitMeters.map(meter => ({
+                        ...meter,
+                        recent_readings: readingsMap[meter.id] || []
+                    }));
+
+                    setMeters(metersWithReadings);
+                } catch (readErr) {
+                    console.error("Failed to load readings", readErr);
+                }
+
             } catch (err) {
                 console.error(err);
             }
