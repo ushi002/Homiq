@@ -150,5 +150,8 @@ export const cs: Translations = {
         passwordLengthError: 'Heslo musí mít alespoň 8 znaků',
         genericError: 'Došlo k neočekávané chybě',
         failedToAccept: 'Nepodařilo se přijmout pozvánku',
+        invalidLink: 'Neplatný nebo expirovaný odkaz',
+        linkInvalidMessage: 'Tento odkaz na pozvánku již není platný. Pravděpodobně vypršela jeho platnost nebo byl již použit.',
+        backToLogin: 'Zpět na přihlášení',
     }
 };

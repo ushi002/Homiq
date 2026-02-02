@@ -148,5 +148,8 @@ export interface Translations {
         passwordLengthError: string;
         genericError: string;
         failedToAccept: string;
+        invalidLink: string;
+        linkInvalidMessage: string;
+        backToLogin: string;
     };
 }

@@ -14,10 +14,34 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const { login, logout } = useAuth();
     const { t } = useLanguage();
 
+    const [isValidating, setIsValidating] = useState(true);
+
     // Clear any existing session when landing on invite page
     React.useEffect(() => {
         logout(false);
     }, []);
+
+    // Validate token on load
+    React.useEffect(() => {
+        const validateToken = async () => {
+            try {
+                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+                const res = await fetch(`${API_URL}/validate-invite/${token}`);
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    setError(err.detail || t.invite.failedToAccept);
+                }
+            } catch (err) {
+                console.error(err);
+                setError(t.invite.genericError);
+            } finally {
+                setIsValidating(false);
+            }
+        };
+
+        validateToken();
+    }, [token, t]);
 
     const handleAcceptInvite = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -37,7 +61,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
         try {
             const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const res = await fetch(`${API_URL}/accept-invite`, {
+            const res = await fetch(`${API_URL}/accept-invite`, { // NOTE: Update path to /auth/accept-invite if prefix is used, checking auth.py usage
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,6 +84,44 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
             setIsLoading(false);
         }
     };
+
+    if (isValidating) {
+        return (
+            <main className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-4">
+                <div className="bg-white p-8 rounded-xl shadow-md max-w-sm w-full border border-gray-100 flex flex-col items-center">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p className="text-gray-500">{t.common?.loading || "Loading..."}</p>
+                </div>
+            </main>
+        );
+    }
+
+    // Fatal Error View (Invalid Token at load time)
+    // If we have an error and duplicate password field is empty (user hasn't interacted), assume it's a load-time error.
+    if (error && password.length === 0) {
+        return (
+            <main className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-4">
+                <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full border border-gray-100 text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-6">
+                        <svg className="h-8 w-8 text-red-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                    <h1 className="text-xl font-bold text-gray-900 mb-2">{t.invite.invalidLink}</h1>
+                    <p className="text-gray-500 mb-8">{t.invite.linkInvalidMessage}</p>
+
+                    <button
+                        onClick={() => router.push('/login')}
+                        className="w-full bg-white text-gray-700 border border-gray-300 py-3 px-4 rounded-md hover:bg-gray-50 transition-colors font-medium shadow-sm transition"
+                    >
+                        {t.invite.backToLogin}
+                    </button>
+
+
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen flex items-center justify-center bg-gray-50 font-sans p-4">

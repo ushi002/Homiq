@@ -150,5 +150,8 @@ export const en: Translations = {
         passwordLengthError: 'Password must be at least 8 characters',
         genericError: 'An unexpected error occurred',
         failedToAccept: 'Failed to accept invite',
+        invalidLink: 'Invalid or Expired Link',
+        linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
+        backToLogin: 'Back to Login',
     }
 };
