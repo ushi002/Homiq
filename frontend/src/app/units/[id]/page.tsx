@@ -132,11 +132,18 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         }).sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()); // Ensure sorted
     };
 
+    const formatConsumption = (value: number) => {
+        return value.toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', {
+            maximumFractionDigits: 2,
+            minimumFractionDigits: 0
+        });
+    };
+
     const calculateConsumption = (readings: Reading[]) => {
-        if (readings.length < 2) return 0;
+        if (readings.length < 2) return formatConsumption(0);
         const start = readings[0].value;
         const end = readings[readings.length - 1].value;
-        return (end - start).toFixed(2);
+        return formatConsumption(end - start);
     };
 
 
@@ -250,8 +257,8 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, selectedPeriod);
 
                     const calculatePeriodConsumption = (periodReadings: Reading[]) => {
-                        if (periodReadings.length < 1) return "0.00";
-                        if (periodReadings.length === 1) return "0.00";
+                        if (periodReadings.length < 1) return formatConsumption(0);
+                        if (periodReadings.length === 1) return formatConsumption(0);
 
                         const first = periodReadings[0];
                         const last = periodReadings[periodReadings.length - 1];
@@ -265,7 +272,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             endValue = sortedReadings[lastIndex + 1].value;
                         }
 
-                        return (endValue - first.value).toFixed(2);
+                        return formatConsumption(endValue - first.value);
                     };
 
                     const currentConsumption = calculatePeriodConsumption(currentReadings);
