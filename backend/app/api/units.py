@@ -218,6 +218,7 @@ def assign_owner_by_email(
         # Create new pending user
         user = User(
             email=email,
+            full_name=email.split('@')[0], # Default name from email
             role="owner",
             password_hash="pending", # Or null? But schema might require hash? existing logic uses optional password
             status="pending",
