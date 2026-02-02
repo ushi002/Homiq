@@ -236,3 +236,66 @@ def assign_owner_by_email(
     session.refresh(unit)
     
     return unit
+
+@router.get("/{unit_id}/readings_influx")
+def read_unit_readings_influx(
+    unit_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+        
+    building = session.get(Building, unit.building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+
+    if current_user.role == "home_lord":
+        if building.manager_id != current_user.id:
+             raise HTTPException(status_code=403, detail="Not authorized")
+    elif current_user.role == "owner":
+        if unit.owner_id != current_user.id:
+             raise HTTPException(status_code=403, detail="Not authorized")
+    
+    if not building.influx_db_name:
+         return {}
+
+    # Parse measurements config
+    if building.influx_measurements:
+        measurements_config = parse_measurements_config(building.influx_measurements)
+    else:
+        # Default fallback
+        measurements_config = {
+            'sv_l': {'type': 'water_cold', 'uom': 'm3'},
+            'tv_l': {'type': 'water_hot', 'uom': 'm3'},
+            'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
+        }
+
+    # Get meters for unit
+    meters = session.exec(select(Meter).where(Meter.unit_id == unit_id)).all()
+    
+    results = {}
+    
+    for meter in meters:
+        readings = []
+        # Find readings in any configured measurement
+        for meas_name, meta in measurements_config.items():
+            # Optimization: could check meta['type'] == meter.type
+            
+            influx_data = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name, building.influx_device_tag)
+            
+            if influx_data:
+                # influx_data is list of (time, value)
+                for idx, (time_str, value) in enumerate(influx_data):
+                    readings.append({
+                        "id": idx, # Mock ID
+                        "value": value,
+                        "time": time_str,
+                        "is_manual": False
+                    })
+                break # Assume meter is only in one measurement type
+        
+        results[str(meter.id)] = readings
+        
+    return results
