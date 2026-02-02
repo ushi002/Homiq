@@ -448,7 +448,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 {isAdmin && (
                                     <button
                                         onClick={() => setIsEditing(true)}
-                                        className="mt-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                                        className="mt-4 text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
                                     >
                                         {t.common.edit}
                                     </button>
