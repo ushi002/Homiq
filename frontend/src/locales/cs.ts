@@ -14,7 +14,10 @@ export const cs: Translations = {
         logout: 'Odhlásit se',
         yes: 'Ano',
         no: 'Ne',
+        yes: 'Ano',
+        no: 'Ne',
         confirmDelete: 'Opravdu to chcete smazat?',
+        unassign: 'Odebrat přiřazení',
     },
     login: {
         title: 'Vítejte v Homiq',
