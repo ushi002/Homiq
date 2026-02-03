@@ -92,6 +92,7 @@ export const cs: Translations = {
         deleteUser: 'Smazat uživatele',
         adminInfo: "Admini mohou vytvářet Správce, Vlastníky a další Adminy.",
         homeLordInfo: "Správci mohou vytvářet pouze Vlastníky.",
+        assignedTo: "Přiřazen k",
     },
     profile: {
         title: 'Váš Profil',
@@ -138,6 +139,8 @@ export const cs: Translations = {
         successDeleteBuilding: 'Budova úspěšně smazána',
         errorDeleteBuilding: 'Nepodařilo se smazat budovu',
         errorCreateBuilding: 'Nepodařilo se vytvořit budovu',
+        confirmUnassign: 'Opravdu chcete odebrat přiřazení pro {{name}}?',
+        errorUnassign: 'Nepodařilo se zrušit přiřazení',
     },
     invite: {
         welcome: 'Vítejte v Homiq',

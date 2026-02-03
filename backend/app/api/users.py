@@ -1,7 +1,7 @@
 import uuid
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import Session, select, SQLModel
 from ..core.database import get_session
 from sqlmodel import Session, select
 from ..core.database import get_session
@@ -53,7 +53,16 @@ def create_user(
     session.refresh(db_user)
     return db_user
 
-@router.get("/", response_model=List[UserRead])
+class Assignment(SQLModel):
+    type: str # 'building' or 'unit'
+    id: uuid.UUID
+    name: str
+    detail: Optional[str] = None
+
+class UserWithAssignments(UserRead):
+    assignments: List[Assignment] = []
+
+@router.get("/", response_model=List[UserWithAssignments])
 def read_users(
     offset: int = 0, 
     limit: int = 100, 
@@ -70,7 +79,37 @@ def read_users(
     # Admin sees all
     
     users = session.exec(statement.offset(offset).limit(limit)).all()
-    return users
+    
+    # Enrich with assignments
+    from ..models.property import Building, Unit
+    
+    results = []
+    for user in users:
+        assignments = []
+        if user.role == "home_lord":
+            # Find managed buildings
+            buildings = session.exec(select(Building).where(Building.manager_id == user.id)).all()
+            for b in buildings:
+                assignments.append(Assignment(type="building", id=b.id, name=b.name))
+        
+        elif user.role == "owner":
+            # Find owned units
+            units = session.exec(select(Unit).where(Unit.owner_id == user.id)).all()
+            for u in units:
+                # Need building name for detail
+                # Optimization: Join? Or just lazy load for now since N is small
+                assignments.append(Assignment(
+                    type="unit", 
+                    id=u.id, 
+                    name=u.unit_number, 
+                    detail=u.building.name if u.building else "Unknown Building"
+                ))
+        
+        user_with_assignments = UserWithAssignments.model_validate(user)
+        user_with_assignments.assignments = assignments
+        results.append(user_with_assignments)
+
+    return results
 
 @router.get("/{user_id}", response_model=UserRead)
 def read_user(user_id: uuid.UUID, session: Session = Depends(get_session)):

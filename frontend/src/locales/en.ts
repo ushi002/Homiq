@@ -92,6 +92,7 @@ export const en: Translations = {
         deleteUser: 'Delete User',
         adminInfo: "Admins can create Home Lords, Owners, and other Admins.",
         homeLordInfo: "Home Lords can only create Owners.",
+        assignedTo: "Assigned To",
     },
     profile: {
         title: 'Your Profile',
@@ -138,6 +139,8 @@ export const en: Translations = {
         successDeleteBuilding: 'Building deleted successfully',
         errorDeleteBuilding: 'Failed to delete building',
         errorCreateBuilding: 'Failed to create building',
+        confirmUnassign: 'Are you sure you want to unassign {{name}}?',
+        errorUnassign: 'Failed to unassign',
     },
     invite: {
         welcome: 'Welcome to Homiq',

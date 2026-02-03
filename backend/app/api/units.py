@@ -1,5 +1,5 @@
 import uuid
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
@@ -56,7 +56,7 @@ def read_unit(unit_id: uuid.UUID, session: Session = Depends(get_session)):
 @router.patch("/{unit_id}/assign", response_model=UnitRead)
 def assign_owner(
     unit_id: uuid.UUID, 
-    owner_id: uuid.UUID, 
+    owner_id: Optional[uuid.UUID] = None, # Allow None to unassign
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
@@ -74,13 +74,16 @@ def assign_owner(
         if not building or building.manager_id != current_user.id:
              raise HTTPException(status_code=403, detail="Not authorized to manage this unit")
     
-    # Verify user exists (optional but good practice)
-    # from ..models.property import User
-    # user = session.get(User, owner_id)
-    # if not user:
-    #    raise HTTPException(status_code=404, detail="User not found")
+    if owner_id:
+        # Verify user exists if assigning
+        user = session.get(User, owner_id)
+        if not user:
+           raise HTTPException(status_code=404, detail="User not found")
+        unit.owner_id = owner_id
+    else:
+        # Unassign
+        unit.owner_id = None
 
-    unit.owner_id = owner_id
     session.add(unit)
     session.commit()
     session.refresh(unit)

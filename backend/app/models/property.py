@@ -26,6 +26,8 @@ class User(UserBase, table=True):
         back_populates="created_users"
     )
     created_users: List["User"] = Relationship(back_populates="created_by")
+    
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class UserCreate(UserBase):
     password: Optional[str] = None
@@ -39,6 +41,7 @@ class UserPasswordChange(SQLModel):
 
 class UserRead(UserBase):
     id: uuid.UUID
+    created_at: datetime
 
 # Building Model
 class BuildingBase(SQLModel):
