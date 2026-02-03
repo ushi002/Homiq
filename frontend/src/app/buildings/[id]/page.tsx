@@ -307,7 +307,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         value={editForm.influx_db_name}
                                         onChange={e => setEditForm({ ...editForm, influx_db_name: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        placeholder="e.g. homiq_db_01"
+                                        placeholder={t.building.placeholderDbName}
                                     />
                                 </div>
                                 <div>
@@ -317,7 +317,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         value={editForm.influx_unit_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_unit_tag: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        placeholder="e.g. unit (default) or jednotka"
+                                        placeholder={t.building.placeholderUnitTag}
                                     />
                                 </div>
                                 <div>
@@ -327,7 +327,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         value={editForm.influx_device_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_device_tag: e.target.value })}
                                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
-                                        placeholder="e.g. sn, serial, t2deveui"
+                                        placeholder={t.building.placeholderDeviceTag}
                                     />
                                 </div>
                                 <div className="space-y-6">

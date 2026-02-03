@@ -83,7 +83,14 @@ export default function ProfilePage() {
                         <div>
                             <label className="block text-sm font-medium text-gray-700">{t.profile.role}</label>
                             <div className="mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600 sm:text-sm capitalize">
-                                {user?.role.replace('_', ' ')}
+                                {(() => {
+                                    switch (user?.role) {
+                                        case 'admin': return t.users.roleAdmin;
+                                        case 'home_lord': return t.users.roleHomeLord;
+                                        case 'owner': return t.users.roleOwner;
+                                        default: return user?.role || '';
+                                    }
+                                })()}
                             </div>
                         </div>
 

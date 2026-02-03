@@ -108,7 +108,7 @@ export default function CreateBuilding() {
                             value={form.name}
                             onChange={e => setForm({ ...form, name: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. Sunrise Apartments"
+                            placeholder={t.building.placeholderName}
                             required
                         />
                     </div>
@@ -119,7 +119,7 @@ export default function CreateBuilding() {
                             value={form.address}
                             onChange={e => setForm({ ...form, address: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. 123 Main St"
+                            placeholder={t.building.placeholderAddress}
                             required
                         />
                     </div>
@@ -130,7 +130,7 @@ export default function CreateBuilding() {
                             value={form.influx_db_name}
                             onChange={e => setForm({ ...form, influx_db_name: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. homiq_db_01"
+                            placeholder={t.building.placeholderDbName}
                             required
                         />
                     </div>
@@ -141,7 +141,7 @@ export default function CreateBuilding() {
                             value={form.influx_unit_tag}
                             onChange={e => setForm({ ...form, influx_unit_tag: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. unit (default) or jednotka"
+                            placeholder={t.building.placeholderUnitTag}
                             required
                         />
                     </div>
@@ -152,7 +152,7 @@ export default function CreateBuilding() {
                             value={form.influx_device_tag}
                             onChange={e => setForm({ ...form, influx_device_tag: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
-                            placeholder="e.g. sn, serial, t2deveui"
+                            placeholder={t.building.placeholderDeviceTag}
                             required
                         />
                     </div>
@@ -253,7 +253,7 @@ export default function CreateBuilding() {
                             onChange={e => setForm({ ...form, description: e.target.value })}
                             className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
                             rows={3}
-                            placeholder="Optional description..."
+                            placeholder={t.building.placeholderDescription}
                         />
                     </div>
                     <button type="submit" className="w-full bg-blue-600 text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors shadow-sm mt-2">

@@ -51,6 +51,12 @@ export interface Translations {
         measurementUnit: string;
         measurementType: string;
         measurementsPlaceholder: string;
+        placeholderName: string;
+        placeholderAddress: string;
+        placeholderDbName: string;
+        placeholderUnitTag: string;
+        placeholderDeviceTag: string;
+        placeholderDescription: string;
         categoryColdWater: string;
         categoryHotWater: string;
         categoryHeat: string;
