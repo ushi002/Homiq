@@ -11,7 +11,17 @@ interface User {
     full_name: string;
     role: string;
     invite_token?: string;
+    invite_expires_at?: string;
+    created_at?: string;
     status?: string;
+    assignments?: Assignment[];
+}
+
+interface Assignment {
+    type: 'building' | 'unit';
+    id: string;
+    name: string;
+    detail?: string;
 }
 
 export default function UsersPage() {
@@ -152,6 +162,44 @@ export default function UsersPage() {
         }
     };
 
+    const handleUnassign = async (assignment: Assignment) => {
+        if (!confirm(t.messages.confirmUnassign.replace('{{name}}', assignment.name))) return;
+
+        try {
+            let url = '';
+            if (assignment.type === 'building') {
+                url = `/buildings/${assignment.id}/assign_manager`; // No manager_id param = unassign
+            } else {
+                url = `/units/${assignment.id}/assign`; // No owner_id param = unassign
+            }
+
+            const res = await authFetch(url, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (res.ok) {
+                fetchUsers();
+            } else {
+                const err = await res.json();
+                alert(`${t.messages.errorUnassign}: ${err.detail}`);
+            }
+        } catch (err) {
+            console.error(err);
+            alert(t.messages.errorGeneric);
+        }
+    };
+
+    const formatDate = (dateStr?: string) => {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleString();
+    };
+
+    const isExpired = (dateStr?: string) => {
+        if (!dateStr) return false;
+        return new Date(dateStr) < new Date();
+    };
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
@@ -218,10 +266,10 @@ export default function UsersPage() {
                     <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
                         {users.map(user => (
                             <li key={user.id} className="px-6 py-4 flex flex-col hover:bg-gray-50">
-                                <div className="flex justify-between items-center">
+                                <div className="flex justify-between items-start">
                                     <div className="flex-1">
                                         {editingUser === user.id ? (
-                                            <div className="flex items-center space-x-2">
+                                            <div className="flex items-center space-x-2 mb-1">
                                                 <input
                                                     type="text"
                                                     value={editName}
@@ -232,7 +280,7 @@ export default function UsersPage() {
                                                 <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{t.common.cancel}</button>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center space-x-2">
+                                            <div className="flex items-center space-x-2 mb-1">
                                                 <p className="font-medium text-gray-900">{user.full_name}</p>
                                                 <button onClick={() => startEdit(user)} className="text-xs text-blue-400 hover:text-blue-600">
                                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
@@ -240,9 +288,12 @@ export default function UsersPage() {
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-500">{user.email}</p>
+                                        <p className="text-xs text-gray-400 mt-0.5" title="User created at">
+                                            🕒 {formatDate(user.created_at)}
+                                        </p>
                                     </div>
-                                    <div className="flex items-center space-x-4">
-                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                    <div className="flex items-center space-x-3 ml-4">
+                                        <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
                                             user.role === 'home_lord' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                                             }`}>
                                             {user.role === 'home_lord' ? t.users.roleHomeLord :
@@ -258,14 +309,69 @@ export default function UsersPage() {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Assignments */}
+                                {user.assignments && user.assignments.length > 0 && (
+                                    <div className="mt-2 pl-2 border-l-2 border-gray-100">
+                                        <p className="text-xs text-gray-400 mb-1 font-semibold uppercase">{t.users.assignedTo}:</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {user.assignments.map((assignment, idx) => (
+                                                <div key={idx} className="flex items-center bg-gray-100 rounded-md px-2 py-1 text-xs text-gray-700 border border-gray-200">
+                                                    <span className="mr-2">
+                                                        {assignment.type === 'building' ? '🏢' : '🏠'}
+                                                        <span className="font-semibold ml-1">{assignment.name}</span>
+                                                        {assignment.detail && <span className="text-gray-500 ml-1">({assignment.detail})</span>}
+                                                    </span>
+                                                    <button
+                                                        onClick={() => handleUnassign(assignment)}
+                                                        className="text-gray-400 hover:text-red-600 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                                                        title={t.common.unassign}
+                                                    >
+                                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Invitation Info */}
                                 {user.invite_token && user.status === 'pending' && (
-                                    <div className="mt-2 bg-amber-50 p-2 rounded border border-amber-100 flex justify-between items-center">
-                                        <span className="text-sm text-amber-800">
-                                            {t.users.pendingInvite}: <code className="bg-white px-1 py-0.5 rounded border border-amber-200 text-xs">{`${origin}/invite/${user.invite_token}`}</code>
-                                        </span>
-                                        <button onClick={() => copyInviteLink(user.invite_token!)} className="text-xs text-blue-600 hover:underline">
-                                            {t.users.copyLink}
-                                        </button>
+                                    <div className="mt-3 bg-white p-3 rounded-md border border-amber-200 shadow-sm">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-sm font-semibold text-amber-900 border-b border-amber-100 pb-1">{t.users.pendingInvite}</span>
+                                            {isExpired(user.invite_expires_at) ? (
+                                                <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-bold rounded-full border border-red-200">
+                                                    EXPIRED
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-200">
+                                                    VALID
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <div className="text-xs space-y-1 text-gray-600 mb-2">
+                                            <div className="flex justify-between">
+                                                <span>Created:</span>
+                                                <span className="font-mono">{formatDate(user.created_at)}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Expires:</span>
+                                                <span className="font-mono">{formatDate(user.invite_expires_at)}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded border border-gray-200">
+                                            <code className="text-xs text-gray-600 break-all flex-1">{`${origin}/invite/${user.invite_token}`}</code>
+                                            <button
+                                                onClick={() => copyInviteLink(user.invite_token!)}
+                                                className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                                                title={t.users.copyLink}
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </li>

@@ -90,6 +90,7 @@ export interface Translations {
         deleteUser: string;
         adminInfo: string;
         homeLordInfo: string;
+        assignedTo: string;
     };
     profile: {
         title: string;
@@ -136,6 +137,8 @@ export interface Translations {
         successDeleteBuilding: string;
         errorDeleteBuilding: string;
         errorCreateBuilding: string;
+        confirmUnassign: string;
+        errorUnassign: string;
     };
     invite: {
         welcome: string;
