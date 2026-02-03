@@ -12,8 +12,6 @@ export interface Translations {
         logout: string;
         yes: string;
         no: string;
-        yes: string;
-        no: string;
         confirmDelete: string;
         unassign: string;
     };
