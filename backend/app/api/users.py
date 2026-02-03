@@ -86,24 +86,21 @@ def read_users(
     results = []
     for user in users:
         assignments = []
-        if user.role == "home_lord":
-            # Find managed buildings
-            buildings = session.exec(select(Building).where(Building.manager_id == user.id)).all()
-            for b in buildings:
-                assignments.append(Assignment(type="building", id=b.id, name=b.name))
+        # Check for managed buildings
+        buildings = session.exec(select(Building).where(Building.manager_id == user.id)).all()
+        for b in buildings:
+            assignments.append(Assignment(type="building", id=b.id, name=b.name))
         
-        elif user.role == "owner":
-            # Find owned units
-            units = session.exec(select(Unit).where(Unit.owner_id == user.id)).all()
-            for u in units:
-                # Need building name for detail
-                # Optimization: Join? Or just lazy load for now since N is small
-                assignments.append(Assignment(
-                    type="unit", 
-                    id=u.id, 
-                    name=u.unit_number, 
-                    detail=u.building.name if u.building else "Unknown Building"
-                ))
+        # Check for owned units
+        units = session.exec(select(Unit).where(Unit.owner_id == user.id)).all()
+        for u in units:
+            # Need building name for detail
+            assignments.append(Assignment(
+                type="unit", 
+                id=u.id, 
+                name=u.unit_number, 
+                detail=u.building.name if u.building else "Unknown Building"
+            ))
         
         user_with_assignments = UserWithAssignments.model_validate(user)
         user_with_assignments.assignments = assignments
