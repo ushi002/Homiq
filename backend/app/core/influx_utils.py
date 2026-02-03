@@ -4,12 +4,18 @@ from typing import List, Dict, Set, Tuple
 import os
 
 INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
+INFLUX_USER = os.getenv("INFLUX_USER", "alarmread")
+INFLUX_PASSWORD = os.getenv("INFLUX_PASSWORD", "mojenoveheslo")
 
 def query_influx(db_name: str, query: str) -> dict:
     url = f"{INFLUX_HOST}/query"
     params = {'db': db_name, 'q': query}
+    auth = None
+    if INFLUX_USER and INFLUX_PASSWORD:
+        auth = (INFLUX_USER, INFLUX_PASSWORD)
+    
     try:
-        response = requests.get(url, params=params)
+        response = requests.get(url, params=params, auth=auth)
         response.raise_for_status()
         return response.json()
     except Exception as e:

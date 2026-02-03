@@ -9,6 +9,8 @@ services:
       - ./backend/database.db:/app/database.db
     environment:
       - INFLUX_HOST=http://host.docker.internal:8086
+      - INFLUX_USER=alarmread
+      - INFLUX_PASSWORD=mojenoveheslo
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
