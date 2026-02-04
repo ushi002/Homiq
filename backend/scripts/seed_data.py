@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from sqlmodel import Session, SQLModel, create_engine, select
 from app.core.database import engine
 from app.models.property import Building, Unit, User
