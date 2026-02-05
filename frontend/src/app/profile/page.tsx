@@ -7,7 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { authFetch } from '@/lib/api';
 
 export default function ProfilePage() {
-    const { user, login, token } = useAuth(); // Need login to update local state
+    const { user, login, token, isLoading: authLoading } = useAuth(); // Need login to update local state
     const { t } = useLanguage();
     const router = useRouter();
     const [fullName, setFullName] = useState('');
@@ -15,6 +15,7 @@ export default function ProfilePage() {
     const [message, setMessage] = useState('');
 
     useEffect(() => {
+        if (authLoading) return;
         if (!token) {
             router.push('/login');
             return;
@@ -22,7 +23,9 @@ export default function ProfilePage() {
         if (user?.full_name) {
             setFullName(user.full_name);
         }
-    }, [user, token, router]);
+    }, [user, token, router, authLoading]);
+
+    if (authLoading) return <div className="p-8 text-center">{t.common.loading}</div>;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -30,7 +30,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { id } = use(params);
     const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
     const [units, setUnits] = useState<Unit[]>([]);
-    const { user, token } = useAuth();
+    const { user, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const isAdmin = user?.role === 'admin';
     const [isEditing, setIsEditing] = useState(false);
@@ -38,10 +38,11 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { t } = useLanguage();
 
     useEffect(() => {
+        if (authLoading) return;
         if (!token) {
             router.push('/login');
         }
-    }, [token, router]);
+    }, [token, router, authLoading]);
 
     // Measurements UI State
     interface MeasurementItem {

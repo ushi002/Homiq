@@ -28,7 +28,7 @@ interface Assignment {
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
-    const { user: currentUser, token } = useAuth();
+    const { user: currentUser, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [origin, setOrigin] = useState('');
     const { t } = useLanguage();
@@ -37,6 +37,7 @@ export default function UsersPage() {
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
 
     useEffect(() => {
+        if (authLoading) return;
         if (!token) {
             router.push('/login');
             return;
