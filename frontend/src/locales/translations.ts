@@ -111,6 +111,12 @@ export interface Translations {
         confirmPassword: string;
         updatePassword: string;
         successUpdate: string;
+        errorUpdate: string;
+        successPassword: string;
+        errorPassword: string;
+        errorMismatch: string;
+        emailReadOnly: string;
+        successUpdate: string;
         successPassword: string;
         errorUpdate: string;
         errorPassword: string;
