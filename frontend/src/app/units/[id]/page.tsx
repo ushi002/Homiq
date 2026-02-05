@@ -108,9 +108,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const canAssignOwner = user?.role === 'admin' || user?.role === 'home_lord';
 
 
-    const [selectedYear, setSelectedYear] = useState(2026);
+
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
-    const [selectedPeriod, setSelectedPeriod] = useState(1); // 1-12 (month) or 1-52 (week)
+    const [selectedPeriod, setSelectedPeriod] = useState(new Date().getMonth() + 1); // 1-12 (month) or 1-52 (week)
 
     // Helper: Get Week Number
     const getWeekNumber = (d: Date) => {
