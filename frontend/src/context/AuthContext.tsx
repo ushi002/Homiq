@@ -4,8 +4,8 @@ import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
     token: string | null;
-    user: { id: string; role: string; full_name?: string } | null;
-    login: (token: string, user_id: string, role: string, full_name?: string) => void;
+    user: { id: string; role: string; full_name?: string; email?: string } | null;
+    login: (token: string, user_id: string, role: string, full_name?: string, email?: string) => void;
     logout: (shouldRedirect?: boolean) => void;
     isAuthenticated: boolean;
 }
@@ -20,7 +20,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [token, setToken] = useState<string | null>(null);
-    const [user, setUser] = useState<{ id: string; role: string; full_name?: string } | null>(null);
+    const [user, setUser] = useState<{ id: string; role: string; full_name?: string; email?: string } | null>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -33,8 +33,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, []);
 
-    const login = (newToken: string, user_id: string, role: string, full_name?: string) => {
-        const userData = { id: user_id, role, full_name };
+    const login = (newToken: string, user_id: string, role: string, full_name?: string, email?: string) => {
+        const userData = { id: user_id, role, full_name, email };
         setToken(newToken);
         setUser(userData);
         localStorage.setItem('token', newToken);

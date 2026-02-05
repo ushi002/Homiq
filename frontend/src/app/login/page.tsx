@@ -32,7 +32,10 @@ export default function LoginPage() {
             }
 
             const data = await res.json();
-            login(data.access_token, data.user_id, data.role, data.full_name);
+            // We pass the email from the form state, assuming login was successful with it.
+            // Alternatively, backend returns it in `data` if we added it there.
+            // Since backend returns `full_name`, let's assume valid email is in `email` state.
+            login(data.access_token, data.user_id, data.role, data.full_name, email);
         } catch (err: any) {
             console.error(err);
             setError(err.message || t.login.error);

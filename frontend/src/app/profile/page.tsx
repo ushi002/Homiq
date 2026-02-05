@@ -36,7 +36,7 @@ export default function ProfilePage() {
                 // Update Context/LocalStorage
                 // We reuse existing token but update user details
                 if (token && user) {
-                    login(token, user.id, user.role, updatedUser.full_name);
+                    login(token, user.id, user.role, updatedUser.full_name, user.email);
                 }
             } else {
                 setMessage(t.profile.errorUpdate);
@@ -69,15 +69,11 @@ export default function ProfilePage() {
                             <label className="block text-sm font-medium text-gray-500">{t.profile.email}</label>
                             <input
                                 type="text"
-                                value={user?.role === 'admin' ? 'admin@homiq.cz' : '...'} // actually we don't have email in context user object, only id/role/fullname. 
-                                // We could fetch it, but strictly speaking AuthContext might not have it.
-                                // Let's just show Role for now or fetch /users/me on load properly if we want more data.
-                                // For now, let's just show Role.
+                                value={user?.email || ''}
                                 disabled
                                 className="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-500 sm:text-sm p-2"
-                                placeholder="Email not available in simplified context"
                             />
-                            <p className="text-xs text-gray-400 mt-1">Email cannot be changed.</p>
+                            <p className="text-xs text-gray-400 mt-1">{t.profile.emailReadOnly}</p>
                         </div>
 
                         <div>
