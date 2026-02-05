@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { LanguageProvider } from "@/context/LanguageContext";
-import LanguageSwitcher from "@/components/LanguageSwitcher";
+import GlobalLayoutClient from "@/components/GlobalLayoutClient";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,10 +32,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <LanguageProvider>
-            <div className="flex justify-end p-4 bg-gray-50">
-              <LanguageSwitcher />
-            </div>
-            {children}
+            <GlobalLayoutClient>
+              {children}
+            </GlobalLayoutClient>
           </LanguageProvider>
         </AuthProvider>
       </body>
