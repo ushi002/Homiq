@@ -16,7 +16,7 @@ interface Building {
 }
 
 export default function Dashboard() {
-  const { user, token, logout } = useAuth();
+  const { user, token, logout, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,6 +24,7 @@ export default function Dashboard() {
   const { t } = useLanguage();
 
   useEffect(() => {
+    if (authLoading) return;
     if (!token) {
       router.push('/login');
       return;
