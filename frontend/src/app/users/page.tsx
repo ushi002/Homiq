@@ -214,6 +214,15 @@ export default function UsersPage() {
         return new Date(dateStr) < new Date();
     };
 
+    const isExpired = (dateStr?: string) => {
+        if (!dateStr) return false;
+        return new Date(dateStr) < new Date();
+    };
+
+    if (authLoading || !token || currentUser?.role !== 'admin') {
+        return <div className="p-8 text-center">{t.common.loading}</div>;
+    }
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
