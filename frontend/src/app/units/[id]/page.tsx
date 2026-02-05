@@ -82,7 +82,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         };
 
         fetchMeters();
-    }, [id]);
+    }, [id, token, authLoading]);
 
 
     const handleAssignOwner = async (email: string) => {
