@@ -44,6 +44,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [token, router, authLoading]);
 
+    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+
     // Measurements UI State
     interface MeasurementItem {
         id: string;
