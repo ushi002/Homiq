@@ -116,11 +116,6 @@ export interface Translations {
         errorPassword: string;
         errorMismatch: string;
         emailReadOnly: string;
-        successUpdate: string;
-        successPassword: string;
-        errorUpdate: string;
-        errorPassword: string;
-        errorMismatch: string;
     };
     messages: {
         successCreateUser: string;
