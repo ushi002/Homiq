@@ -117,6 +117,7 @@ export const en: Translations = {
         errorUpdate: 'Failed to update profile.',
         errorPassword: 'Failed: ',
         errorMismatch: 'New passwords do not match.',
+        emailReadOnly: 'Email cannot be changed',
     },
     messages: {
         successCreateUser: 'User created successfully',
