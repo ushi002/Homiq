@@ -25,7 +25,7 @@ export default function ProfilePage() {
         }
     }, [user, token, router, authLoading]);
 
-    if (authLoading) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
