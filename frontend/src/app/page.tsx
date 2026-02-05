@@ -51,8 +51,9 @@ export default function Dashboard() {
     };
 
     fetchBuildings();
-  }, [token, router]);
+  }, [token, router, authLoading]);
 
+  if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
