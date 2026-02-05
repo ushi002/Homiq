@@ -214,11 +214,6 @@ export default function UsersPage() {
         return new Date(dateStr) < new Date();
     };
 
-    const isExpired = (dateStr?: string) => {
-        if (!dateStr) return false;
-        return new Date(dateStr) < new Date();
-    };
-
     if (authLoading || !token || currentUser?.role !== 'admin') {
         return <div className="p-8 text-center">{t.common.loading}</div>;
     }
