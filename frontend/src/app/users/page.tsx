@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -27,7 +28,8 @@ interface Assignment {
 export default function UsersPage() {
     const [users, setUsers] = useState<User[]>([]);
     const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
-    const { user: currentUser } = useAuth();
+    const { user: currentUser, token } = useAuth();
+    const router = useRouter();
     const [origin, setOrigin] = useState('');
     const { t } = useLanguage();
 
@@ -35,6 +37,10 @@ export default function UsersPage() {
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
 
     useEffect(() => {
+        if (!token) {
+            router.push('/login');
+            return;
+        }
         setOrigin(window.location.origin);
         fetchUsers();
         // Set default role
