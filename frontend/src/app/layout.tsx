@@ -32,7 +32,7 @@ export default function RootLayout({
       >
         <AuthProvider>
           <LanguageProvider>
-            <div className="absolute top-4 right-4 z-50">
+            <div className="flex justify-end p-4 bg-gray-50">
               <LanguageSwitcher />
             </div>
             {children}
