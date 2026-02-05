@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import UserSelect from '@/components/UserSelect';
 import { useAuth } from '@/context/AuthContext';
@@ -29,11 +30,18 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { id } = use(params);
     const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
     const [units, setUnits] = useState<Unit[]>([]);
-    const { user } = useAuth();
+    const { user, token } = useAuth();
+    const router = useRouter();
     const isAdmin = user?.role === 'admin';
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_device_tag: '', influx_measurements: '' });
     const { t } = useLanguage();
+
+    useEffect(() => {
+        if (!token) {
+            router.push('/login');
+        }
+    }, [token, router]);
 
     // Measurements UI State
     interface MeasurementItem {

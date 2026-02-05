@@ -1,6 +1,6 @@
-"use client";
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -29,10 +29,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [ownerId, setOwnerId] = useState<string>("");
-    const { user } = useAuth(); // Get current user
+    const { user, token } = useAuth(); // Get current user
+    const router = useRouter();
     const { t, language } = useLanguage();
 
     useEffect(() => {
+        if (!token) {
+            router.push('/login');
+            return;
+        }
         // 1. Fetch unit info
         authFetch(`/units/${id}`)
             .then(res => res.json())
