@@ -117,6 +117,7 @@ export const cs: Translations = {
         errorUpdate: 'Nepodařilo se aktualizovat profil.',
         errorPassword: 'Chyba: ',
         errorMismatch: 'Nová hesla se neshodují.',
+        emailReadOnly: 'Email nelze změnit',
     },
     messages: {
         successCreateUser: 'Uživatel úspěšně vytvořen',
