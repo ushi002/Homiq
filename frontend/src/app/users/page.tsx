@@ -42,11 +42,18 @@ export default function UsersPage() {
             router.push('/login');
             return;
         }
+
+        // Restrict access to Admins only
+        if (currentUser?.role !== 'admin') {
+            router.push('/');
+            return;
+        }
+
         setOrigin(window.location.origin);
         fetchUsers();
         // Set default role
         setNewUser(prev => ({ ...prev, role: currentUser?.role === 'admin' ? 'home_lord' : 'owner' }));
-    }, [currentUser]);
+    }, [currentUser, token, authLoading, router]);
 
     const fetchUsers = () => {
         authFetch('/users/')
