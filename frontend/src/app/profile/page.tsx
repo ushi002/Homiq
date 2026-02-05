@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { authFetch } from '@/lib/api';
@@ -8,15 +9,20 @@ import { authFetch } from '@/lib/api';
 export default function ProfilePage() {
     const { user, login, token } = useAuth(); // Need login to update local state
     const { t } = useLanguage();
+    const router = useRouter();
     const [fullName, setFullName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
 
     useEffect(() => {
+        if (!token) {
+            router.push('/login');
+            return;
+        }
         if (user?.full_name) {
             setFullName(user.full_name);
         }
-    }, [user]);
+    }, [user, token, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
