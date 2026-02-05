@@ -157,14 +157,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
-            <div className="mb-6 flex justify-between items-start">
+            <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
                     <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
                     <h1 className="text-3xl font-bold">{t.unit.title}</h1>
                     <p className="text-gray-500">{t.unit.unitNumber}: {unit?.unit_number}</p>
                 </div>
                 {canAssignOwner && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-sm w-full">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 w-full lg:max-w-sm">
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
                         <form onSubmit={(e) => {
                             e.preventDefault();
