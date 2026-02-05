@@ -44,7 +44,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [token, router, authLoading]);
 
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+
 
     // Measurements UI State
     interface MeasurementItem {
@@ -121,6 +121,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     };
 
     useEffect(() => {
+        if (authLoading || !token) return;
+
         // Fetch building
         authFetch(`/buildings/${id}`)
             .then(res => res.json())
@@ -132,7 +134,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             .then(res => res.json())
             .then(data => setUnits(data))
             .catch(err => console.error(err));
-    }, [id]);
+    }, [id, token, authLoading]);
 
     useEffect(() => {
         if (building) {
@@ -149,7 +151,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [building]);
 
-    if (!building) return <div className="p-8">{t.common.loading}</div>;
+    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (!building) return <div className="p-8 text-center">{t.common.loading}</div>;
 
     const handleAssignManager = async (newManagerId: string) => {
         if (!isAdmin) return;
