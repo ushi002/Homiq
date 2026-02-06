@@ -10,6 +10,7 @@ class UserBase(SQLModel):
     role: str = "home_lord" # admin, home_lord, owner
     invite_token: Optional[str] = None
     invite_expires_at: Optional[datetime] = None
+    last_login_at: Optional[datetime] = None
     status: str = Field(default="active") # active, pending
 
 class User(UserBase, table=True):
