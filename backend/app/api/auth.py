@@ -31,6 +31,13 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
     )
+
+    # Update last login time
+    user.last_login_at = datetime.utcnow()
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
     return Token(access_token=access_token, token_type="bearer", role=user.role, user_id=str(user.id), full_name=user.full_name)
 
 @router.post("/accept-invite", response_model=Token)

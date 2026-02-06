@@ -1,0 +1,1143 @@
+git status
+git pull
+git pull
+git branch list
+git list
+git status
+git branch
+git branch
+./wstunnel  client -L 'udp://51131:localhost:51130?timeout_sec=0' wss://teplomer.ufa.cas.cz
+bash
+cd wireguard
+nvim wireguard
+cd Library/Keychains
+ls
+pwd
+nvim login_renamed_1.keychain-db
+cd
+cd wireguard
+cat wireguard
+cd ceva/bno080/sh2-demo-nucleo
+nvim app/bno08x_i2c_hal.c
+nvim main/main.c
+grep -r demo_init .
+nvim app/demo_app.c
+grep -r sh2_service .
+nvim sh2/sh2.c
+grep -r shtp_service .
+nvim sh2/shtp.c
+ls
+ls sh2
+nvim sh2/NOTICE.txt
+nvim sh2/README.md
+nvim sh2/sh2.h
+nvim sh2/sh2_util.h
+nvim sh2/sh2_util.c
+mkdir ceva
+cd ceva
+ls
+mkdir bno080
+cd bno080
+git clone --recursive https://github.com/ceva-dsp/sh2-demo-nucleo.git
+ls
+cd sh2-demo-nucleo
+ls
+ls -al
+lnvim NOTICE.txt
+nvim NOTICE.txt
+nvim README.md
+ls EWARM
+nvim README.md
+nvim EWARM/Project.eww
+nvim EWARM/sh2-demo.ew
+nvim README.md
+nvim EWARM/Project.eww
+nvim EWARM/sh2-demo.ewp
+mc
+ls
+ls app
+nvim app/bno08x_i2c_hal.c
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+cd ..
+cd ..
+cd ..
+cd ..
+cd hashcat-6.2.6
+ls
+vim example.dict
+vim example400.hash
+vim example400.hash
+file hashcat.bin
+chmod +x hashcat.bin
+ls -al
+./hashcat.bin
+brew install hashcat
+hashcat
+cd ..
+rm -r hashcat-6.2.6
+rm -r hashcat-6.2.6
+rm -r hashcat-6.2.6
+hashcat -I
+hashcat zaznam.hash -a 3
+cp zaznam.hash zaznam.hashcat
+vim zaznam.hashcat
+hashcat zaznam.hashcat -a 3
+hashcat zaznam.hashcat -a 3 -m 17200
+hashcat zaznam.hashcat -a 3 -m 17200 ?d?d?d?d?d?d?d?d?d?d
+hashcat -m 17200 -a 3 zaznam.hashcat ?d?d?d?d?d?d?d?d?d?d
+hashcat zaznam.hashcat -a 3 -m 17200 -1 ?d?d?d?d?d?d?d?d?d?d
+hashcat
+cd ..
+cd ..
+cd ..
+cd ..
+hashcat --help
+hashcat -d 1 zaznam.hashcat
+hashcat -D 1 zaznam.hashcat
+hashcat -D 2 zaznam.hashcat
+hashcat -D 2 -m17200 zaznam.hashcat
+hashcat -D 1 -m17200 zaznam.hashcat
+hashcat -d 2 -m17200 zaznam.hashcat
+hashcat -d 1 -m17200 zaznam.hashcat
+hashcat -d 2 --force -m17200 zaznam.hashcat
+hashcat -d 1 --force -m17200 zaznam.hashcat
+hashcat -D 1 --force -m17200 zaznam.hashcat
+hashcat -D 2 --force -m17200 zaznam.hashcat
+cd jtr
+cd wordlists
+ls
+cd wordlists-20190123
+ls
+cd languages/Czech
+ls
+nvim
+nvim lower.lst
+nvim mixed.lst
+nvim muj.lst
+vim muj.lst
+vim muj.lst
+vim muj.lst
+cd jtr
+ls
+mc
+cd john-1.8.0.9-jumbo-macosx_sse4
+ls
+ls =al
+ls -al
+cat README-jumbo
+cd run
+ls -al
+./zip2john
+ls -l zip2john
+sudo su
+./zip2john
+./zip2john ../../Zaznam.zip
+./zip2john ../../Zaznam.zip > ../../zaznam.hash
+cat ../../zaznam.hash
+cd ../../
+ls
+cat zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --test
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash
+free -h
+bash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --list=build-info
+./john-1.8.0.9-jumbo-macosx_v3/run/john --test
+./john-1.8.0.9-jumbo-macosx_v3/run/john --test
+cd ..
+ls
+cd jtr
+ls
+rm -r john-1.8.0.9-jumbo-macosx_v3
+rm -r john-1.8.0.9-jumbo-macosx_v3.zip
+ls 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --test
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --show zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --save-memory=1 zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --save-memory=2 zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john --save-memory=3 zaznam.hash
+ls -l
+rm -r john-1.8.0.9-jumbo-macosx_sse4
+rm -r john-1.8.0.9-jumbo-macosx_sse4.zip
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --fork=1
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --fork=2
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --single
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --incremental
+wget https://kali.tools/files/passwords/leaked_passwords/rockyou.txt.bz2
+bash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --single
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --single
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+ls
+nvim
+pwd
+nvim muj.has
+mv muj.has muj.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+ls
+cat wordlists/wordlists-20190123.txt
+cd wordlists/wordlists-20190123.txt
+cd wordlists/wordlists-20190123
+ls
+vim all.lst
+ls languages
+ls languages/Czech
+vim languages/Czech/lower.lst
+cd ../../
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --worldlist='./worldlists/wordlists-20190123/languages/Czech/lower.lst'
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./worldlists/wordlists-20190123/languages/Czech/lower.lst'
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/lower.lst'
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+find . -name "john.conf"
+cp john-1.8.0.9-jumbo-macosx_sse4/run/john.conf john-1.8.0.9-jumbo-macosx_sse4/run/john.conf.backup
+vim john-1.8.0.9-jumbo-macosx_sse4/run/john.conf
+./john-1.8.0.9-jumbo-macosx_sse4/run/john
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/lower.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  zaznam.hash --show
+cat zaznam.hashcat
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john  muj.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --show
+cat zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash ?d?d
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --incremental=digits --min-length=10 --max-length=10
+ssh jaruska
+ping jaruska.ufa.cas.zc
+ping jaruska.ufa.cas.cz
+ssh-copy-id jaruska.ufa.cas.cz
+ssh-copy-id jaruska.ufa.cas.cz
+ssh-copy-id jaruska.ufa.cas.cz
+ssh-copy-id jaruska.ufa.cas.cz
+ssh ludek@jaruska.ufa.cas.cz
+cd ..
+ls
+ls jtr
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --rules
+cd jtr
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --rules
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john 
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --single
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --status
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --show
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --incremental
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --list=opencl-devices
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --devices-0
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --devices=0
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --devices=1
+file zaznam.hash
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --list=info
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --list=help
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --list=help
+./john-1.8.0.9-jumbo-macosx_sse4/run/john zaznam.hash --show
+ls
+ls -l
+ls
+ls -l
+./macOS-ARM_1_JtR/run/zip2john Zaznam.zip
+./macOS-ARM_1_JtR/run/zip2john Zaznam.zip
+./macOS-ARM_1_JtR/run/zip2john Zaznam.zip
+./macOS-ARM_1_JtR/run/zip2john Zaznam.zip > zaznam2.hash
+vim zaznam2.hash
+./macOS-ARM_1_JtR/run/john zaznam2.hash --wordlist='./wordlists/wordlists-20190123/languages/Czech/muj.lst' 
+./macOS-ARM_1_JtR/run/john zaznam2.hash --show
+vim zaznam2.hash
+./macOS-ARM_1_JtR/run/john zaznam2.hash 
+vim macOS-ARM_1_JtR/run/john.pot
+./macOS-ARM_1_JtR/run/john zaznam2.hash --show
+./macOS-ARM_1_JtR/run/john zaznam2.hash 
+./macOS-ARM_1_JtR/run/john zaznam2.hash --incremental=digits --min-length=10 --max-length=10
+./macOS-ARM_1_JtR/run/john zaznam2.hash --show
+ssh jaruska
+ssh jaruska.ufa.cas.cz
+ls
+vim mujhash.log
+vim wordlists/wordlists-20190123/languages/Czech/muj.lst
+vim wordlists/wordlists-20190123/languages/Czech/muj.lst
+lsbl
+lsblk
+lsblk
+cd /mn
+ls /
+cd /Volumes
+ls
+cd DIGITALNI\ VZPOMINKY
+ls
+cd Digitalizace\ -\ obj.\ Äƒ­.\ 15195
+ls
+vim ahoj
+ls -al
+cd ..
+ls -al
+ls -al
+cd ..
+ls -al
+ccd DIGITALNI\ VZPOMINKY
+ls
+ls -al
+diskutil list
+diskutil list
+sudo mount -uw /dev/disk4
+sudo umount /dev/disk4
+diskutil list
+sudo umount /dev/disk4
+brew install ntfs-3g
+sudo brew install ntfs-3g
+brew install ntfs-3g
+brew update
+brew install ntfs-3g-mac
+brew tap gromgit/homebrew-fuse
+brew install ntfs-3g-mac
+brew install --cask macfuse
+brew install ntfs-3g-mac
+cd DIGITALNI\ VZPOMINKY
+ls -al
+vim ahoj.txt
+cd ..
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhashcomb --rules
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --combination=wordlists/wordlists-20190123/languages/Czech/muj.lst --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhashcomb --rules
+./macOS-ARM_1_JtR/run/john --help
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhashcomb --rules
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhashcomb --rules
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujlist --rules
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujlist --rules -c
+nvim macOS-ARM_1_JtR/run/john.pot
+nvim macOS-ARM_1_JtR/run/john.log
+nvim macOS-ARM_1_JtR/run/john.conf
+vim wordlists/wordlists-20190123/languages/Czech/lower.lst
+ls
+cat muj2.hash
+cat muj.hash
+mv muj.hash narozeniny2007.hash
+cat narozeniny2007.hash
+cat pokus2.hash
+hashcat
+hashcat --help
+cd jtr/hashcat-6.2.6
+ls
+cd ..
+cat zaznam.hashcat
+vim wordlists/wordlists-20190123/languages/Czech/muj.lst
+cd
+vim .ssh/known_hosts
+vim .ssh/known_hosts
+vim .ssh/known_hosts
+cd jtr
+ls
+file Zaznam.zip
+zip
+zip -T Zaznam.zip
+cat wordlists/wordlists-20190123/languages/Czech/muj.lst
+zip -T Zaznam.zip
+clear
+cat wordlists/wordlists-20190123/languages/Czech/muj.lst
+clear
+cat wordlists/wordlists-20190123/languages/Czech/muj.lst
+clear
+brew install libomp
+ls
+cat muj.hash
+cat wordlists/wordlists-20190123/languages/Czech/muj.lst
+./macOS-ARM_1_JtR/run/john muj.hash wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst
+cat wordlists/wordlists-20190123/languages/Czech/muj.lst
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhash
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhash --show
+./macOS-ARM_1_JtR/run/john muj.hash --session=mujhash --show
+./macOS-ARM_1_JtR/run/john --help
+./macOS-ARM_1_JtR/run/john --show
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhash 
+ls
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/muj.lst --session=mujhash --rules
+./macOS-ARM_1_JtR/run/john muj.hash --show
+./macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/lower.lst --session=mujhash --rules
+./macOS-ARM_1_JtR/run/john muj.hash --show
+echo './macOS-ARM_1_JtR/run/john muj.hash --format=rar-opencl --wordlist=wordlists/wordlists-20190123/languages/Czech/lower.lst --session=mujhash --rules' > muj.hash.jtr.done
+cat muj.hash.jtr.done
+vim muj.hash.jtr.done
+cd ..
+pwd
+ls -al
+cd jtr
+ls -al
+vim muj.hash
+pwd
+./macOS-ARM_1_JtR/run/john
+cat muj.hash.jtr.done
+vim mujhash.log
+ls - ./macOS-ARM_1_JtR/run/
+ls -l ./macOS-ARM_1_JtR/run/
+./macOS-ARM_1_JtR/run/john pokus2.hash --session=pokus2sessionsimple
+./macOS-ARM_1_JtR/run/john pokus2.hash --format=rar-opencl --session=pokus2gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=pokus2gpusessionsimple
+ls -l
+cat muj.hash
+./macOS-ARM_1_JtR/run/john narozeniny2007.hash --format=rar-opencl --session=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple
+echo "./macOS-ARM_1_JtR/run/john --restore=narozeniny2007gpusessionsimple" > restore.nar
+cat restore.nar
+vim restore.nar
+ssh 172.20.72.110
+ssh bpi@172.20.72.110
+ssh bpi@172.20.72.110
+ssh bpi@172.20.72.110
+whereis gcc
+ make
+ping 10.0.0.32
+ping 10.0.0.1
+ping www.trulio.eu
+ping www.skifn.eu
+ping wire.skifn.eu
+ping 10.0.0.1
+ping 10.0.0.32
+ssh admin@www.skifn.eu
+ping 10.0.0.33
+ssh david@10.0.0.32
+ssh david@10.0.0.33
+ping 172.20.75.33
+ssh bpi@172.20.75.33
+ssh bpi@172.20.72.110
+ssh bpi@172.20.75.33
+ssh bpi@172.20.75.33
+ssh bpi@172.20.75.33
+ssh bpi@172.20.75.33
+ls
+cd wireguard
+cat wireguard
+ls
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+ssh admin@www.skifn.eu
+npm install -g @google/gemini-cli
+sudo npm update
+sudo npm audit fix --force
+sudo brew update
+brew update
+brew upgrade
+npm --version
+npm install -g @google/gemini-cli
+npm install -g @google/gemini-cli --force
+cd .npm/_cacache
+ls
+cd content-v2
+ls
+cd sha512/99
+ls
+pwd
+cd ..
+rm -r  99
+rm -rf  99
+sudo rm -rf  99
+cd
+npm install -g @google/gemini-cli 
+sudo rm -rf .npm/_cacache
+npm install -g @google/gemini-cli 
+gemini
+gemini
+npm install -g @google/gemini-cli 
+npm fund
+iostat
+iostat
+mkdir instagram
+cd instagram
+git clone git@github.com:frabonomi/instagram-followers-scraper.git
+vim ../.ssh/known_hosts
+git clone git@github.com:frabonomi/instagram-followers-scraper.git
+git clone git@github.com:frabonomi/instagram-followers-scraper.git
+git clone git@github.com:frabonomi/instagram-followers-scraper.git .
+git clone https://github.com/tonoli/instagram-followers-scraper.git .
+ls
+act requirements.txt
+car requirements.txt
+cat requirements.txt
+pip3 install -r requirements.txt
+python3 main.py
+python3 main.py
+python3 main.py
+git pull
+git pull
+python3 main.py
+ping http://192.168.1.238/
+ping 192.168.1.238
+ping 192.168.1.238
+ping 192.168.1.238
+npm install -g @google/gemini-cli
+bash
+vim .zshrc
+vim .gemini/settings.json
+cd /Users/ludek/trulio/www2/www/scripts && rm -f form-u74974.php form_check.php form_process.php form_throttle.php && ls -la *.php
+tail -c 500 /Users/ludek/trulio/www2/www/css/index.css
+cat >> /Users/ludek/trulio/www2/www/css/index.css << 'EOF'\
+@media(min-width:1171px),print{#ppu74969-4{margin-left:auto!important}#u74969-4{margin-left:auto!important;margin-right:auto!important}#pu75471{margin-left:auto!important;margin-right:auto!important}#pu75002-4{margin-left:auto!important;margin-right:auto!important}#u75002-4,#u74971-4{margin-left:auto!important;margin-right:auto!important;text-align:center}#u75003-4,#u75004-4{margin-left:auto!important;margin-right:auto!important;text-align:center}#pu75441{margin-left:auto!important;margin-right:auto!important}#u74973-4{margin-left:auto!important;margin-right:auto!important;left:0!important}#pu75454{margin-left:auto!important;margin-right:auto!important}#u74972-4{margin-left:auto!important;margin-right:auto!important;left:0!important}#u74970-7{margin-left:auto!important;margin-right:auto!important}}@media(min-width:751px)and(max-width:1170px){#u74969-4{margin-left:auto!important;margin-right:auto!important}#pu75471{margin-left:auto!important;margin-right:auto!important}#pu75002-4{margin-left:auto!important;margin-right:auto!important}#u75002-4,#u74971-4{margin-left:auto!important;margin-right:auto!important;text-align:center}#u75003-4,#u75004-4{margin-left:auto!important;margin-right:auto!important;text-align:center}#pu75441{margin-left:auto!important;margin-right:auto!important}#u74973-4{margin-left:auto!important;margin-right:auto!important;left:0!important}#pu75454{margin-left:auto!important;margin-right:auto!important}#u74972-4{margin-left:auto!important;margin-right:auto!important;left:0!important}#u74970-7{margin-left:auto!important;margin-right:auto!important}}\
+EOF
+tail -c 300 /Users/ludek/trulio/www2/www/css/index.css
+grep -c "widgetu74974" /Users/ludek/trulio/www2/www/index.html
+grep "widgetu74974" /Users/ludek/trulio/www2/www/index.html
+grep -n "data-orig-id=\"widgetu74974\"" /Users/ludek/trulio/www2/www/index.html
+sed -i '' 's/#widgetu74974{height:[^}]*}//g' css/index.css
+cd /Users/ludek/trulio/www2/www && python3 << 'EOF'\
+import re\
+\
+with open('css/index.css', 'r', encoding='utf-8') as f:\
+    content = f.read()\
+\
+# Remove all form widget CSS rules - pattern: #widgetu7497X, #widgetu7498X, #widgetu7499X, #u7498X, #u7499X\
+# This is a minified CSS file, so rules are separated by ;\
+# We'll remove any rule starting with #widgetu7497, #widgetu7498, #widgetu7499, etc.\
+\
+patterns_to_remove = [\
+    r'#widgetu74974\{[^}]*\}',\
+    r'#widgetu74975\{[^}]*\}',\
+    r'#widgetu74979\{[^}]*\}',\
+    r'#widgetu74987\{[^}]*\}',\
+    r'#widgetu74991\{[^}]*\}',\
+    r'#u74978-4\{[^}]*\}',\
+    r'#u74982-4\{[^}]*\}',\
+    r'#u74983-4\{[^}]*\}',\
+    r'#u74984-4\{[^}]*\}',\
+    r'#u74985-4\{[^}]*\}',\
+    r'#u74986-4\{[^}]*\}',\
+    r'#u74989-4\{[^}]*\}',\
+    r'#u74993-4\{[^}]*\}',\
+]\
+\
+for pattern in patterns_to_remove:\
+    content = re.sub(pattern, '', content)\
+\
+# Also remove complex selectors that reference form elements\
+content = re.sub(r'#widgetu7497[0-9]\.[^{]*\{[^}]*\}', '', content)\
+content = re.sub(r'#widgetu7498[0-9]\.[^{]*\{[^}]*\}', '', content)\
+content = re.sub(r'#u7498[0-9]-[0-9]\.[^{]*\{[^}]*\}', '', content)\
+content = re.sub(r'#widgetu7497[0-9]:(?:hover|focus|active)\{[^}]*\}', '', content)\
+content = re.sub(r'#widgetu7498[0-9]:(?:hover|focus|active)\{[^}]*\}', '', content)\
+\
+with open('css/index.css', 'w', encoding='utf-8') as f:\
+    f.write(content)\
+\
+print("CSS cleaned successfully")\
+EOF
+cat > /tmp/update_mobile_kontakt.py << 'EOF'\
+import re\
+\
+# Read the CSS file\
+with open('/Users/ludek/trulio/www2/www/css/index.css', 'r') as f:\
+    css_content = f.read()\
+\
+# Find the bp_750 mobile media query section\
+# Look for the pattern that starts with @media (max-width: 750px)\
+pattern = r'@media \(max-width: 750px\)\{[^}]+#u74969-4\{[^}]+\}'\
+\
+# Find the position of @media (max-width: 750px)\
+mobile_start = css_content.find('@media (max-width: 750px)')\
+\
+if mobile_start == -1:\
+    print("ERROR: Could not find @media (max-width: 750px)")\
+    exit(1)\
+\
+# Extract substring starting from mobile media query to see what we're working with\
+mobile_section = css_content[mobile_start:mobile_start+5000]\
+\
+# Find the KONTAKT-related styles in the mobile section\
+# Pattern: #u74969-4{...margin-left:235px...}\
+\
+replacements = [\
+    # u74969-4 heading\
+    (r'(#u74969-4\{[^}]*?)margin-left:235px', r'\1margin-left:auto'),\
+    # pu75471 company info wrapper  \
+    (r'(#pu75471\{[^}]*?)margin-left:230px', r'\1margin-left:auto'),\
+    # u75003-4, u75004-4 address lines\
+    (r'(#u75003-4,#u75004-4\{[^}]*?)margin-left:284px', r'\1margin-left:auto'),\
+    # pu75441 phone wrapper\
+    (r'(#pu75441\{[^}]*?)margin-left:235px', r'\1margin-left:auto'),\
+    # pu75454 email wrapper\
+    (r'(#pu75454\{[^}]*?)margin-left:235px', r'\1margin-left:auto'),\
+]\
+\
+result = css_content\
+for old_pattern, new_pattern in replacements:\
+    result = re.sub(old_pattern, new_pattern, result)\
+\
+# Write back\
+with open('/Users/ludek/trulio/www2/www/css/index.css', 'w') as f:\
+    f.write(result)\
+\
+print("Mobile KONTAKT styles updated successfully")\
+EOF
+python /tmp/update_mobile_kontakt.py
+python3 /tmp/update_mobile_kontakt.py
+grep -o "#u74969-4{[^}]*}" /Users/ludek/trulio/www2/www/css/index.css | head -3
+grep -A 300 '@media (max-width: 750px)' /Users/ludek/trulio/www2/www/css/index.css | grep -E "(#u74969-4|#pu75471|#u75471|#pu75002-4|#u75002-4|#pu75441|#u74973-4|#pu75454|#u75441|#u75454|#u74972-4)" | head -20
+echo "âƒ¼ƒ³ All contact form removal and KONTAKT centering complete!\
+\
+SUMMARY OF CHANGES:\
+==================\
+\
+1. REMOVED CONTACT FORM HTML\
+   - Removed form from desktop (bp_infinity) breakpoint\
+   - Removed form from tablet (bp_1170) breakpoint\
+   - Removed form from mobile (bp_750) breakpoint\
+   - Removed form JavaScript initialization code\
+\
+2. REMOVED FORM-RELATED CSS\
+   - Cleaned up all form widget styling rules\
+   - Removed all form field styling\
+   - Removed all form validation state styling\
+\
+3. CENTERED KONTAKT SECTION\
+   - Updated bp_infinity (desktop 1171px+) - margin-left:auto, margin-right:auto, text-align:center\
+   - Updated bp_1170 (tablet 751-1170px) - margin-left:auto, margin-right:auto, text-align:center\
+   - Updated bp_750 (mobile max 750px) - margin-left:auto, margin-right:auto, text-align:center\
+\
+FILES MODIFIED:\
+- /Users/ludek/trulio/www2/www/index.html (removed ~26 lines of form HTML and 1 line of JS)\
+- /Users/ludek/trulio/www2/www/css/index.css (updated KONTAKT CSS, removed form CSS)\
+\
+RESULT:\
+The website now displays the contact information (company name, address, phone, email) \
+centered on all screen sizes, with the contact form completely removed."
+rm /Users/ludek/trulio/www2/www/scripts/form-u74974.php /Users/ludek/trulio/www2/www/scripts/form_check.php /Users/ludek/trulio/www2/www/scripts/form_process.php /Users/ludek/trulio/www2/www/scripts/form_throttle.php
+find /Users/ludek/trulio/www2/www -name "*.sqlite*" -o -name "muse-throttle*" 2>/dev/null
+python3 -m http.server 8000
+cd tts
+cat runlogs
+cd adr-cli
+vim liverenovatstvdm
+./liverenovatstvdm
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state |less
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state |less
+pw
+pwd
+cd sn8zri0114714523
+ls
+./livevdm
+cd ..
+scp -r sn8zri0114714523 pi@192.168.8.100:lora/
+cd ..
+ls
+cat run
+cat runlogs
+cd adr-cli/sn8zri0114714523
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state |less
+ls
+vim macstate2adrnum1.txt
+cd ..
+ls
+mkdir sn8zri0114714508
+cd sn8zri0114714508
+scp pi@192.168.8.100:lora/sn8zri0114714508/logvdm .
+vim logvdm
+mv logvdm logvdm.txt
+ssh pi@192.168.8.100
+ssh-copy-id
+ssh-copy-id pi@192.168.8.100
+cd test-gemini
+ls
+cd server
+npm install
+npm start
+npm install
+npm start
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state |less
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state | less
+ttn-lw-cli end-devices get app-kk469-test test-renova-vodomer --mac-state
+ls
+cd test-gemini/client
+npm install
+npm run dev
+npm install
+npm run dev
+npm run dev
+npm install
+npm run dev
+npm run dev
+ls
+pwd
+cd antigravity/Homiq/Homiq
+cd frontend
+npm install
+npm run dev
+cd antigravity/Homiq
+ls
+cd Homiq
+ls
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+ls
+cd antigravity
+cd Homiq
+ls
+vim README.antigravity
+mv README.antigravity HOWTOSTART
+cd Homiq/backend
+uvicorn app.main:app -reload
+source venv/bin/activate
+uvicorn app.main:app --reload
+mkdir -p backend/app/core backend/app/models backend/app/api backend/app/schemas backend/app/services
+npx create-next-app --help
+npx -y create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --disable-git
+mkdir -p backend/tests
+python3 -m backend.tests.verify_phase1
+pip install httpx
+python3 -m backend.tests.verify_phase1
+pip install -r backend/requirements.txt
+python3 -m backend.tests.verify_phase1
+python3 -m backend.tests.verify_phase1
+python3 -m backend.tests.verify_phase1
+python3 -m backend.tests.verify_phase2
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+mkdir -p backend/scripts
+python3 -m backend.scripts.seed_data
+python3 -m backend.scripts.seed_data
+git status
+git remote -v
+git add .
+git commit -m "feat: Implement Property Management and Telemetry modules with Dashboard"
+git push origin main
+cd /Users/ludek/antigravity/Homiq/Homiq/backend
+rm database.db
+cd /Users/ludek/antigravity/Homiq/Homiq
+python3 -m backend.scripts.seed_data
+python3 -m backend.tests.verify_phase3
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+ls -l backend/database.db
+ls -ld backend
+chmod 666 backend/database.db
+ls -l backend/database.db*
+ls -lO backend/database.db
+python3 debug_db.py
+rm debug_db.py
+git add .
+git commit -m "feat: Implement User Administration (Phase 3) and fix database permissions"
+git push origin main
+pip install -r backend/requirements.txt
+mkdir -p backend/app/schemas
+rm backend/database.db
+python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+pip install "bcrypt==4.0.1"
+rm backend/database.db
+python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+mkdir -p frontend/src/context
+mkdir -p frontend/src/lib
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+python3 debug_auth.py
+curl -X POST http://localhost:8000/token -H "Content-Type: application/x-www-form-urlencoded" -d "username=lord1@homiq.cz&password=password"
+uvicorn backend.app.main:app --port 8001
+pip install "bcrypt==3.2.2"
+pip show bcrypt
+pip uninstall -y bcrypt
+pip install -r backend/requirements.txt
+rm backend/database.db
+python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+backend/venv/bin/pip install argon2-cffi
+backend/venv/bin/python3 debug_argon.py
+rm backend/database.db
+backend/venv/bin/python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+rm debug_argon.py
+git status
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+flake8 backend/app/api/units.py
+git status
+git add .
+git commit -m "Fix: Restrict unit assignment to Home Lords & Admins only"
+git push
+rm backend/database.db
+backend/venv/bin/python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+rm backend/database.db
+backend/venv/bin/python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+git status
+git add .
+git status
+git add .
+git commit -m "Add Admin user and improve auth error handling"
+git push
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+git add .
+git commit -m "Fix: Include manager_id in Building API response so dropdown works"
+git push
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+git add .
+git commit -m "Enforce strict user creation hierarchy (Admin->Home Lord only, Home Lord->Owner only)"
+git push
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+git add .
+git commit -m "Implement User Ownership: Home Lords manage only their created Owners"
+git push
+rm backend/database.db
+backend/venv/bin/python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+rm backend/database.db
+backend/venv/bin/python3 -m backend.scripts.seed_data
+chmod 666 backend/database.db
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+npm run build
+npm run build
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+git add .
+git commit -m "Add total consumption calculation to comparative view"
+git push
+cd /Users/ludek/antigravity/Homiq/Homiq/frontend
+npm run build
+npm run build
+npm run build
+cd /Users/ludek/antigravity/Homiq/Homiq
+git add .
+git commit -m "Complete Comparative Analysis View: period selection and consumption totals"
+git push
+curl -X POST http://localhost:8001/token -H "Content-Type: application/x-www-form-urlencoded" -d "username=lord1@homiq.cz&password=password"
+curl -X POST http://localhost:8001/token -H "Content-Type: application/x-www-form-urlencoded" -d "username=lord1@homiq.cz&password=password"
+ps aux | grep influx
+cd /opt/homebrew/opt/influxdb/bin
+ls
+./influxdb3
+./influxdb3 -
+./influxdb3 -h
+./influxdb3 show
+./influxdb3 show databases
+influxdb3
+history | grep influx
+bash
+influxdb3 -h
+ls -al
+cd nodejs-projects
+ls
+cd influxdb-queries
+ls
+influxdb3
+influxdb3 -h
+influxdb3 test
+influxdb3 show
+influxdb3 show databases
+cd
+ps aux | grep influx
+cd /opt/homebrew/opt/influxdb/bin
+ls
+ls -al
+cd ..
+ls
+cat README.md
+ls
+cd ..
+ls
+ls -al influxdb*
+cd ../Cellar/influxdb
+ls
+cd ../influxdb@1
+ls
+cd 1.12.2
+ls
+cat Re
+cat README.md
+ls
+c dbi
+cd bin
+ls
+./influx
+cd ../
+cd ..
+cd ../../Cellar/influxdb@1/1.12.2
+cd bin
+./influx
+./influx
+ls
+./influx_tools
+./influxd
+./influxd -h
+./influxd &
+./influxd 
+ps aux | grep uvicorn
+cd /Users/ludek/antigravity/Homiq/Homiq/backend
+python3 add_column.py
+python3 rename_column.py
+curl -G http://localhost:8086/query --data-urlencode "q=SHOW DATABASES"
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW MEASUREMENTS"
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW TAG KEYS FROM sv_l"
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW TAG VALUES FROM sv_l WITH KEY = \"unit\""
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW TAG VALUES FROM sv_l WITH KEY = \"jednotka\""
+/Users/ludek/antigravity/Homiq/Homiq/backend/venv/bin/pip install requests
+python3 add_units_fetched_column.py
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW TAG KEYS FROM sv_l"
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=show series from sv_l where unit='bj-a01'"
+/Users/ludek/antigravity/Homiq/Homiq/backend/venv/bin/python test_influx.py
+/Users/ludek/antigravity/Homiq/Homiq/backend/venv/bin/python check_orphans.py
+/Users/ludek/antigravity/Homiq/Homiq/backend/venv/bin/python check_structure.py
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW SERIES FROM sv_l WHERE unit='bj-a13'"
+curl -G http://localhost:8086/query --data-urlencode "db=svjkk469db2" --data-urlencode "q=SHOW SERIES FROM sv_l WHERE unit='bj-b17'"
+/Users/ludek/antigravity/Homiq/Homiq/backend/venv/bin/python test_influx.py
+cd /Users/ludek/antigravity/Homiq/Homiq
+git status
+git add .
+git commit -m "feat: Building management with InfluxDB integration\
+\
+- Added Fetch Units feature with unit/meter creation from InfluxDB\
+- Added Delete All Units and Delete Building features for admins\
+- Implemented units_fetched flag for building state management\
+- Fixed meter pagination issue in API\
+- Added smart button states in frontend"
+git push
+git add backend/app/api/buildings.py
+git commit -m "fix: Sort units alphabetically by unit number"
+git push
+git add .
+git commit -m "feat: Implement automatic reading sync from InfluxDB on unit view"
+git push
+python3 backend/add_influx_unit_tag_column.py
+curl -v http://localhost:8000/docs
+python3 backend/add_influx_measurements_column.py
+python3 -m unittest backend/test_influx.py
+python3 backend/test_parsing.py
+python3 backend/test_parsing_standalone.py
+rm backend/test_parsing.py backend/test_parsing_standalone.py
+git add .
+git commit -m "feat: Add configurable InfluxDB settings (unit tag, measurements) and improve discovery"
+git push
+git add .
+git commit -m "feat: Add Reload Units functionality and clean up debug logs"
+git push
+git add .
+git commit -m "feat: Implement owner retention on reload and remove manual meter creation"
+git push
+python3 backend/add_invite_columns.py
+python3 backend/add_invite_columns.py
+mkdir -p frontend/src/app/invite/[token]
+mkdir -p backend/tests
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python backend/tests/test_invite_flow.py
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python3 backend/tests/test_invite_flow.py
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python3 backend/tests/test_invite_flow.py
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python3 backend/tests/test_invite_flow.py
+pip install requests
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python3 backend/tests/test_invite_flow.py
+export PYTHONPATH=$PYTHONPATH:$(pwd)/backend && python3 backend/tests/test_invite_flow.py
+curl -v http://localhost:8000/health
+git status
+git add . && git commit -m "feat: User Invitation System implementation" && git push
+git status
+git add . && git commit -m "feat: Enhance User Management (Profile, Assign by Email, Admin Edits)" && git push
+git add . && git commit -m "feat: Implement Password Change and Restrict Building Creation" && git push
+grep -l "http://localhost:8000" frontend/src/app/**/*.tsx | xargs sed -i '' 's|http://localhost:8000||g'
+docker-compose up --build
+ls
+cd backend
+ls
+cd ..
+ls
+ls
+docker-compose up --build
+docker-compose up --build
+docker-compose up --build
+docker-compose up --build
+docker-compose up --build
+pwd
+docker-compose up --build -d
+docker-compose up --build -d backend
+docker-compose exec backend python -m scripts.seed_data
+docker-compose exec backend ls -F /app
+docker-compose exec backend python -m scripts.seed_data
+docker-compose up --build -d backend
+docker-compose exec backend python -m scripts.seed_data
+docker-compose exec backend python -c '\
+from sqlmodel import Session, select\
+from app.core.database import engine\
+from app.models.property import User\
+from app.core.security import get_password_hash\
+\
+with Session(engine) as session:\
+    user = session.exec(select(User).where(User.email == "admin@homiq.cz")).first()\
+    if user:\
+        print(f"User found: {user.email}, Role: {user.role}, Status: {user.status}")\
+        user.password_hash = get_password_hash("password")\
+        session.add(user)\
+        session.commit()\
+        print("Password reset to: password")\
+    else:\
+        print("User admin@homiq.cz NOT found")\
+'
+docker-compose logs --tail=50 backend
+curl -X POST "http://localhost:8000/token" -H "Content-Type: application/x-www-form-urlencoded" -d "username=admin@homiq.cz&password=password"
+docker-compose up --build -d frontend
+docker-compose up --build -d frontend
+git status
+git add .
+git commit -m "Fix Docker build and login issues\
+\
+- Upgrade frontend to Node 20\
+- Enable standalone output for Next.js\
+- Add requests to backend requirements\
+- Fix frontend API URL handling for login/invite\
+- Add Docker configuration files"
+git push
+ssh -o StrictHostKeyChecking=no docker@136.115.156.196 "mkdir -p /opt/docker/homiq && echo 'Connection successful'"
+mkdir -p /Users/ludek/antigravity/Homiq/Homiq/nginx
+rsync -avz -e "ssh -o StrictHostKeyChecking=no" --exclude 'node_modules' --exclude '.next' --exclude 'venv' --exclude '__pycache__' --exclude '.git' /Users/ludek/antigravity/Homiq/Homiq/ docker@136.115.156.196:/opt/docker/homiq/
+tar --exclude='node_modules' --exclude='.next' --exclude='venv' --exclude='__pycache__' --exclude='.git' -czf homiq_deploy.tar.gz -C /Users/ludek/antigravity/Homiq/Homiq .
+scp -o StrictHostKeyChecking=no homiq_deploy.tar.gz docker@136.115.156.196:/opt/docker/homiq/
+ssh -o StrictHostKeyChecking=no docker@136.115.156.196 "cd /opt/docker/homiq && tar xzf homiq_deploy.tar.gz && rm homiq_deploy.tar.gz && docker compose up -d --build"
+ssh -o StrictHostKeyChecking=no docker@136.115.156.196 "cd /opt/docker/homiq && docker compose ps"
+ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 docker@136.115.156.196 "echo 'Server is online'"
+ssh -o StrictHostKeyChecking=no docker@136.115.156.196 "mkdir -p /opt/docker/homiq && cd /opt/docker/homiq && rm -f homiq_deploy.tar.gz"
+scp -o StrictHostKeyChecking=no homiq_deploy.tar.gz docker@136.115.156.196:/opt/docker/homiq/
+tar --exclude='node_modules' --exclude='.next' --exclude='venv' --exclude='__pycache__' --exclude='.git' -czf homiq_deploy.tar.gz -C /Users/ludek/antigravity/Homiq/Homiq .
+scp -o StrictHostKeyChecking=no homiq_deploy.tar.gz docker@136.115.156.196:/opt/docker/homiq/
+ssh -o StrictHostKeyChecking=no docker@136.115.156.196 "cd /opt/docker/homiq && tar xzf homiq_deploy.tar.gz && rm homiq_deploy.tar.gz && docker compose up -d --build"
+services
+bash
+docker
+ps aux | grep docker
+node -v
+cd antigravity/Homiq
+ls
+cd Homiq
+ls
+docker-compose up --build
+ls
+cd ..
+ls
+vim H
+vim HOWTOSTART
+vim HOWTOSTART
+cat HOWTOSTART
+vim HOWTOSTART
+ls
+ls ../
+ls ../../
+ls
+ls Homiq
+vim Homiq/README.md
+ls ../../influx
+ls ../../influx/README
+cat ../../influx/README
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx
+cd 
+cd influx
+ls
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx restore -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -db svjkk469db -portable influxdb-backup/influxdb-db1
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore  -portable influxdb-backup/influxdb-db2
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -db svjkubelikova41db -portable influxdb-backup/influxdb-db2
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -db svjnuselska731db -portable influxdb-backup/influxdb-db3
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influxd restore -db svjcornovova28a34db -portable influxdb-backup/influxdb-db4
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx
+/opt/homebrew/Cellar/influxdb@1/1.12.2/bin/influx
+cd antigravity/Homiq/Homiq
+ls
+ls
+cd ..
+rsync -av --exclude 'node_modules' --exclude '.next' --exclude 'venv' --exclude '__pycache__' --exclude '.git' Homiq/ admin@www.skifn.eu:/opt/docker/test-site/
+du -sch Homiq
+brew 
+brew install ncdu
+ncdu .
+rsync -av --exclude 'node_modules' --exclude '.next' --exclude 'venv' --exclude '__pycache__' --exclude '.git' Homiq/ admin@www.skifn.eu:test-site/
+ssh admin@skifn.eu
+ssh admin@www.skifn.eu
+pwd
+cd
+cd influx
+ls
+scp -r admin@www.skifn.eu:influxdb-backup .
+ssh admin@www.skifn.eu
+scp -r admin@www.skifn.eu:influxdb-backup .
+ssh admin@www.skifn.eu
+scp -r admin@www.skifn.eu:influxdb-backup .
+scp -r influxdb-backup  docker@34.134.140.126:influxdb
+ssh admin@www.skifn.eu
+ssh docker@34.134.140.126
+ssh docker@34.134.140.126
+ssh admin@www.skifn.eu

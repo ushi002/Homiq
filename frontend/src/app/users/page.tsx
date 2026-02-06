@@ -11,6 +11,7 @@ interface User {
     email: string;
     full_name: string;
     role: string;
+    last_login_at?: string;
     invite_token?: string;
     invite_expires_at?: string;
     created_at?: string;
@@ -309,6 +310,11 @@ export default function UsersPage() {
                                         <p className="text-xs text-gray-400 mt-0.5" title="User created at">
                                             🕒 {formatDate(user.created_at)}
                                         </p>
+                                        {user.last_login_at && (
+                                            <p className="text-xs text-gray-400 mt-0.5" title="Last login">
+                                                🔑 {formatDate(user.last_login_at)}
+                                            </p>
+                                        )}
                                     </div>
                                     <div className="flex items-center space-x-3 ml-4">
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
