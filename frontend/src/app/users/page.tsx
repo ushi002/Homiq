@@ -207,12 +207,16 @@ export default function UsersPage() {
 
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '';
-        return new Date(dateStr).toLocaleString();
+        // Treat naive date strings as UTC
+        const date = !dateStr.endsWith('Z') && !dateStr.includes('+') ? new Date(dateStr + 'Z') : new Date(dateStr);
+        return date.toLocaleString();
     };
 
     const isExpired = (dateStr?: string) => {
         if (!dateStr) return false;
-        return new Date(dateStr) < new Date();
+        // Treat naive date strings as UTC
+        const date = !dateStr.endsWith('Z') && !dateStr.includes('+') ? new Date(dateStr + 'Z') : new Date(dateStr);
+        return date < new Date();
     };
 
     if (authLoading || !token || currentUser?.role !== 'admin') {
