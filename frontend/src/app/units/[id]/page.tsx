@@ -25,6 +25,21 @@ interface MeterWithReadings extends Meter {
     recent_readings: Reading[];
 }
 
+// Helper: Get Week Number
+const getWeekNumber = (d: Date) => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+};
+
+// Helper: Get ISO Week Year
+const getISOWeekYear = (d: Date) => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    return d.getUTCFullYear();
+};
+
 export default function UnitDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
@@ -111,22 +126,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
-    const [selectedPeriod, setSelectedPeriod] = useState(new Date().getMonth() + 1); // 1-12 (month) or 1-52 (week)
 
-    // Helper: Get Week Number
-    const getWeekNumber = (d: Date) => {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-        return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-    };
+    // Separate state for month and week to prevent conflicting values
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
 
-    // Helper: Get ISO Week Year
-    const getISOWeekYear = (d: Date) => {
-        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-        return d.getUTCFullYear();
-    };
 
     const getPeriodReadings = (readings: Reading[], year: number, mode: 'month' | 'week', period: number) => {
         return readings.filter(r => {
@@ -240,20 +244,27 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <label className="block text-xs font-bold text-gray-500 uppercase">
                             {viewMode === 'month' ? t.unit.selectMonth : t.unit.selectWeek}
                         </label>
-                        <select
-                            value={selectedPeriod}
-                            onChange={(e) => setSelectedPeriod(parseInt(e.target.value))}
-                            className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
-                        >
-                            {viewMode === 'month'
-                                ? Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                        {viewMode === 'month' ? (
+                            <select
+                                value={selectedMonth}
+                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                            >
+                                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: 'long' })}</option>
-                                ))
-                                : Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
+                                ))}
+                            </select>
+                        ) : (
+                            <select
+                                value={selectedWeek}
+                                onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
+                                className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                            >
+                                {Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
-                                ))
-                            }
-                        </select>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 </div>
 
@@ -261,8 +272,8 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     // Sort all readings by time once
                     const sortedReadings = [...meter.recent_readings].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
-                    const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, selectedPeriod);
-                    const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, selectedPeriod);
+                    const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
+                    const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
                     const calculatePeriodConsumption = (periodReadings: Reading[]) => {
                         if (periodReadings.length < 1) return formatConsumption(0);
@@ -362,7 +373,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-blue-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-blue-100 pb-2">
                                         <h4 className="font-semibold text-sm text-blue-800">
-                                            {viewMode === 'month' ? new Date(2000, selectedPeriod - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear}
+                                            {viewMode === 'month' ? new Date(2000, selectedMonth - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedWeek}`} {selectedYear}
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
@@ -384,7 +395,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div className="border rounded-lg p-3 bg-gray-50/50">
                                     <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
                                         <h4 className="font-semibold text-sm text-gray-600">
-                                            {viewMode === 'month' ? new Date(2000, selectedPeriod - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedPeriod}`} {selectedYear - 1}
+                                            {viewMode === 'month' ? new Date(2000, selectedMonth - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedWeek}`} {selectedYear - 1}
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
