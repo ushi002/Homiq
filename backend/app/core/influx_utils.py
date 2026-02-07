@@ -185,7 +185,7 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
         # Query value where sn = serial_number
         # Try all SN tags
         for sn_tag in sn_tags_to_check:
-            q = f'SELECT "value" FROM "{meas}" WHERE "{sn_tag}" = \'{serial_number}\''
+            q = f'SELECT MAX("value") FROM "{meas}" WHERE "{sn_tag}" = \'{serial_number}\' GROUP BY time(1d) fill(none)'
             data = query_influx(db_name, q)
             
             if data.get('results') and data['results'][0].get('series'):
