@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useApiErrorReason } from '@/lib/apiError';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -9,6 +10,7 @@ export default function LoginPage() {
     const [error, setError] = useState('');
     const { login } = useAuth();
     const { t } = useLanguage();
+    const apiErrorReason = useApiErrorReason();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,7 +30,7 @@ export default function LoginPage() {
 
             if (!res.ok) {
                 const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.detail || `Login failed (${res.status})`);
+                throw new Error(apiErrorReason(errorData.detail) ?? t.login.error);
             }
 
             const data = await res.json();

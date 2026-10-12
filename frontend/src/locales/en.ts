@@ -15,6 +15,7 @@ export const en: Translations = {
         yes: 'Yes',
         no: 'No',
         confirmDelete: 'Are you sure you want to delete this?',
+        close: 'Close',
         unassign: 'Unassign',
     },
     login: {
@@ -177,6 +178,11 @@ export const en: Translations = {
         invalidLink: 'Invalid or Expired Link',
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
+    },
+    apiErrors: {
+        'Could not validate credentials': 'your session has expired, please log in again',
+        'Invalid user ID in token': 'your session has expired, please log in again',
+        invalidInput: 'invalid form data',
     },
     nav: {
         buildings: 'Buildings',
