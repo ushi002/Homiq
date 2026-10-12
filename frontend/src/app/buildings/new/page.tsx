@@ -96,8 +96,8 @@ export default function CreateBuilding() {
     };
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans flex items-center justify-center">
-            <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-lg w-full">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans flex items-center justify-center">
+            <div className="bg-white p-4 sm:p-8 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x shadow-sm border border-gray-100 max-w-lg w-[calc(100%+2rem)] sm:w-full">
                 <div className="mb-6">
                     <Breadcrumbs items={[{ label: t.nav.buildings, href: '/' }, { label: t.dashboard.addBuilding }]} />
                     <h1 className="text-2xl font-bold text-gray-800">{t.dashboard.addBuilding}</h1>

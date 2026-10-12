@@ -229,7 +229,7 @@ export default function UsersPage() {
     }
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
@@ -237,7 +237,7 @@ export default function UsersPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
                 {/* Create User Form */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
+                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 h-fit">
                     <h2 className="text-lg font-semibold mb-4">{t.users.inviteNew}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
@@ -286,7 +286,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* User List */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="lg:col-span-2 bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
                     <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
                         <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
                     </div>

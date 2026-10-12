@@ -124,7 +124,7 @@ export default function Dashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-8">
+    <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">{t.dashboard.title}</h1>
 
@@ -150,7 +150,7 @@ export default function Dashboard() {
             <Link
               href={`/buildings/${building.id}`}
               key={building.id}
-              className="block bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6 border border-gray-100"
+              className="block bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border border-gray-100"
             >
               <h2 className="text-xl font-semibold text-gray-800 mb-2">{building.name}</h2>
               <p className="text-gray-500 mb-4">{building.address}</p>

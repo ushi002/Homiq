@@ -59,13 +59,13 @@ export default function ProfilePage() {
     };
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">{t.profile.title}</h1>
                 </div>
 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {message && (
                             <div className={`p-3 rounded-md text-sm ${message.includes(t.profile.successUpdate) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -119,7 +119,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Change Password Section */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
+                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 mt-6">
                     <h2 className="text-lg font-semibold mb-4 text-gray-800">{t.profile.changePassword}</h2>
                     <ChangePasswordForm />
                 </div>
