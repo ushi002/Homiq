@@ -10,6 +10,7 @@ services:
       - INFLUX_USER=${INFLUX_USER:-alarmread}
       - INFLUX_PASSWORD=${INFLUX_PASSWORD}
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
+      - SQL_ECHO=${SQL_ECHO:-0}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
