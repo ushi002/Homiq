@@ -179,6 +179,11 @@ export const en: Translations = {
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
     },
+    apiErrors: {
+        'Could not validate credentials': 'your session has expired, please log in again',
+        'Invalid user ID in token': 'your session has expired, please log in again',
+        invalidInput: 'invalid form data',
+    },
     nav: {
         buildings: 'Buildings',
         users: 'Users',

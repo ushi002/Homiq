@@ -5,6 +5,7 @@ import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
 import { useConfirm } from '@/context/ConfirmContext';
 
 interface User {
@@ -35,6 +36,7 @@ export default function UsersPage() {
     const [origin, setOrigin] = useState('');
     const { t } = useLanguage();
     const toast = useToast();
+    const apiError = useApiError();
     const confirm = useConfirm();
 
     // Determine allowed role to create based on current user
@@ -78,7 +80,7 @@ export default function UsersPage() {
                 fetchUsers();
             } else {
                 const err = await res.json();
-                toast.error(`${t.messages.errorCreateUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorCreateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -97,7 +99,7 @@ export default function UsersPage() {
                 fetchUsers(); // Refresh list
             } else {
                 const err = await res.json();
-                toast.error(`${t.messages.errorDeleteUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorDeleteUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -173,7 +175,7 @@ export default function UsersPage() {
                 setEditingUser(null);
             } else {
                 const err = await res.json();
-                toast.error(`${t.messages.errorUpdateUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorUpdateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -200,7 +202,7 @@ export default function UsersPage() {
                 fetchUsers();
             } else {
                 const err = await res.json();
-                toast.error(`${t.messages.errorUnassign}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorUnassign, err.detail));
             }
         } catch (err) {
             console.error(err);

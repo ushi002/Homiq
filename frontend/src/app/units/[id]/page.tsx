@@ -10,6 +10,7 @@ import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
 
 interface Meter {
     id: string;
@@ -54,6 +55,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const router = useRouter();
     const { t, language } = useLanguage();
     const toast = useToast();
+    const apiError = useApiError();
 
     useEffect(() => {
         if (authLoading) return;
@@ -122,7 +124,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 // toast.success(t.messages.successAssignOwner);
             } else {
                 const err = await res.json();
-                toast.error(`${t.messages.errorAssignOwner}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorAssignOwner, err.detail));
             }
         } catch (err) {
             console.error(err);

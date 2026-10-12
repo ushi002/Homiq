@@ -8,6 +8,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
 import { useConfirm } from '@/context/ConfirmContext';
 
 interface Unit {
@@ -40,6 +41,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_device_tag: '', influx_measurements: '' });
     const { t } = useLanguage();
     const toast = useToast();
+    const apiError = useApiError();
     const confirm = useConfirm();
 
     useEffect(() => {
@@ -225,7 +227,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    toast.error(`${t.messages.errorReloadUnits}: ${err.detail || 'Unknown error'}`);
+                    toast.error(apiError(t.messages.errorReloadUnits, err.detail));
                 }
             } else {
                 // Initial Fetch
@@ -240,7 +242,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    toast.error(`${t.messages.errorSyncUnits}: ${err.detail || 'Unknown error'}`);
+                    toast.error(apiError(t.messages.errorSyncUnits, err.detail));
                 }
             }
         } catch (err) {

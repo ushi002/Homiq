@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useApiErrorReason } from '@/lib/apiError';
 
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = React.use(params);
@@ -13,6 +14,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     const router = useRouter();
     const { login, logout } = useAuth();
     const { t } = useLanguage();
+    const apiErrorReason = useApiErrorReason();
 
     const [isValidating, setIsValidating] = useState(true);
 
@@ -30,7 +32,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
                 if (!res.ok) {
                     const err = await res.json();
-                    setError(err.detail || t.invite.failedToAccept);
+                    setError(apiErrorReason(err.detail) ?? t.invite.failedToAccept);
                 }
             } catch (err) {
                 console.error(err);
@@ -75,7 +77,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
                 login(data.access_token, data.user_id, data.role, data.full_name);
             } else {
                 const err = await res.json();
-                setError(err.detail || t.invite.failedToAccept);
+                setError(apiErrorReason(err.detail) ?? t.invite.failedToAccept);
             }
         } catch (err) {
             console.error(err);

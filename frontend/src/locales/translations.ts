@@ -177,6 +177,8 @@ export interface Translations {
         linkInvalidMessage: string;
         backToLogin: string;
     };
+    // Backend error messages, keyed by the English `detail` text; invalidInput for HTTP 422
+    apiErrors: Record<string, string> & { invalidInput: string };
     nav: {
         buildings: string;
         users: string;
