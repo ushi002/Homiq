@@ -215,6 +215,11 @@ export const cs: Translations = {
         reading: 'Stav měřiče',
         unitOfMeasure: 'Měrná jednotka',
     },
+    theme: {
+        auto: 'Vzhled: podle systému (klikněte pro tmavý)',
+        dark: 'Vzhled: tmavý (klikněte pro světlý)',
+        light: 'Vzhled: světlý (klikněte pro podle systému)',
+    },
     nav: {
         buildings: 'Domy',
         users: 'Uživatelé',

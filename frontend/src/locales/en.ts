@@ -193,6 +193,11 @@ export const en: Translations = {
         reading: 'Meter reading',
         unitOfMeasure: 'Unit of measure',
     },
+    theme: {
+        auto: 'Appearance: system (click for dark)',
+        dark: 'Appearance: dark (click for light)',
+        light: 'Appearance: light (click for system)',
+    },
     nav: {
         buildings: 'Buildings',
         users: 'Users',

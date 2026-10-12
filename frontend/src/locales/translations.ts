@@ -188,6 +188,11 @@ export interface Translations {
         reading: string;
         unitOfMeasure: string;
     };
+    theme: {
+        auto: string;
+        light: string;
+        dark: string;
+    };
     nav: {
         buildings: string;
         users: string;
