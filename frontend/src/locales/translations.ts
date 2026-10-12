@@ -95,6 +95,8 @@ export interface Translations {
         meterUntil: string;
         meterFrom: string;
         meterReplaced: string;
+        lastYear: string;
+        showReadings: string;
     };
     users: {
         title: string;

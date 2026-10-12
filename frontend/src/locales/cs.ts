@@ -88,7 +88,7 @@ export const cs: Translations = {
         month: 'Měsíc',
         week: 'Týden',
         monthlyConsumption: 'Měsíční spotřeba',
-        chartHint: 'Kliknutím na měsíc zobrazíte jeho odečty níže.',
+        chartHint: 'Kliknutím na měsíc zobrazíte jeho spotřebu níže.',
         showTable: 'Zobrazit tabulku',
         vsYear: 'oproti {{year}}',
         noChange: 'beze změny',
@@ -97,6 +97,8 @@ export const cs: Translations = {
         meterUntil: 'do {{date}}',
         meterFrom: 'od {{date}}',
         meterReplaced: 'Výměna měřiče: spotřeba starého a nového měřiče se sčítá.',
+        lastYear: 'Loni',
+        showReadings: 'Zobrazit odečty ({{count}})',
     },
     users: {
         title: 'Správa Uživatelů',
