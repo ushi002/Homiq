@@ -1,6 +1,8 @@
 // CSV export built in the browser from data the page already has.
 // Czech: ";" separator and decimal comma (what Czech Excel expects), English: "," and dot.
 // The BOM makes Excel read the file as UTF-8, so diacritics survive.
+// Text starting like a formula (=, +, -, @, tab, CR) gets a leading apostrophe, so a spreadsheet
+// shows it as text instead of evaluating it (e.g. an owner naming themselves =HYPERLINK(...)).
 
 export type CsvValue = string | number | null | undefined;
 
@@ -10,7 +12,8 @@ export function buildCsv(rows: CsvValue[][], language: string): string {
     const cell = (v: CsvValue) => {
         if (v === null || v === undefined) return '';
         if (typeof v === 'number') return czech ? String(v).replace('.', ',') : String(v);
-        return /[";,\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+        const text = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+        return /[";,\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
     };
     return '﻿' + rows.map(r => r.map(cell).join(separator)).join('\r\n') + '\r\n';
 }

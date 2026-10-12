@@ -6,6 +6,7 @@ from ..core.database import get_session
 from ..models.property import User, Building, Unit # Import User model
 from ..models.telemetry import Meter, MeterCreate, MeterRead, MeterReading, MeterReadingCreate, MeterReadingRead
 from .deps import get_current_user
+from .access import can_access_unit, require
 
 router = APIRouter()
 
@@ -49,7 +50,9 @@ def read_meters(
         # Meters in owned units
         # If unit_id is provided, check if owner owns it?
         statement = statement.join(Unit).where(Unit.owner_id == current_user.id)
-        
+    elif current_user.role != "admin":
+        return []
+
     return session.exec(statement.offset(offset).limit(limit)).all()
 
 @router.get("/meters/{meter_id}", response_model=MeterRead)
@@ -62,17 +65,7 @@ def read_meter(
     if not meter:
         raise HTTPException(status_code=404, detail="Meter not found")
         
-    # Check access
-    if current_user.role == "admin":
-        pass
-    else:
-        unit = session.get(Unit, meter.unit_id)
-        building = session.get(Building, unit.building_id)
-        if current_user.role == "home_lord" and building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
-        elif current_user.role == "owner" and unit.owner_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
-        
+    require(can_access_unit(current_user, session.get(Unit, meter.unit_id), session))
     return meter
 
 # --- Readings ---
@@ -109,14 +102,7 @@ def read_meter_readings(
     if not meter:
         raise HTTPException(status_code=404, detail="Meter not found")
     
-    # Check access (re-use logic or call read_meter if structured properly)
-    unit = session.get(Unit, meter.unit_id)
-    building = session.get(Building, unit.building_id)
-    
-    if current_user.role == "home_lord" and building.manager_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user.role == "owner" and unit.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not authorized")
+    require(can_access_unit(current_user, session.get(Unit, meter.unit_id), session))
     
     # Return readings sorted by time desc
     readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter_id).order_by(MeterReading.time.desc())).all()

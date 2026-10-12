@@ -44,6 +44,13 @@ class UserRead(UserBase):
     id: uuid.UUID
     created_at: datetime
 
+class UserPublic(SQLModel):
+    """A user as shown inside other objects (unit owner): no invite token or login data."""
+    id: uuid.UUID
+    email: str
+    full_name: Optional[str] = None
+    role: str
+
 # Building Model
 class BuildingBase(SQLModel):
     name: str
@@ -101,4 +108,4 @@ class UnitCreate(UnitBase):
 
 class UnitRead(UnitBase):
     id: uuid.UUID
-    owner: Optional[UserRead] = None
+    owner: Optional[UserPublic] = None
