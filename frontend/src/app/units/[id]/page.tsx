@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
 import ConsumptionChart from '@/components/ConsumptionChart';
+import YoyChange from '@/components/YoyChange';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -290,9 +291,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
+                    // complete = the period is closed by a reading after it, so its consumption is final
                     const calculatePeriodConsumption = (periodReadings: Reading[]) => {
-                        if (periodReadings.length < 1) return formatConsumption(0);
-                        if (periodReadings.length === 1) return formatConsumption(0);
+                        if (periodReadings.length < 2) return { value: 0, complete: false };
 
                         const first = periodReadings[0];
                         const last = periodReadings[periodReadings.length - 1];
@@ -300,13 +301,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         // Try to find the next reading in the full sorted list to close the period
                         const lastIndex = sortedReadings.findIndex(r => r.id === last.id && r.time === last.time);
                         let endValue = last.value;
+                        let complete = false;
 
                         if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
                             // We have a next reading!
                             endValue = sortedReadings[lastIndex + 1].value;
+                            complete = true;
                         }
 
-                        return formatConsumption(endValue - first.value);
+                        return { value: endValue - first.value, complete };
                     };
 
                     const currentConsumption = calculatePeriodConsumption(currentReadings);
@@ -378,6 +381,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
                                             <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
+                                        {currentYearTotal !== 0 && (
+                                            <YoyChange current={currentYearTotal} previous={prevYearTotal} previousYear={selectedYear - 1} className="py-1" />
+                                        )}
                                     </div>
                                 </div>
                                 <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{meter.unit_of_measure}</span>
@@ -404,7 +410,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-xs mt-1">
+                                                {currentConsumption.complete && prevConsumption.complete
+                                                    ? <YoyChange current={currentConsumption.value} previous={prevConsumption.value} previousYear={selectedYear - 1} />
+                                                    : currentReadings.length > 0 && <span className="text-gray-400">{t.unit.incompletePeriod}</span>}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
@@ -426,7 +437,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">

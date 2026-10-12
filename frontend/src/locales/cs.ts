@@ -87,6 +87,9 @@ export const cs: Translations = {
         monthlyConsumption: 'Měsíční spotřeba',
         chartHint: 'Kliknutím na měsíc zobrazíte jeho odečty níže.',
         showTable: 'Zobrazit tabulku',
+        vsYear: 'oproti {{year}}',
+        noChange: 'beze změny',
+        incompletePeriod: 'Období není uzavřené – bez srovnání',
     },
     users: {
         title: 'Správa Uživatelů',

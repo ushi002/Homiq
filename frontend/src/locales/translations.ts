@@ -85,6 +85,9 @@ export interface Translations {
         monthlyConsumption: string;
         chartHint: string;
         showTable: string;
+        vsYear: string;
+        noChange: string;
+        incompletePeriod: string;
     };
     users: {
         title: string;
