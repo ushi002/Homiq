@@ -30,6 +30,8 @@ export const cs: Translations = {
         manageUsers: 'Spravovat uživatele',
         unitsSynced: 'Jednotky načteny',
         draft: 'Koncept',
+        myUnits: 'Moje jednotky',
+        noUnits: 'Zatím vám nebyla přiřazena žádná jednotka.',
     },
     building: {
         name: 'Název',
@@ -175,6 +177,12 @@ export const cs: Translations = {
         invalidLink: 'Neplatný nebo expirovaný odkaz',
         linkInvalidMessage: 'Tento odkaz na pozvánku již není platný. Pravděpodobně vypršela jeho platnost nebo byl již použit.',
         backToLogin: 'Zpět na přihlášení',
+    },
+    nav: {
+        buildings: 'Domy',
+        users: 'Uživatelé',
+        profile: 'Profil',
+        unit: 'Jednotka',
     },
     consumption: {
         title: 'Přehled spotřeby',

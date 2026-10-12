@@ -1,9 +1,9 @@
 "use client";
 import React, { useEffect, useState, use } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
 import ConsumptionChart from '@/components/ConsumptionChart';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import YoyChange from '@/components/YoyChange';
 import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
 import { authFetch } from '@/lib/api';
@@ -47,6 +47,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const { id } = use(params);
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
+    const [buildingName, setBuildingName] = useState<string | null>(null);
     const [ownerId, setOwnerId] = useState<string>("");
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
@@ -64,6 +65,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .then(data => {
                 setUnit(data);
                 setOwnerId(data.owner_id || "");
+                // Building name for the breadcrumbs
+                return authFetch(`/buildings/${data.building_id}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(b => setBuildingName(b?.name ?? null));
             })
             .catch(err => console.error(err));
 
@@ -170,9 +175,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
-                    <h1 className="text-3xl font-bold">{t.unit.title}</h1>
-                    <p className="text-gray-500">{t.unit.unitNumber}: {unit?.unit_number}</p>
+                    <Breadcrumbs items={[
+                        { label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' },
+                        ...(unit ? [{ label: buildingName ?? '…', href: `/buildings/${unit.building_id}` }] : []),
+                        { label: `${t.nav.unit} ${unit?.unit_number ?? ''}` },
+                    ]} />
+                    <h1 className="text-3xl font-bold">{t.nav.unit} {unit?.unit_number}</h1>
                 </div>
                 {canAssignOwner && (
                     <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 w-auto sm:w-full lg:max-w-sm">

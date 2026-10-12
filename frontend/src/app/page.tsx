@@ -15,10 +15,17 @@ interface Building {
   manager?: { full_name: string; email: string };
 }
 
+interface OwnedUnit {
+  id: string;
+  unit_number: string;
+  building_id: string;
+}
+
 export default function Dashboard() {
   const { user, token, logout, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const [buildings, setBuildings] = useState<Building[]>([]);
+  const [ownedUnits, setOwnedUnits] = useState<OwnedUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { t } = useLanguage();
@@ -31,7 +38,24 @@ export default function Dashboard() {
     }
 
     const fetchBuildings = async () => {
+      let redirecting = false;
       try {
+        // An owner of a single unit goes straight to it, with more units they get a list of them
+        if (user?.role === 'owner') {
+          const unitsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/units/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (unitsRes.ok) {
+            const units = await unitsRes.json();
+            if (units.length === 1) {
+              redirecting = true; // keep the loading state until the unit page opens
+              router.replace(`/units/${units[0].id}`);
+              return;
+            }
+            setOwnedUnits(units);
+          }
+        }
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buildings/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -46,37 +70,63 @@ export default function Dashboard() {
         console.error("Failed to fetch buildings", error);
         setError(t.login.error);
       } finally {
-        setLoading(false);
+        if (!redirecting) setLoading(false);
       }
     };
 
     fetchBuildings();
-  }, [token, router, authLoading]);
+  }, [token, router, authLoading, user?.role]);
 
   if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
+  if (user?.role === 'owner') {
+    // Owner's units grouped by building (an owner can have units in several buildings)
+    const groups = buildings
+      .map(b => ({
+        building: b,
+        units: ownedUnits
+          .filter(u => u.building_id === b.id)
+          .sort((a, c) => a.unit_number.localeCompare(c.unit_number, undefined, { numeric: true })),
+      }))
+      .filter(g => g.units.length > 0)
+      .sort((a, c) => a.building.name.localeCompare(c.building.name));
+
+    return (
+      <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard.myUnits}</h1>
+          {groups.map(({ building, units }) => (
+            <section key={building.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">{building.name}</h2>
+              <p className="text-sm text-gray-500">{building.address}</p>
+              <ul className="mt-3 divide-y divide-gray-100">
+                {units.map(u => (
+                  <li key={u.id}>
+                    <Link href={`/units/${u.id}`} className="flex justify-between items-center py-3 px-2 -mx-2 rounded-md hover:bg-gray-50">
+                      <span className="font-medium text-blue-700">{t.nav.unit} {u.unit_number}</span>
+                      <span className="text-gray-400" aria-hidden="true">→</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+          {groups.length === 0 && (
+            <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
+              {t.dashboard.noUnits}
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t.dashboard.title}</h1>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/profile"
-              className="text-gray-700 font-medium hover:text-gray-900 hover:underline transition-all"
-            >
-              {user?.full_name || user?.role}
-            </Link>
-            <button
-              onClick={() => logout()}
-              className="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-            >
-              {t.common.logout}
-            </button>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">{t.dashboard.title}</h1>
 
         {user?.role === 'admin' && (
           <div className="mb-8 flex gap-4">

@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -62,7 +61,6 @@ export default function ProfilePage() {
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
                     <h1 className="text-3xl font-bold">{t.profile.title}</h1>
                 </div>
 

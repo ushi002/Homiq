@@ -30,6 +30,8 @@ export const en: Translations = {
         manageUsers: 'Manage Users',
         unitsSynced: 'Units Synced',
         draft: 'Draft',
+        myUnits: 'My units',
+        noUnits: 'No unit has been assigned to you yet.',
     },
     building: {
         name: 'Name',
@@ -175,6 +177,12 @@ export const en: Translations = {
         invalidLink: 'Invalid or Expired Link',
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
+    },
+    nav: {
+        buildings: 'Buildings',
+        users: 'Users',
+        profile: 'Profile',
+        unit: 'Unit',
     },
     consumption: {
         title: 'Consumption overview',

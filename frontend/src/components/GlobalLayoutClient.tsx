@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import AppHeader from "@/components/AppHeader";
 
 export default function GlobalLayoutClient({
     children,
@@ -9,14 +10,18 @@ export default function GlobalLayoutClient({
     children: React.ReactNode;
 }) {
     const pathname = usePathname();
-    // Apply absolute positioning for login and invite pages
+    // Login and invite pages have no app header, only the language switcher in the corner
     const isOverlayPage = pathname === '/login' || pathname.startsWith('/invite/');
 
     return (
         <>
-            <div className={isOverlayPage ? "absolute top-4 right-4 z-50" : "flex justify-end p-4 bg-gray-50"}>
-                <LanguageSwitcher />
-            </div>
+            {isOverlayPage ? (
+                <div className="absolute top-4 right-4 z-50">
+                    <LanguageSwitcher />
+                </div>
+            ) : (
+                <AppHeader />
+            )}
             {children}
         </>
     );

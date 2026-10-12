@@ -1,6 +1,5 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
@@ -226,7 +225,6 @@ export default function UsersPage() {
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.users.backToDashboard}</Link>
                 <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
 

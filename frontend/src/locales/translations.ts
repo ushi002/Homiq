@@ -28,6 +28,8 @@ export interface Translations {
         manageUsers: string;
         unitsSynced: string;
         draft: string;
+        myUnits: string;
+        noUnits: string;
     };
     building: {
         name: string;
@@ -173,6 +175,12 @@ export interface Translations {
         invalidLink: string;
         linkInvalidMessage: string;
         backToLogin: string;
+    };
+    nav: {
+        buildings: string;
+        users: string;
+        profile: string;
+        unit: string;
     };
     consumption: {
         title: string;
