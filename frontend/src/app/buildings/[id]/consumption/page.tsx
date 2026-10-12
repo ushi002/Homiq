@@ -7,6 +7,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import YoyChange from '@/components/YoyChange';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
+import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
 
 interface Cell {
     value: number | null;
@@ -29,6 +32,15 @@ interface ConsumptionData {
 
 const EMPTY: Cell = { value: null, complete: false };
 
+interface ExportMeter {
+    unit_number: string;
+    owner: string | null;
+    type: string;
+    unit_of_measure: string;
+    serial_number: string;
+    readings: [string, number][]; // [UTC time, meter reading]
+}
+
 // Sum of a column; complete only if every unit with a value is complete
 const sumCells = (cells: Cell[]): Cell => {
     const known = cells.filter(c => c.value !== null);
@@ -44,6 +56,8 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const { token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { t, language } = useLanguage();
+    const toast = useToast();
+    const apiError = useApiError();
     const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
 
     const currentYear = new Date().getFullYear();
@@ -57,6 +71,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [error, setError] = useState('');
     const [sortKey, setSortKey] = useState<string>('unit'); // 'unit' or a meter type
     const [sortDesc, setSortDesc] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         if (authLoading) return;
@@ -160,6 +175,37 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
         };
     };
 
+    // All readings of all meters in all units for the selected period, one row per reading.
+    // The period runs from local midnight (meters report around midnight UTC) and times are local.
+    const exportReadings = async () => {
+        setExporting(true);
+        try {
+            const start = new Date(year, month ? month - 1 : 0, 1);
+            const end = new Date(year, month ? month : 12, 1);
+            const res = await authFetch(`/buildings/${id}/readings?start=${start.toISOString()}&end=${end.toISOString()}`);
+            const json = await res.json();
+            if (!res.ok) {
+                toast.error(apiError(t.csv.exportFailed, json.detail));
+                return;
+            }
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const localTime = (iso: string) => {
+                const d = new Date(iso);
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+            const header = [t.consumption.unit, t.consumption.owner, t.csv.meter, `${t.csv.serial} (${json.device_tag})`, t.csv.time, t.csv.reading, t.csv.unitOfMeasure];
+            const rows = (json.meters as ExportMeter[]).flatMap(m => m.readings.map(([time, value]) =>
+                [m.unit_number, m.owner ?? '', typeLabel(m.type), m.serial_number, localTime(time), value, m.unit_of_measure]));
+            const period = month ? `${year}-${pad(month)}` : String(year);
+            downloadCsv(`odecty_${fileSlug(building?.name ?? id)}_${period}.csv`, buildCsv([header, ...rows], language));
+        } catch (err) {
+            console.error(err);
+            toast.error(t.csv.exportFailed);
+        } finally {
+            setExporting(false);
+        }
+    };
+
     // columnComparable: when false the header already explains the missing change, so cells stay clean
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
@@ -202,6 +248,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                             ))}
                         </select>
                     </div>
+                    <button
+                        onClick={exportReadings}
+                        disabled={!data || data.meter_types.length === 0 || exporting}
+                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        ⬇ {exporting ? t.csv.preparing : t.csv.downloadReadings}
+                    </button>
                 </div>
 
                 {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{error}</div>}

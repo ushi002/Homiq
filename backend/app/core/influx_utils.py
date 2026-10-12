@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Set, Tuple, Optional
 
 import os
@@ -251,3 +251,19 @@ def get_period_points(db_name: str, measurement: str, device_tag: str, start: da
                 ts = ts.timestamp()
                 points.setdefault(sn, {})[key] = (ts, value)
     return points
+
+def get_raw_readings(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, List[Tuple[str, float]]]:
+    """All readings of every meter of a measurement in [start, end), keyed by serial number."""
+    def fmt(d: datetime) -> str:
+        return d.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    q = (f'SELECT "value" FROM "{measurement}" WHERE time >= \'{fmt(start)}\' AND time < \'{fmt(end)}\' '
+         f'GROUP BY "{device_tag}"')
+    data = query_influx(db_name, q)
+    readings: Dict[str, List[Tuple[str, float]]] = {}
+    for result in data.get('results', []):
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            if sn:
+                readings[sn] = [(v[0], v[1]) for v in series.get('values', []) if v[1] is not None]
+    return readings
