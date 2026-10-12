@@ -160,6 +160,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
 
 
+    // Years offered in the selector: from the current year back to the oldest reading (at least 3 years)
+    const currentYear = new Date().getFullYear();
+    const oldestReadingYear = Math.min(
+        currentYear - 2,
+        ...meters.flatMap(m => m.recent_readings.map(r => new Date(r.time).getFullYear()))
+    );
+    const availableYears = Array.from({ length: currentYear - oldestReadingYear + 1 }, (_, i) => currentYear - i);
+
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
@@ -220,7 +228,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
                             className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                         >
-                            {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
