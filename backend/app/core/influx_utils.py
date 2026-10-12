@@ -1,5 +1,5 @@
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Set, Tuple, Optional
 
 import os
@@ -209,12 +209,14 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
                             
     return readings
 
-def get_period_consumption(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime, close_until: datetime) -> Dict[str, Tuple[Optional[float], bool]]:
+def get_period_consumption(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime, window: timedelta) -> Dict[str, Tuple[Optional[float], bool]]:
     """
     Consumption of every meter of a measurement in [start, end), keyed by serial number.
     Uses daily MAX values and the same rule as the unit detail view: first reading in the period
-    up to the first reading after it (searched until close_until). Without a reading after the
-    period the last reading in it is used and the value is marked incomplete.
+    up to the first reading after it (searched within `window` after the end). Without a reading
+    after the period the last reading in it is used. The value is complete only when the period is
+    closed that way and the meter also has a reading within `window` before the start; otherwise
+    the meter started recording inside the period and part of the consumption is missing.
     Returns {serial_number: (value or None, complete)}.
     """
     def fmt(d: datetime) -> str:
@@ -227,7 +229,8 @@ def get_period_consumption(db_name: str, measurement: str, device_tag: str, star
     statements = [
         ('first', f'SELECT FIRST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
         ('last', f'SELECT LAST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
-        ('close', f'SELECT FIRST("d") FROM ({daily(end, close_until)}) GROUP BY "{device_tag}"'),
+        ('close', f'SELECT FIRST("d") FROM ({daily(end, end + window)}) GROUP BY "{device_tag}"'),
+        ('before', f'SELECT LAST("value") FROM "{measurement}" WHERE time >= \'{fmt(start - window)}\' AND time < \'{fmt(start)}\' GROUP BY "{device_tag}"'),
     ]
     data = query_influx(db_name, ';'.join(q for _, q in statements))
 
@@ -244,7 +247,7 @@ def get_period_consumption(db_name: str, measurement: str, device_tag: str, star
         if 'first' not in p:
             continue
         if 'close' in p:
-            consumption[sn] = (p['close'][1] - p['first'][1], True)
+            consumption[sn] = (p['close'][1] - p['first'][1], 'before' in p)
         elif 'last' in p and p['last'][0] != p['first'][0]:
             consumption[sn] = (p['last'][1] - p['first'][1], False)
         else:

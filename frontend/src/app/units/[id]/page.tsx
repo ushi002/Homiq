@@ -291,7 +291,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
-                    // complete = the period is closed by a reading after it, so its consumption is final
+                    // False when the meter only started recording inside the period (no reading before it)
+                    const startsBeforePeriod = (periodReadings: Reading[]) =>
+                        periodReadings.length > 0 && sortedReadings.length > 0 &&
+                        new Date(sortedReadings[0].time) < new Date(periodReadings[0].time);
+
+                    // complete = the meter recorded before the period and a later reading closes it,
+                    // so its consumption is final
                     const calculatePeriodConsumption = (periodReadings: Reading[]) => {
                         if (periodReadings.length < 2) return { value: 0, complete: false };
 
@@ -306,7 +312,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
                             // We have a next reading!
                             endValue = sortedReadings[lastIndex + 1].value;
-                            complete = true;
+                            complete = startsBeforePeriod(periodReadings);
                         }
 
                         return { value: endValue - first.value, complete };
@@ -381,7 +387,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
                                             <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
-                                        {currentYearTotal !== 0 && (
+                                        {currentYearTotal !== 0 && startsBeforePeriod(currentYearReadings) && startsBeforePeriod(prevYearReadings) && (
                                             <YoyChange current={currentYearTotal} previous={prevYearTotal} previousYear={selectedYear - 1} className="py-1" />
                                         )}
                                     </div>

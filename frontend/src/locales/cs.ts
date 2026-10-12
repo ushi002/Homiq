@@ -89,7 +89,7 @@ export const cs: Translations = {
         showTable: 'Zobrazit tabulku',
         vsYear: 'oproti {{year}}',
         noChange: 'beze změny',
-        incompletePeriod: 'Období není uzavřené – bez srovnání',
+        incompletePeriod: 'Neúplné období – bez srovnání',
     },
     users: {
         title: 'Správa Uživatelů',
@@ -184,7 +184,7 @@ export const cs: Translations = {
         owner: 'Vlastník',
         total: 'Celkem',
         changeVs: 'změna oproti {{year}}',
-        incompleteNote: '* Období není uzavřené (chybí pozdější odečet), hodnota ještě není konečná a neporovnává se.',
+        incompleteNote: '* Neúplné období: měřič začal měřit až během něj, nebo ještě chybí pozdější odečet. Hodnota není konečná a neporovnává se.',
         noMeters: 'V tomto domě nejsou žádné měřiče.',
         categoryElectricity: 'Elektřina',
     }

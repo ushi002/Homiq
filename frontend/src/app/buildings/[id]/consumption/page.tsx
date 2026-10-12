@@ -69,18 +69,24 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
 
     useEffect(() => {
         if (authLoading || !token) return;
+        // Ignore responses for a period that is no longer selected (fast year + month changes)
+        let stale = false;
         setLoading(true);
         setError('');
         authFetch(`/buildings/${id}/consumption?year=${year}${month ? `&month=${month}` : ''}`)
             .then(async res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                setData(await res.json());
+                const json = await res.json();
+                if (!stale) setData(json);
             })
             .catch(err => {
                 console.error(err);
-                setError(t.messages.errorGeneric);
+                if (!stale) setError(t.messages.errorGeneric);
             })
-            .finally(() => setLoading(false));
+            .finally(() => {
+                if (!stale) setLoading(false);
+            });
+        return () => { stale = true; };
     }, [id, token, authLoading, year, month]);
 
     const format = (v: number | null) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: 2 });

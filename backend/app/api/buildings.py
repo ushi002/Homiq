@@ -131,7 +131,7 @@ def read_building_consumption(
             end = datetime(y, month + 1, 1)
         else:
             end = datetime(y + 1, 1, 1)
-        return start, end, end + timedelta(days=62)
+        return start, end, timedelta(days=62)
 
     meter_types = []
     jobs = []  # (measurement, type, meters of that type, period, year)

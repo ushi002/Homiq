@@ -89,7 +89,7 @@ export const en: Translations = {
         showTable: 'Show table',
         vsYear: 'vs {{year}}',
         noChange: 'no change',
-        incompletePeriod: 'Period not closed yet – no comparison',
+        incompletePeriod: 'Incomplete period – no comparison',
     },
     users: {
         title: 'User Management',
@@ -184,7 +184,7 @@ export const en: Translations = {
         owner: 'Owner',
         total: 'Total',
         changeVs: 'change vs {{year}}',
-        incompleteNote: '* Period not closed yet (no later reading), the value is not final and is not compared.',
+        incompleteNote: '* Incomplete period: the meter started recording during it, or there is no later reading yet. The value is not final and is not compared.',
         noMeters: 'There are no meters in this building.',
         categoryElectricity: 'Electricity',
     }
