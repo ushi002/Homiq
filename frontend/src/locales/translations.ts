@@ -82,6 +82,9 @@ export interface Translations {
         noMeters: string;
         month: string;
         week: string;
+        monthlyConsumption: string;
+        chartHint: string;
+        showTable: string;
     };
     users: {
         title: string;

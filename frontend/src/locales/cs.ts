@@ -84,6 +84,9 @@ export const cs: Translations = {
         noMeters: 'V této jednotce nejsou žádné měřiče.',
         month: 'Měsíc',
         week: 'Týden',
+        monthlyConsumption: 'Měsíční spotřeba',
+        chartHint: 'Kliknutím na měsíc zobrazíte jeho odečty níže.',
+        showTable: 'Zobrazit tabulku',
     },
     users: {
         title: 'Správa Uživatelů',
