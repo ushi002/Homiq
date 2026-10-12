@@ -6,7 +6,7 @@ import ConsumptionChart from '@/components/ConsumptionChart';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
 import YoyChange from '@/components/YoyChange';
-import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
+import { combinedConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -174,6 +174,16 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         return meterType; // Fallback
     };
 
+    // Meters of the same type (old and new after a replacement) shown as one card, ordered by when
+    // each meter started recording; types keep their order
+    const meterGroups = Object.values(meters.reduce((groups, m) => {
+        (groups[m.type] ??= []).push(m);
+        return groups;
+    }, {} as Record<string, MeterWithReadings[]>)).map(group => [...group].sort((a, b) => {
+        const first = (m: MeterWithReadings) => m.recent_readings.reduce((min, r) => r.time < min ? r.time : min, '\uffff');
+        return first(a).localeCompare(first(b));
+    }));
+
     // Daily readings of all meters of the unit in the selected year (dates in UTC, as stored)
     const exportReadings = () => {
         const rows = meters.flatMap(meter =>
@@ -318,30 +328,30 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     </button>
                 </div>
 
-                {meters.map(meter => {
-                    // Sort all readings by time once
-                    const sortedReadings = [...meter.recent_readings].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-
-                    const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
-                    const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
+                {meterGroups.map(group => {
+                    // One card per meter type: after a replacement the old and the new meter continue
+                    // as one series, consumption is summed over them (as in the building overview)
+                    const uom = group[0].unit_of_measure;
+                    const series = group.map(m => [...m.recent_readings].sort((a, b) => a.time.localeCompare(b.time)));
+                    const allTimes = series.flatMap(r => r.map(x => Date.parse(x.time)));
 
                     // Selected month/week against the same one a year earlier (rules in lib/consumption.ts)
                     const periodBounds = (year: number) => viewMode === 'month'
                         ? monthBounds(year, selectedMonth)
                         : isoWeekBounds(year, selectedWeek);
-                    const currentConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear));
-                    const prevConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear - 1));
+                    const currentConsumption = combinedConsumption(series, ...periodBounds(selectedYear));
+                    const prevConsumption = combinedConsumption(series, ...periodBounds(selectedYear - 1));
 
                     // Year to date: from 1 January to the latest reading (the whole year once it is over),
                     // against the same days of the previous year
                     const yearStart = Date.UTC(selectedYear, 0, 1);
                     const yearEnd = Date.UTC(selectedYear + 1, 0, 1);
-                    const lastReadingTime = sortedReadings.length ? Date.parse(sortedReadings[sortedReadings.length - 1].time) : yearStart;
+                    const lastReadingTime = allTimes.length ? Math.max(...allTimes) : yearStart;
                     const ytdEnd = Math.min(yearEnd, Math.max(yearStart, lastReadingTime));
                     const wholeYear = ytdEnd === yearEnd;
                     const prevYtdEnd = wholeYear ? yearStart : Date.UTC(selectedYear - 1, new Date(ytdEnd).getUTCMonth(), new Date(ytdEnd).getUTCDate());
-                    const currentYearTotal = periodConsumption(sortedReadings, yearStart, ytdEnd);
-                    const prevYearTotal = periodConsumption(sortedReadings, Date.UTC(selectedYear - 1, 0, 1), prevYtdEnd);
+                    const currentYearTotal = combinedConsumption(series, yearStart, ytdEnd);
+                    const prevYearTotal = combinedConsumption(series, Date.UTC(selectedYear - 1, 0, 1), prevYtdEnd);
 
                     const formatDate = (ts: number) => new Date(ts).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US', { timeZone: 'UTC' });
                     // A whole year ends at midnight of 1 January (exclusive), its label shows 31 December
@@ -349,27 +359,60 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const missingTitle = (c: { missingDays: number; periodDays: number }) =>
                         t.unit.missingDays.replace('{{missing}}', String(c.missingDays)).replace('{{total}}', String(c.periodDays));
 
+                    // Readings listed in a period window; with several meters each gets its serial number
+                    const readingsIn = (year: number) => group
+                        .map((m, i) => ({ serial: m.serial_number, readings: getPeriodReadings(series[i], year, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek) }))
+                        .filter(x => x.readings.length > 0);
+                    const renderReadings = (year: number, valueClass: string, rowClass: string) => {
+                        const parts = readingsIn(year);
+                        if (parts.length === 0) return <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>;
+                        return parts.map(part => (
+                            <div key={part.serial}>
+                                {parts.length > 1 && <p className="text-[11px] font-mono text-gray-500 pt-1">{part.serial}</p>}
+                                {part.readings.map(reading => (
+                                    <div key={reading.time} className={`flex justify-between text-sm py-1 border-b last:border-0 ${rowClass}`}>
+                                        <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
+                                        <span className={`font-mono ${valueClass}`}>{reading.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ));
+                    };
+
                     return (
-                        <div key={meter.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
+                        <div key={group[0].type} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                 <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="font-bold text-gray-800 text-lg">
-                                            {meterTypeLabel(meter.type)}
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                        <h3 className="font-bold text-gray-800 text-lg mr-1">
+                                            {meterTypeLabel(group[0].type)}
                                         </h3>
-                                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-mono border border-gray-200">{meter.serial_number}</span>
+                                        {group.map((m, i) => {
+                                            // With a replacement: until when the old meter and from when the new one recorded
+                                            const times = series[i].map(x => Date.parse(x.time));
+                                            const range = group.length < 2 || times.length === 0 ? ''
+                                                : i === 0 ? t.unit.meterUntil.replace('{{date}}', formatDate(Math.max(...times)))
+                                                : i === group.length - 1 ? t.unit.meterFrom.replace('{{date}}', formatDate(Math.min(...times)))
+                                                : `${formatDate(Math.min(...times))} – ${formatDate(Math.max(...times))}`;
+                                            return (
+                                                <span key={m.id} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
+                                                    <span className="font-mono">{m.serial_number}</span>{range && <span className="ml-1 text-gray-500">({range})</span>}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
+                                    {group.length > 1 && <p className="text-xs text-gray-500 mb-2">{t.unit.meterReplaced}</p>}
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
                                         <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(yearStart)).replace('{{endDate}}', lastDayLabel(ytdEnd))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {uom}
                                             {currentYearTotal.value !== null && !currentYearTotal.complete && <span className="cursor-help" title={missingTitle(currentYearTotal)}>*</span>}
                                         </span>
                                         <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(Date.UTC(selectedYear - 1, 0, 1))).replace('{{endDate}}', lastDayLabel(prevYtdEnd))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {uom}
                                             {prevYearTotal.value !== null && !prevYearTotal.complete && <span className="cursor-help" title={missingTitle(prevYearTotal)}>*</span>}
                                         </span>
                                         {currentYearTotal.complete && prevYearTotal.complete && (
@@ -377,13 +420,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         )}
                                     </div>
                                 </div>
-                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{meter.unit_of_measure}</span>
+                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{uom}</span>
                             </div>
 
                             <ConsumptionChart
-                                readings={sortedReadings}
+                                meters={series}
                                 year={selectedYear}
-                                unitOfMeasure={meter.unit_of_measure}
+                                unitOfMeasure={uom}
                                 selectedMonth={viewMode === 'month' ? selectedMonth : null}
                                 onSelectMonth={(month) => {
                                     setViewMode('month');
@@ -401,7 +444,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
                                             <p className="text-xs mt-1">
                                                 {currentConsumption.complete && prevConsumption.complete
                                                     ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
@@ -412,13 +455,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {currentReadings.map(reading => (
-                                            <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
-                                                <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
-                                                <span className="font-bold font-mono">{reading.value}</span>
-                                            </div>
-                                        ))}
-                                        {currentReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
+                                        {renderReadings(selectedYear, 'font-bold', 'border-blue-100')}
                                     </div>
                                 </div>
 
@@ -430,17 +467,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {prevReadings.map(reading => (
-                                            <div key={reading.id} className="flex justify-between text-sm py-1 border-b border-gray-200 last:border-0">
-                                                <span className="text-gray-500 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
-                                                <span className="font-medium font-mono text-gray-700">{reading.value}</span>
-                                            </div>
-                                        ))}
-                                        {prevReadings.length === 0 && <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>}
+                                        {renderReadings(selectedYear - 1, 'font-medium text-gray-700', 'border-gray-200')}
                                     </div>
                                 </div>
                             </div>

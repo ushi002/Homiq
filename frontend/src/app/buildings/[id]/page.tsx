@@ -206,12 +206,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
     const handleFetchUnits = async () => {
         const isReload = building.units_fetched;
-        const message = isReload
-            ? t.messages.confirmReloadUnits
-            : t.messages.confirmReloadUnits.split('\n\n')[1]; // approximate reuse or new key
-
-        if (!(await confirm(t.messages.confirmReloadUnits, { danger: true }))) return;
-
+        // Loading units only adds new units and meters (nothing is deleted), so no confirmation
         try {
             if (isReload) {
                 // Use Reload Endpoint to preserve owners
@@ -223,7 +218,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     const data = await res.json();
                     toast.success(t.messages.successReloadUnits
                         .replace('{created}', data.units_created)
-                        .replace('{connected}', data.meters_connected), { afterReload: true });
+                        .replace('{connected}', data.meters_connected)
+                        .replace('{moved}', data.meters_moved), { afterReload: true });
                     window.location.reload();
                 } else {
                     const err = await res.json();
