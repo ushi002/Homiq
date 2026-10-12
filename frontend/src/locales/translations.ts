@@ -182,6 +182,12 @@ export interface Translations {
         owner: string;
         total: string;
         changeVs: string;
+        noComparison: string;
+        noComparisonPrevious: string;
+        noComparisonCurrent: string;
+        reasonPrevious: string;
+        reasonCurrent: string;
+        reasonPreviousZero: string;
         incompleteNote: string;
         noMeters: string;
         categoryElectricity: string;

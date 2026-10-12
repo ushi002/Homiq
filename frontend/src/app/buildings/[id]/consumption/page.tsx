@@ -130,15 +130,42 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
 
     if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
 
-    const renderCell = (c: { current: Cell; previous: Cell }, uom: string) => (
+    type Pair = { current: Cell; previous: Cell };
+    // A percentage needs both periods complete and a non-zero previous value
+    const comparable = (c: Pair) => c.current.complete && c.previous.complete && (c.previous.value ?? 0) > 0;
+    const noComparisonReason = (c: Pair) => {
+        if (!c.current.complete) return t.consumption.reasonCurrent;
+        const reason = c.previous.complete && c.previous.value === 0 ? t.consumption.reasonPreviousZero : t.consumption.reasonPrevious;
+        return reason.replace('{{year}}', String(year - 1));
+    };
+
+    // Header note of a column: the usual "change vs", or why nothing in it can be compared
+    const columnNote = (type: string) => {
+        const cells = (data?.units ?? []).map(u => cell(u, type)).filter(c => c.current.value !== null);
+        if (cells.length === 0 || cells.some(comparable)) {
+            return { text: t.consumption.changeVs.replace('{{year}}', String(year - 1)), comparable: true };
+        }
+        return {
+            // Some values are final, so the previous year is what is missing
+            text: cells.some(c => c.current.complete)
+                ? t.consumption.noComparisonPrevious.replace('{{year}}', String(year - 1))
+                : t.consumption.noComparisonCurrent,
+            comparable: false,
+        };
+    };
+
+    // columnComparable: when false the header already explains the missing change, so cells stay clean
+    const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
             <span className="font-mono">{format(c.current.value)}</span>
             {c.current.value !== null && !c.current.complete && <span className="text-gray-400" title={t.unit.incompletePeriod}>*</span>}
             {c.current.value !== null && <span className="text-xs text-gray-400 ml-1">{uom}</span>}
-            {c.current.complete && c.previous.complete && c.previous.value !== null && (
+            {comparable(c) ? (
                 <div className="text-xs">
-                    <YoyChange current={c.current.value as number} previous={c.previous.value} previousYear={year - 1} compact />
+                    <YoyChange current={c.current.value as number} previous={c.previous.value as number} previousYear={year - 1} compact />
                 </div>
+            ) : c.current.value !== null && columnComparable && (
+                <div className="text-xs text-gray-400 cursor-help" title={noComparisonReason(c)}>{t.consumption.noComparison}</div>
             )}
         </>
     );
@@ -188,7 +215,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                             <button onClick={() => toggleSort(mt.type)} className="hover:text-gray-900">
                                                 {typeLabel(mt.type)} ({mt.unit_of_measure}){sortArrow(mt.type)}
                                             </button>
-                                            <div className="text-xs font-normal text-gray-400">{t.consumption.changeVs.replace('{{year}}', String(year - 1))}</div>
+                                            <div className={`text-xs font-normal ${columnNote(mt.type).comparable ? 'text-gray-400' : 'text-amber-700'}`}>{columnNote(mt.type).text}</div>
                                         </th>
                                     ))}
                                 </tr>
@@ -202,7 +229,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                         <td className="px-4 py-2 text-gray-600 hidden sm:table-cell">{row.owner ?? <span className="text-gray-300">–</span>}</td>
                                         {data.meter_types.map(mt => (
                                             <td key={mt.type} className="px-4 py-2 text-right whitespace-nowrap align-top">
-                                                {renderCell(cell(row, mt.type), mt.unit_of_measure)}
+                                                {renderCell(cell(row, mt.type), mt.unit_of_measure, columnNote(mt.type).comparable)}
                                             </td>
                                         ))}
                                     </tr>
@@ -217,7 +244,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                             {renderCell({
                                                 current: sumCells(data.units.map(u => cell(u, mt.type).current)),
                                                 previous: sumCells(data.units.map(u => cell(u, mt.type).previous)),
-                                            }, mt.unit_of_measure)}
+                                            }, mt.unit_of_measure, columnNote(mt.type).comparable)}
                                         </td>
                                     ))}
                                 </tr>
