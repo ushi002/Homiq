@@ -90,11 +90,15 @@ expect("owner_a", f"/units/{I['unit_a']}/readings_influx", 200)
 expect("owner_a", f"/telemetry/meters/{I['meter_a']}", 200)
 expect("owner_a", f"/users/{I['owner_a']}", 200)
 for path in [f"/units/{I['unit_b']}", f"/units/{I['unit_b']}/readings_influx", f"/users/{I['owner_b']}",
-             f"/telemetry/meters/{I['meter_b']}", f"/telemetry/meters/{I['meter_b']}/readings",
+             f"/telemetry/meters/{I['meter_b']}",
              f"/buildings/{I['b2']}", f"/buildings/{I['b1']}/consumption?year=2025",
              f"/buildings/{I['b1']}/readings?start=2025-01-01T00:00:00Z&end=2025-02-01T00:00:00Z"]:
     expect("owner_a", path, 403)
 expect("owner_a", f"/telemetry/meters/?unit_id={I['unit_b']}", 200, lambda m: m == [])
+# Building average: own unit only; with two units in the building no average is revealed
+expect("owner_a", f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 200, lambda r: r == {"types": {}})
+expect("owner_a", f"/units/{I['unit_b']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 403)
+expect(None, f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 401)
 expect("owner_a", f"/buildings/{I['b1']}/units", 200, lambda units: [u["unit_number"] for u in units] == ["A"])
 expect("owner_a", "/users/", 200, lambda users: [u["email"] for u in users] == ["a@t.cz"])
 
@@ -118,6 +122,14 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 # Admin sees everything
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
+
+# Renewing the login: only with a valid token, the new token works
+r = client.post("/token/refresh")
+if r.status_code != 401:
+    failures.append(f"anonymous POST /token/refresh: {r.status_code}")
+r = client.post("/token/refresh", headers=as_user("owner_a"))
+if r.status_code != 200 or client.get(f"/units/{I['unit_a']}", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code != 200:
+    failures.append(f"owner_a POST /token/refresh: {r.status_code} {r.text[:120]}")
 
 os.remove(DB)
 if failures:

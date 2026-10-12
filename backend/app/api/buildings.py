@@ -7,10 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
-from ..models.telemetry import Meter, MeterCreate, MeterReading
-from ..core.influx_utils import get_period_points, get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
-from ..core.consumption import meter_period, combine_meters
+from ..models.telemetry import Meter, MeterCreate
+from ..core.influx_utils import get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
+from ..core.building_consumption import units_consumption
 from .deps import get_current_user
 from .access import can_access_building, require
 
@@ -115,7 +116,6 @@ def read_building_consumption(
 
     units = session.exec(select(Unit).where(Unit.building_id == building_id).order_by(Unit.unit_number)).all()
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all() if units else []
-    measurements = parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS
 
     def bounds(y: int):
         start = datetime(y, month or 1, 1, tzinfo=timezone.utc)
@@ -125,41 +125,9 @@ def read_building_consumption(
             end = datetime(y + 1, 1, 1, tzinfo=timezone.utc)
         return start, end
 
-    meter_types = []
-    jobs = []  # (measurement, type, meters of that type, period, year)
-    for meas_name, meta in measurements.items():
-        type_meters = [m for m in meters if m.type == meta['type']]
-        if not type_meters:
-            continue
-        if meta['type'] not in [mt['type'] for mt in meter_types]:
-            meter_types.append({"type": meta['type'], "unit_of_measure": meta['uom'] or type_meters[0].unit_of_measure})
-        for period, y in (("current", year), ("previous", year - 1)):
-            jobs.append((meas_name, meta['type'], type_meters, period, y))
+    meter_types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
 
-    if not (building.influx_db_name and building.influx_device_tag):
-        jobs = []
-
-    # Influx queries run in parallel, one per measurement and period
-    with ThreadPoolExecutor(max_workers=6) as pool:
-        results = list(pool.map(
-            lambda job: get_period_points(building.influx_db_name, job[0], building.influx_device_tag, *bounds(job[4])),
-            jobs,
-        ))
-
-    # periods[unit_id][type] = {"current": [MeterPeriod, ...], "previous": [...]}
-    periods: dict = {}
-    for (_, meter_type, type_meters, period, y), by_sn in zip(jobs, results):
-        start, end = (b.timestamp() for b in bounds(y))
-        for m in type_meters:
-            p = by_sn.get(m.serial_number)
-            mp = meter_period(start, end, p.get('before'), p.get('first'), p.get('last'), p.get('after')) if p else None
-            if mp:
-                cell = periods.setdefault(str(m.unit_id), {}).setdefault(meter_type, {"current": [], "previous": []})
-                cell[period].append(mp)
-
-    def combine(parts, y):
-        start, end = (b.timestamp() for b in bounds(y))
-        r = combine_meters(start, end, parts)
+    def cell(r):
         return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
 
     return {
@@ -172,13 +140,19 @@ def read_building_consumption(
                 "unit_number": u.unit_number,
                 "owner": (u.owner.full_name or u.owner.email) if u.owner else None,
                 "values": {
-                    t: {"current": combine(cell["current"], year), "previous": combine(cell["previous"], year - 1)}
-                    for t, cell in periods.get(str(u.id), {}).items()
+                    t: {"current": cell(current.get(str(u.id), {}).get(t) or _no_data(bounds(year))),
+                        "previous": cell(previous.get(str(u.id), {}).get(t) or _no_data(bounds(year - 1)))}
+                    for t in sorted(set(current.get(str(u.id), {})) | set(previous.get(str(u.id), {})))
                 },
             }
             for u in units
         ],
     }
+
+
+def _no_data(period):
+    start, end = period
+    return combine_meters(start.timestamp(), end.timestamp(), [])
 
 @router.get("/{building_id}/readings")
 def read_building_readings(
@@ -351,10 +325,6 @@ def delete_all_building_units(
         # Get meters
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
-            # Delete readings first
-            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
-            for reading in readings:
-                session.delete(reading)
             
             session.delete(meter)
             deleted_meters += 1
@@ -393,10 +363,6 @@ def delete_building(
         # 2. Delete meters for each unit
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
-            # Delete readings first
-            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
-            for reading in readings:
-                session.delete(reading)
             session.delete(meter)
         
         # 3. Delete unit

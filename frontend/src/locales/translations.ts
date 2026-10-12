@@ -1,7 +1,6 @@
 export interface Translations {
     common: {
         loading: string;
-        backToDashboard: string;
         save: string;
         cancel: string;
         edit: string;
@@ -11,8 +10,6 @@ export interface Translations {
         password: string;
         logout: string;
         yes: string;
-        no: string;
-        confirmDelete: string;
         unassign: string;
         close: string;
     };
@@ -49,13 +46,10 @@ export interface Translations {
         deleteBuilding: string;
         noUnits: string;
         floor: string;
-        area: string;
         viewDetails: string;
         addMeasurement: string;
         measurementName: string;
         measurementUnit: string;
-        measurementType: string;
-        measurementsPlaceholder: string;
         placeholderName: string;
         placeholderAddress: string;
         placeholderDbName: string;
@@ -67,8 +61,6 @@ export interface Translations {
         categoryHeat: string;
     };
     unit: {
-        title: string;
-        unitNumber: string;
         assignOwner: string;
         assign: string;
         assignPlaceholder: string;
@@ -97,6 +89,11 @@ export interface Translations {
         meterReplaced: string;
         lastYear: string;
         showReadings: string;
+        typicalUnit: string;
+        typicalHint: string;
+        moreThan: string;
+        lessThan: string;
+        aboutSame: string;
     };
     users: {
         title: string;
@@ -104,7 +101,6 @@ export interface Translations {
         fullName: string;
         role: string;
         sendInvite: string;
-        backToDashboard: string;
         allUsers: string;
         pendingInvite: string;
         copyLink: string;
@@ -113,7 +109,6 @@ export interface Translations {
         roleOwner: string;
         selectHomeLord: string;
         selectUser: string;
-        deleteUser: string;
         adminInfo: string;
         homeLordInfo: string;
         assignedTo: string;
@@ -137,7 +132,6 @@ export interface Translations {
         emailReadOnly: string;
     };
     messages: {
-        successCreateUser: string;
         errorCreateUser: string;
         confirmDeleteUser: string;
         errorDeleteUser: string;
@@ -188,13 +182,16 @@ export interface Translations {
         exportFailed: string;
         time: string;
         downloadReadings: string;
-        change: string;
-        note: string;
         date: string;
         meter: string;
         serial: string;
         reading: string;
         unitOfMeasure: string;
+    };
+    theme: {
+        auto: string;
+        light: string;
+        dark: string;
     };
     nav: {
         buildings: string;
@@ -215,7 +212,6 @@ export interface Translations {
         noComparisonPrevious: string;
         noComparisonCurrent: string;
         reasonPrevious: string;
-        reasonCurrent: string;
         reasonPreviousZero: string;
         incompleteNote: string;
         noMeters: string;

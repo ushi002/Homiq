@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sqlmodel import Session, select
 from app.core.database import engine, create_db_and_tables
 from app.models.property import Building, Unit, User
-from app.models.telemetry import Meter, MeterReading
+from app.models.telemetry import Meter  # noqa: F401  (registers the table)
 from app.core.security import get_password_hash
 
 # Usage: python scripts/create_admin.py <email> [full name]

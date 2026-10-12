@@ -1,11 +1,17 @@
+import secrets
+import statistics
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
-from .deps import get_current_user
-from .access import can_access_unit, require
+from ..core.building_consumption import units_consumption
+from ..core.influx_utils import get_meter_readings, parse_measurements_config
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
+from ..models.telemetry import Meter
+from .access import can_access_unit, require
+from .deps import get_current_user
 
 router = APIRouter()
 
@@ -96,100 +102,6 @@ def assign_owner(
     session.commit()
     session.refresh(unit)
     return unit
-
-# Import needed models for sync
-from ..models.telemetry import Meter, MeterReading
-from ..core.influx_utils import get_meter_readings, parse_measurements_config
-from datetime import datetime
-
-@router.post("/{unit_id}/sync_readings")
-def sync_unit_readings(
-    unit_id: uuid.UUID,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    # Authorization? 
-    # Allow admins, home lords, and owners (to view their own up-to-date data)?
-    # Let's verify access first.
-    unit = session.get(Unit, unit_id)
-    if not unit:
-        raise HTTPException(status_code=404, detail="Unit not found")
-        
-    building = session.get(Building, unit.building_id)
-    if not building:
-        raise HTTPException(status_code=404, detail="Building not found")
-
-    require(can_access_unit(current_user, unit, session))
-    
-    if not building.influx_db_name:
-         return {"message": "No InfluxDB configured", "readings_synced": 0}
-
-    # Parse measurements config
-    if building.influx_measurements:
-        measurements_config = parse_measurements_config(building.influx_measurements)
-    else:
-        # Default fallback
-        measurements_config = {
-            'sv_l': {'type': 'water_cold', 'uom': 'm3'},
-            'tv_l': {'type': 'water_hot', 'uom': 'm3'},
-            'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
-        }
-
-    # Get meters for unit
-    meters = session.exec(select(Meter).where(Meter.unit_id == unit_id)).all()
-    
-    total_synced = 0
-    
-    for meter in meters:
-        # We need to look up readings for this meter.
-        # We don't know exactly which measurement it came from unless we stored it?
-        # But we can try all measurements that match its type OR just all measurements?
-        # Simpler: Iterate all configured measurements. If a reading exists for this meter's SN in that measurement, take it.
-        # This is robust because SN should be unique globally or at least within the building/db context.
-        
-        found_readings = False
-        
-        for meas_name, meta in measurements_config.items():
-            # Optimization: Only check measurements that match the meter type?
-            # if meta['type'] != meter.type: continue 
-            
-            readings = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name, building.influx_device_tag)
-            
-            if readings:
-                found_readings = True
-                for (time_str, value) in readings:
-                    try:
-                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-                    except ValueError:
-                        continue
-
-                    # Check if reading exists
-                    existing = session.exec(select(MeterReading).where(
-                        MeterReading.meter_id == meter.id, 
-                        MeterReading.time == dt
-                    )).first()
-                    
-                    if not existing:
-                        new_reading = MeterReading(
-                            meter_id=meter.id,
-                            value=value,
-                            time=dt,
-                            is_manual=False
-                        )
-                        session.add(new_reading)
-                        total_synced += 1
-                
-                # If we found readings in one measurement, should we stop? 
-                # Probably yes, a meter typically reports to one measurement.
-                # break 
-        
-        if found_readings:
-            session.commit() # Commit per meter
-
-    return {"message": "Readings synced", "readings_synced": total_synced}
-
-import secrets
-from datetime import timedelta
 
 @router.post("/{unit_id}/assign_by_email", response_model=UnitRead)
 def assign_owner_by_email(
@@ -299,3 +211,45 @@ def read_unit_readings_influx(
         results[str(meter.id)] = readings
         
     return results
+
+
+# The building comparison is shown to owners only when it comes from at least this many units, so
+# it never reveals a neighbour's consumption
+MIN_UNITS_FOR_AVERAGE = 5
+
+@router.get("/{unit_id}/building_average")
+def read_building_average(
+    unit_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Typical consumption of a unit in the unit's building in [start, end), by meter type, for
+    comparison on the unit detail: the median, because a few large consumers (a leak, non-residential
+    units) pull the mean up by 10-40 % and most owners would always look "below average". Only units
+    with complete, non-zero consumption count (zero is most likely an empty unit); only the median
+    and the number of units are returned."""
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    require(can_access_unit(current_user, unit, session))
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+    if not timedelta(0) < end - start <= timedelta(days=367):
+        raise HTTPException(status_code=422, detail="Invalid period")
+
+    building = session.get(Building, unit.building_id)
+    units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
+    meter_types, (period,) = units_consumption(building, meters, [(start, end)])
+
+    types = {}
+    for mt in meter_types:
+        values = [r.value for by_type in period.values() if (r := by_type.get(mt["type"])) and r.complete and r.value and r.value > 0]
+        if len(values) >= MIN_UNITS_FOR_AVERAGE:
+            types[mt["type"]] = {"median": round(statistics.median(values), 2), "units": len(values)}
+    return {"types": types}
+

@@ -51,7 +51,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                     >
                         <p className="text-gray-800 whitespace-pre-line">{state.message}</p>
                         <div className="mt-6 flex justify-end gap-3">
-                            <button ref={cancelButton} onClick={() => close(false)} className="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">
+                            <button ref={cancelButton} onClick={() => close(false)} className="px-4 py-2 rounded-lg border border-gray-300 bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm font-medium">
                                 {t.common.cancel}
                             </button>
                             <button
