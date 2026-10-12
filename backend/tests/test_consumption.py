@@ -69,4 +69,10 @@ assert period([None], *JAN).value is None and not period([None], *JAN).complete
 m = meter_period(*JAN, (ts(2024, 12, 31), 1.234), (ts(2025, 1, 2), 1.240), (ts(2025, 1, 31), 2.5), (ts(2025, 2, 1), 2.51))
 assert period([m], *JAN).value == round(2.51 - 1.237, 3), period([m], *JAN)
 
+# Half is rounded up, like in the frontend (Python's round() would give 2 here)
+m = meter_period(*JAN, None, (ts(2025, 1, 1), 0), (ts(2025, 1, 31), 2.5), None)
+assert period([m], *JAN).value == 2.5
+m = meter_period(*JAN, (ts(2024, 12, 31), 0), (ts(2025, 1, 2), 1), (ts(2025, 1, 31), 3), None)
+assert period([m], *JAN).value == 3, period([m], *JAN)  # 3 - 0.5 = 2.5 -> 3
+
 print("SUCCESS: Consumption rules verified!")

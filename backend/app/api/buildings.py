@@ -8,8 +8,9 @@ from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
 from ..models.telemetry import Meter, MeterCreate, MeterReading
-from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_points, get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_period_points, get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import meter_period, combine_meters
+from ..core.unit_sync import sync_units_from_influx
 from .deps import get_current_user
 from .access import can_access_building, require
 
@@ -303,66 +304,7 @@ def fetch_units_from_influx(
     if not building.influx_db_name:
          raise HTTPException(status_code=400, detail="Building has no InfluxDB database configured")
 
-    # 1. Fetch Unique Units
-    influx_units = get_unique_units(building.influx_db_name, building.influx_unit_tag)
-    
-    created_units = 0
-    connected_meters = 0
-
-    for unit_name in influx_units:
-        # Check if unit exists
-        db_unit = session.exec(select(Unit).where(Unit.building_id == building_id, Unit.unit_number == unit_name)).first()
-        if not db_unit:
-            # Create Unit
-            db_unit = Unit(
-                unit_number=unit_name,
-                floor=0, # Default
-                area_m2=0.0, # Default
-                building_id=building_id
-            )
-            session.add(db_unit)
-            session.commit()
-            session.refresh(db_unit)
-            created_units += 1
-        
-        # 2. Fetch Meters for Unit
-        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements, building.influx_device_tag)
-        for meter_data in meters:
-            # Check if meter exists
-            db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()
-            if not db_meter:
-                db_meter = Meter(
-                    serial_number=meter_data['serial_number'],
-                    type=meter_data['type'],
-                    unit_of_measure=meter_data['unit_of_measure'],
-                    unit_id=db_unit.id
-                )
-                session.add(db_meter)
-                session.commit() # Commit each meter to be safe
-                connected_meters += 1
-            else:
-                # Meter exists, ensure it is assigned to this unit
-                if db_meter.unit_id != db_unit.id:
-                    db_meter.unit_id = db_unit.id
-                    session.add(db_meter)
-                    session.commit()
-                # Count as connected regardless of whether it was just moved or already there
-                connected_meters += 1
-    
-    # Update units_fetched flag if we successfully processed at least one unit from InfluxDB
-    if len(influx_units) > 0:
-        building.units_fetched = True
-        session.add(building)
-        session.commit()
-        session.refresh(building)
-
-    return {
-        "message": "Sync complete", 
-        "units_created": created_units, 
-        "meters_connected": connected_meters, 
-        "units_found": len(influx_units),
-        "units_fetched": building.units_fetched
-    }
+    return {"message": "Units fetched", **sync_units_from_influx(building, session)}
 
 @router.post("/{building_id}/reload_units")
 def reload_building_units(
@@ -380,92 +322,7 @@ def reload_building_units(
     if not building.influx_db_name:
          raise HTTPException(status_code=400, detail="Building has no InfluxDB database configured")
 
-    # 1. Backup Owner Map
-    existing_units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
-    owner_map = {u.unit_number: u.owner_id for u in existing_units if u.owner_id}
-    
-    # 2. Delete All Units & Meters (Clean slate)
-    for unit in existing_units:
-        # Delete meters
-        meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
-        for meter in meters:
-            # Delete readings
-            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
-            for reading in readings:
-                session.delete(reading)
-            session.delete(meter)
-        
-        # Delete unit
-        session.delete(unit)
-    
-    # Commit deletion to ensure clean state before re-creation? 
-    # Or keep in transaction. Keeping in transaction is safer if subsequent fails.
-    
-    # 3. Fetch from Influx
-    influx_units = get_unique_units(building.influx_db_name, building.influx_unit_tag)
-    
-    created_units = 0
-    connected_meters = 0
-
-    for unit_name in influx_units:
-        # Create Unit
-        # Restore owner if exists
-        restored_owner_id = owner_map.get(unit_name)
-        
-        db_unit = Unit(
-            unit_number=unit_name,
-            floor=0, 
-            area_m2=0.0,
-            building_id=building_id,
-            owner_id=restored_owner_id # RESTORED
-        )
-        session.add(db_unit)
-        session.commit() # Commit needed to get ID for meters
-        session.refresh(db_unit)
-        created_units += 1
-        
-        # 4. Fetch Meters for Unit
-        meters = get_unit_meters(building.influx_db_name, unit_name, building.influx_unit_tag, building.influx_measurements, building.influx_device_tag)
-        for meter_data in meters:
-             # Check if meter exists (it might have been created in a previous loop iteration for another unit)
-             db_meter = session.exec(select(Meter).where(Meter.serial_number == meter_data['serial_number'])).first()
-             
-             if not db_meter:
-                 db_meter = Meter(
-                     serial_number=meter_data['serial_number'],
-                     type=meter_data['type'],
-                     unit_of_measure=meter_data['unit_of_measure'],
-                     unit_id=db_unit.id
-                 )
-                 session.add(db_meter)
-                 connected_meters += 1
-             else:
-                 # Meter exists (duplicate serial number found in Influx result for different unit?)
-                 # Update it to point to this unit, or just skip?
-                 # If we update, it might "steal" the meter from the previous unit. 
-                 # Given the data structure, let's assume valid reassignment or just update.
-                 if db_meter.unit_id != db_unit.id:
-                     db_meter.unit_id = db_unit.id
-                     session.add(db_meter)
-                 # We don't increment connected_meters if we are just moving it, or maybe we do? 
-                 # Let's count it as "connected" to this unit.
-                 connected_meters += 1
-        
-        session.commit()
-
-    # Update units_fetched flag
-    if len(influx_units) > 0:
-        building.units_fetched = True
-        session.add(building)
-        session.commit()
-    
-    return {
-        "message": "Reload complete (owners restored)", 
-        "units_created": created_units, 
-        "meters_connected": connected_meters, 
-        "units_found": len(influx_units),
-        "units_fetched": building.units_fetched
-    }
+    return {"message": "Reload complete (existing units and meters kept)", **sync_units_from_influx(building, session)}
 
 @router.delete("/{building_id}/units")
 def delete_all_building_units(
