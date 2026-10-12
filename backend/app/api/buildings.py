@@ -11,6 +11,7 @@ from ..models.telemetry import Meter, MeterCreate, MeterReading
 from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_points, get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import meter_period, combine_meters
 from .deps import get_current_user
+from .access import can_access_building, require
 
 router = APIRouter()
 
@@ -71,18 +72,7 @@ def read_building(
     if not building:
         raise HTTPException(status_code=404, detail="Building not found")
         
-    # Check access
-    if current_user.role == "admin":
-        pass
-    elif current_user.role == "home_lord":
-        if building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user.role == "owner":
-        # Check if they own a unit in this building
-        unit = session.exec(select(Unit).where(Unit.building_id == building_id, Unit.owner_id == current_user.id)).first()
-        if not unit:
-             raise HTTPException(status_code=403, detail="Not authorized")
-             
+    require(can_access_building(current_user, building, session))
     return building
 
 @router.get("/{building_id}/units", response_model=List[UnitRead])
@@ -96,9 +86,8 @@ def read_building_units(
     if not building:
         raise HTTPException(status_code=404, detail="Building not found")
 
-    if current_user.role == "home_lord" and building.manager_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
+    require(can_access_building(current_user, building, session))
+
     statement = select(Unit).where(Unit.building_id == building_id).order_by(Unit.unit_number)
     
     if current_user.role == "owner":

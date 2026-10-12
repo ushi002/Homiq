@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
 from .deps import get_current_user
+from .access import can_access_unit, require
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
 
 router = APIRouter()
@@ -43,14 +44,21 @@ def read_units(
     elif current_user.role == "owner":
         # Only owned units
         statement = statement.where(Unit.owner_id == current_user.id)
+    elif current_user.role != "admin":
+        return []
         
     return session.exec(statement.offset(offset).limit(limit)).all()
 
 @router.get("/{unit_id}", response_model=UnitRead)
-def read_unit(unit_id: uuid.UUID, session: Session = Depends(get_session)):
+def read_unit(
+    unit_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     unit = session.get(Unit, unit_id)
     if not unit:
         raise HTTPException(status_code=404, detail="Unit not found")
+    require(can_access_unit(current_user, unit, session))
     return unit
 
 @router.patch("/{unit_id}/assign", response_model=UnitRead)
@@ -111,14 +119,7 @@ def sync_unit_readings(
     if not building:
         raise HTTPException(status_code=404, detail="Building not found")
 
-    if current_user.role == "admin":
-        pass
-    elif current_user.role == "home_lord":
-        if building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user.role == "owner":
-        if unit.owner_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
+    require(can_access_unit(current_user, unit, session))
     
     if not building.influx_db_name:
          return {"message": "No InfluxDB configured", "readings_synced": 0}
@@ -255,12 +256,7 @@ def read_unit_readings_influx(
     if not building:
         raise HTTPException(status_code=404, detail="Building not found")
 
-    if current_user.role == "home_lord":
-        if building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
-    elif current_user.role == "owner":
-        if unit.owner_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized")
+    require(can_access_unit(current_user, unit, session))
     
     if not building.influx_db_name:
          return {}
