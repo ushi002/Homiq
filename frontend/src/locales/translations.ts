@@ -173,4 +173,17 @@ export interface Translations {
         linkInvalidMessage: string;
         backToLogin: string;
     };
+    consumption: {
+        title: string;
+        open: string;
+        period: string;
+        wholeYear: string;
+        unit: string;
+        owner: string;
+        total: string;
+        changeVs: string;
+        incompleteNote: string;
+        noMeters: string;
+        categoryElectricity: string;
+    };
 }

@@ -174,5 +174,18 @@ export const cs: Translations = {
         invalidLink: 'Neplatný nebo expirovaný odkaz',
         linkInvalidMessage: 'Tento odkaz na pozvánku již není platný. Pravděpodobně vypršela jeho platnost nebo byl již použit.',
         backToLogin: 'Zpět na přihlášení',
+    },
+    consumption: {
+        title: 'Přehled spotřeby',
+        open: 'Přehled spotřeby',
+        period: 'Období',
+        wholeYear: 'Celý rok',
+        unit: 'Jednotka',
+        owner: 'Vlastník',
+        total: 'Celkem',
+        changeVs: 'změna oproti {{year}}',
+        incompleteNote: '* Období není uzavřené (chybí pozdější odečet), hodnota ještě není konečná a neporovnává se.',
+        noMeters: 'V tomto domě nejsou žádné měřiče.',
+        categoryElectricity: 'Elektřina',
     }
 };

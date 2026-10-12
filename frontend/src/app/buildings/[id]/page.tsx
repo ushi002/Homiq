@@ -459,6 +459,15 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 )}
                                 {building.description && <p className="text-gray-600 mt-2">{building.description}</p>}
 
+                                {(isAdmin || user?.role === 'home_lord') && building.units_fetched && (
+                                    <Link
+                                        href={`/buildings/${id}/consumption`}
+                                        className="mt-4 mr-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                    >
+                                        {t.consumption.open}
+                                    </Link>
+                                )}
+
                                 {isAdmin && (
                                     <button
                                         onClick={() => setIsEditing(true)}

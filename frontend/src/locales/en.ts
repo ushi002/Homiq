@@ -174,5 +174,18 @@ export const en: Translations = {
         invalidLink: 'Invalid or Expired Link',
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
+    },
+    consumption: {
+        title: 'Consumption overview',
+        open: 'Consumption overview',
+        period: 'Period',
+        wholeYear: 'Whole year',
+        unit: 'Unit',
+        owner: 'Owner',
+        total: 'Total',
+        changeVs: 'change vs {{year}}',
+        incompleteNote: '* Period not closed yet (no later reading), the value is not final and is not compared.',
+        noMeters: 'There are no meters in this building.',
+        categoryElectricity: 'Electricity',
     }
 };

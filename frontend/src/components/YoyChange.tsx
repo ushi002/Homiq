@@ -7,16 +7,17 @@ interface YoyChangeProps {
     previous: number;
     previousYear: number;
     className?: string;
+    compact?: boolean; // omit "vs {{year}}" when the year is already shown nearby
 }
 
 // Year-over-year change of consumption. Higher consumption is the unfavourable direction,
 // so increases are red and decreases green; the arrow carries the direction without colour.
-export default function YoyChange({ current, previous, previousYear, className = '' }: YoyChangeProps) {
+export default function YoyChange({ current, previous, previousYear, className = '', compact = false }: YoyChangeProps) {
     const { t, language } = useLanguage();
     if (previous <= 0) return null;
 
     const pct = ((current - previous) / previous) * 100;
-    const vs = t.unit.vsYear.replace('{{year}}', String(previousYear));
+    const vs = compact ? '' : t.unit.vsYear.replace('{{year}}', String(previousYear));
 
     if (Math.abs(pct) < 0.5) {
         return <span className={`text-gray-500 ${className}`}>= {t.unit.noChange} {vs}</span>;
