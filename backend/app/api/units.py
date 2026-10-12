@@ -1,3 +1,4 @@
+import statistics
 import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -100,7 +101,8 @@ def assign_owner(
 # Import needed models for sync
 from ..models.telemetry import Meter, MeterReading
 from ..core.influx_utils import get_meter_readings, parse_measurements_config
-from datetime import datetime
+from ..core.building_consumption import units_consumption
+from datetime import datetime, timedelta, timezone
 
 @router.post("/{unit_id}/sync_readings")
 def sync_unit_readings(
@@ -299,3 +301,45 @@ def read_unit_readings_influx(
         results[str(meter.id)] = readings
         
     return results
+
+
+# The building comparison is shown to owners only when it comes from at least this many units, so
+# it never reveals a neighbour's consumption
+MIN_UNITS_FOR_AVERAGE = 5
+
+@router.get("/{unit_id}/building_average")
+def read_building_average(
+    unit_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Typical consumption of a unit in the unit's building in [start, end), by meter type, for
+    comparison on the unit detail: the median, because a few large consumers (a leak, non-residential
+    units) pull the mean up by 10-40 % and most owners would always look "below average". Only units
+    with complete, non-zero consumption count (zero is most likely an empty unit); only the median
+    and the number of units are returned."""
+    unit = session.get(Unit, unit_id)
+    if not unit:
+        raise HTTPException(status_code=404, detail="Unit not found")
+    require(can_access_unit(current_user, unit, session))
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+    if not timedelta(0) < end - start <= timedelta(days=367):
+        raise HTTPException(status_code=422, detail="Invalid period")
+
+    building = session.get(Building, unit.building_id)
+    units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
+    meter_types, (period,) = units_consumption(building, meters, [(start, end)])
+
+    types = {}
+    for mt in meter_types:
+        values = [r.value for by_type in period.values() if (r := by_type.get(mt["type"])) and r.complete and r.value and r.value > 0]
+        if len(values) >= MIN_UNITS_FOR_AVERAGE:
+            types[mt["type"]] = {"median": round(statistics.median(values), 2), "units": len(values)}
+    return {"types": types}
+

@@ -99,6 +99,11 @@ export const en: Translations = {
         meterReplaced: 'Meter replaced: consumption of the old and the new meter is added up.',
         lastYear: 'Last year',
         showReadings: 'Show readings ({{count}})',
+        typicalUnit: 'Typical unit in the building',
+        typicalHint: 'Median of {{units}} units of the building with complete data: half of them used less, half more. Units with zero consumption are left out.',
+        moreThan: '{{pct}} more',
+        lessThan: '{{pct}} less',
+        aboutSame: 'about the same',
     },
     users: {
         title: 'User Management',
