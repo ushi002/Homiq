@@ -4,6 +4,7 @@ from typing import Dict, List, Tuple
 from sqlmodel import Session, select
 from ..models.property import Building, Unit
 from ..models.telemetry import Meter
+from .database import engine
 from .influx_utils import (get_unique_units, get_unit_meters, get_meter_last_seen_by_unit,
                            parse_measurements_config, DEFAULT_MEASUREMENTS)
 
@@ -83,7 +84,6 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
 def sync_all_buildings() -> None:
     """Daily job: load new units and meters for every building already set up from InfluxDB
     (units loaded at least once), so a replaced meter shows up without pressing the button."""
-    from .database import engine  # imported here: the module is also used from request handlers
     log = logging.getLogger("uvicorn.error")
     with Session(engine) as session:
         buildings = session.exec(select(Building).where(Building.units_fetched == True)).all()  # noqa: E712

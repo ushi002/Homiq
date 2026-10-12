@@ -1,5 +1,8 @@
 # 📡 Tok dat (Data Ingestion Flow)
 
+> **Původní návrh (v0.1).** Skutečný stav: SQLite (`backend/database.db`) s domy, jednotkami, měřiči
+> a uživateli; odečty se do databáze neukládají, čtou se živě z InfluxDB (viz `DEPLOY.md`).
+
 Tento dokument popisuje, jak se data z fyzických měřičů dostávají do databáze Homiq. Cílem je mít modulární systém, který zvládne jak moderní dálkové odečty, tak manuální zadávání.
 
 ## 1. Architektura toku dat

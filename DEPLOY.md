@@ -84,7 +84,6 @@ docker compose exec backend python scripts/create_admin.py admin@example.cz "Jm�
 
 Pak se přihlásit na `PUBLIC_URL`. Další uživatele (správce domů, vlastníky) zakládá admin v aplikaci.
 
-> `backend/scripts/seed_data.py` na produkci **nespouštět**: vytváří testovací uživatele s heslem `password`.
 
 ### 6. Založení domu napojeného na InfluxDB
 
@@ -132,8 +131,9 @@ reverzní proxy s certifikátem a v `.env` nastavit `PUBLIC_URL=https://…`:
 - **Caddy / nginx na hostiteli:** nastavit `HTTP_PORT=8080` a proxy směrovat celou doménu na `http://127.0.0.1:8080`.
 - **Traefik v Dockeru:** místo publikovaného portu použít labely na službách `backend` (`PathPrefix(/api)` + middleware
   `stripprefix` pro `/api`, port 8000) a `frontend` (zbytek domény, port 3000); službu `nginx` pak není potřeba.
-  Je to úprava `docker-compose.yml` specifická pro daný server, necommitovat ji do `main`
-  (držet ji ve vlastní větvi, např. `on-<server>`).
+  Tyto labely patří do souboru `docker-compose.override.yml` vedle `docker-compose.yml` (Docker Compose ho
+  načte sám, v gitu není), stejně jako připojení k síti Traefiku a vypnutí nginx (`profiles: ["disabled"]`).
+  `docker-compose.yml` se tak nemění a aktualizace zůstává jen `git pull` na `main` – žádná vlastní větev.
 
 ## Aktualizace
 
@@ -141,8 +141,11 @@ reverzní proxy s certifikátem a v `.env` nastavit `PUBLIC_URL=https://…`:
 cd /opt/docker/homiq
 git pull
 docker compose up -d --build
+docker compose exec backend python scripts/migrate_schema.py   # doplní nové sloupce do DB, jinak nic nedělá
 docker builder prune -f   # úklid starých build vrstev
 ```
+
+Před aktualizací zálohovat databázi (kapitola Záloha).
 
 ## Záloha
 

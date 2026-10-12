@@ -90,7 +90,7 @@ expect("owner_a", f"/units/{I['unit_a']}/readings_influx", 200)
 expect("owner_a", f"/telemetry/meters/{I['meter_a']}", 200)
 expect("owner_a", f"/users/{I['owner_a']}", 200)
 for path in [f"/units/{I['unit_b']}", f"/units/{I['unit_b']}/readings_influx", f"/users/{I['owner_b']}",
-             f"/telemetry/meters/{I['meter_b']}", f"/telemetry/meters/{I['meter_b']}/readings",
+             f"/telemetry/meters/{I['meter_b']}",
              f"/buildings/{I['b2']}", f"/buildings/{I['b1']}/consumption?year=2025",
              f"/buildings/{I['b1']}/readings?start=2025-01-01T00:00:00Z&end=2025-02-01T00:00:00Z"]:
     expect("owner_a", path, 403)

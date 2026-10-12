@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
-from ..models.telemetry import Meter, MeterCreate, MeterReading
+from ..models.telemetry import Meter, MeterCreate
 from ..core.influx_utils import get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
@@ -325,10 +325,6 @@ def delete_all_building_units(
         # Get meters
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
-            # Delete readings first
-            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
-            for reading in readings:
-                session.delete(reading)
             
             session.delete(meter)
             deleted_meters += 1
@@ -367,10 +363,6 @@ def delete_building(
         # 2. Delete meters for each unit
         meters = session.exec(select(Meter).where(Meter.unit_id == unit.id)).all()
         for meter in meters:
-            # Delete readings first
-            readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter.id)).all()
-            for reading in readings:
-                session.delete(reading)
             session.delete(meter)
         
         # 3. Delete unit
