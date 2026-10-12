@@ -1,13 +1,16 @@
 "use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function CreateBuilding() {
     const router = useRouter();
     const { t } = useLanguage();
+    const toast = useToast();
     const [form, setForm] = useState({
         name: '',
         address: '',
@@ -84,11 +87,11 @@ export default function CreateBuilding() {
                 const newBuilding = await res.json();
                 router.push(`/buildings/${newBuilding.id}`);
             } else {
-                alert(t.messages.errorCreateBuilding);
+                toast.error(t.messages.errorCreateBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -96,7 +99,7 @@ export default function CreateBuilding() {
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans flex items-center justify-center">
             <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-lg w-full">
                 <div className="mb-6">
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                    <Breadcrumbs items={[{ label: t.nav.buildings, href: '/' }, { label: t.dashboard.addBuilding }]} />
                     <h1 className="text-2xl font-bold text-gray-800">{t.dashboard.addBuilding}</h1>
                 </div>
 

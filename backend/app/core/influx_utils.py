@@ -1,11 +1,19 @@
 import requests
-from typing import List, Dict, Set, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import List, Dict, Set, Tuple, Optional
 
 import os
 
 INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
 INFLUX_USER = os.getenv("INFLUX_USER", "alarmread")
 INFLUX_PASSWORD = os.getenv("INFLUX_PASSWORD", "")
+
+# Used when a building has no measurements configured
+DEFAULT_MEASUREMENTS = {
+    'sv_l': {'type': 'water_cold', 'uom': 'm3'},
+    'tv_l': {'type': 'water_hot', 'uom': 'm3'},
+    'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
+}
 
 def query_influx(db_name: str, query: str) -> dict:
     url = f"{INFLUX_HOST}/query"
@@ -199,4 +207,63 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
                  # If we found data with this tag, break (assuming SN unique)
                  return readings # Return immediately as duplicate readings from other tags unlikely/redundant
                             
+    return readings
+
+# How far around a period to look for the readings its boundaries are interpolated from
+BEFORE_WINDOW = timedelta(days=366)
+AFTER_WINDOW = timedelta(days=62)
+
+def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, Dict[str, Tuple[float, float]]]:
+    """
+    Readings around the period [start, end) for every meter of a measurement, keyed by serial
+    number: 'before' (last before the start), 'first' and 'last' (inside the period) and 'after'
+    (first at or after the end). Values are daily MAX stamped at midnight UTC, the same series
+    the unit detail view uses. Each point is (unix timestamp, value).
+    'before' is read from raw readings (a daily aggregate over a year is several times slower);
+    for a cumulative meter the last reading of a day is that day's MAX, so only the time is
+    moved to midnight.
+    See app/core/consumption.py for how the points are turned into consumption.
+    """
+    def fmt(d: datetime) -> str:
+        return d.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    def daily(a: datetime, b: datetime) -> str:
+        return (f'SELECT MAX("value") AS d FROM "{measurement}" WHERE time >= \'{fmt(a)}\' AND time < \'{fmt(b)}\' '
+                f'GROUP BY time(1d), "{device_tag}"')
+
+    statements = [
+        ('before', f'SELECT LAST("value") FROM "{measurement}" WHERE time >= \'{fmt(start - BEFORE_WINDOW)}\' AND time < \'{fmt(start)}\' GROUP BY "{device_tag}"'),
+        ('first', f'SELECT FIRST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
+        ('last', f'SELECT LAST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
+        ('after', f'SELECT FIRST("d") FROM ({daily(end, end + AFTER_WINDOW)}) GROUP BY "{device_tag}"'),
+    ]
+    data = query_influx(db_name, ';'.join(q for _, q in statements))
+
+    points: Dict[str, Dict[str, Tuple[float, float]]] = {}
+    for (key, _), result in zip(statements, data.get('results', [])):
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            if sn and series.get('values'):
+                time_str, value = series['values'][0][:2]
+                ts = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
+                if key == 'before':
+                    ts = ts.replace(hour=0, minute=0, second=0, microsecond=0)
+                ts = ts.timestamp()
+                points.setdefault(sn, {})[key] = (ts, value)
+    return points
+
+def get_raw_readings(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, List[Tuple[str, float]]]:
+    """All readings of every meter of a measurement in [start, end), keyed by serial number."""
+    def fmt(d: datetime) -> str:
+        return d.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    q = (f'SELECT "value" FROM "{measurement}" WHERE time >= \'{fmt(start)}\' AND time < \'{fmt(end)}\' '
+         f'GROUP BY "{device_tag}"')
+    data = query_influx(db_name, q)
+    readings: Dict[str, List[Tuple[str, float]]] = {}
+    for result in data.get('results', []):
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            if sn:
+                readings[sn] = [(v[0], v[1]) for v in series.get('values', []) if v[1] is not None]
     return readings

@@ -4,8 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import UserSelect from '@/components/UserSelect';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface Unit {
     id: string;
@@ -36,6 +40,9 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_device_tag: '', influx_measurements: '' });
     const { t } = useLanguage();
+    const toast = useToast();
+    const apiError = useApiError();
+    const confirm = useConfirm();
 
     useEffect(() => {
         if (authLoading) return;
@@ -164,13 +171,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 // Update local state or reload
                 const updated = await res.json();
                 setBuilding(updated);
-                alert(t.messages.successUpdateManager);
+                toast.success(t.messages.successUpdateManager);
             } else {
-                alert(t.messages.errorUpdateManager);
+                toast.error(t.messages.errorUpdateManager);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -187,13 +194,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 const updated = await res.json();
                 setBuilding(updated);
                 setIsEditing(false);
-                alert(t.messages.successUpdateBuilding);
+                toast.success(t.messages.successUpdateBuilding);
             } else {
-                alert(t.messages.errorUpdateBuilding);
+                toast.error(t.messages.errorUpdateBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -203,7 +210,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             ? t.messages.confirmReloadUnits
             : t.messages.confirmReloadUnits.split('\n\n')[1]; // approximate reuse or new key
 
-        if (!confirm(t.messages.confirmReloadUnits)) return;
+        if (!(await confirm(t.messages.confirmReloadUnits, { danger: true }))) return;
 
         try {
             if (isReload) {
@@ -214,13 +221,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
                 if (res.ok) {
                     const data = await res.json();
-                    alert(t.messages.successReloadUnits
+                    toast.success(t.messages.successReloadUnits
                         .replace('{created}', data.units_created)
-                        .replace('{connected}', data.meters_connected));
+                        .replace('{connected}', data.meters_connected), { afterReload: true });
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert(`${t.messages.errorReloadUnits}: ${err.detail || 'Unknown error'}`);
+                    toast.error(apiError(t.messages.errorReloadUnits, err.detail));
                 }
             } else {
                 // Initial Fetch
@@ -229,24 +236,24 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    alert(t.messages.successSyncUnits
+                    toast.success(t.messages.successSyncUnits
                         .replace('{created}', data.units_created)
-                        .replace('{connected}', data.meters_connected));
+                        .replace('{connected}', data.meters_connected), { afterReload: true });
                     window.location.reload();
                 } else {
                     const err = await res.json();
-                    alert(`${t.messages.errorSyncUnits}: ${err.detail || 'Unknown error'}`);
+                    toast.error(apiError(t.messages.errorSyncUnits, err.detail));
                 }
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorFetchUnits);
+            toast.error(t.messages.errorFetchUnits);
         }
     };
 
     const handleDeleteUnits = async () => {
-        if (!confirm(t.messages.confirmDeleteAllUnits)) return;
-        if (!confirm(t.messages.confirmDeleteAllUnitsFinal)) return;
+        if (!(await confirm(t.messages.confirmDeleteAllUnits, { danger: true }))) return;
+        if (!(await confirm(t.messages.confirmDeleteAllUnitsFinal, { danger: true }))) return;
 
         try {
             const res = await authFetch(`/buildings/${id}/units`, {
@@ -254,42 +261,42 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             });
             if (res.ok) {
                 const data = await res.json();
-                alert(t.messages.successDeleteAllUnits
+                toast.success(t.messages.successDeleteAllUnits
                     .replace('{deletedUnits}', data.deleted_units)
-                    .replace('{deletedMeters}', data.deleted_meters));
+                    .replace('{deletedMeters}', data.deleted_meters), { afterReload: true });
                 window.location.reload();
             } else {
-                alert(t.messages.errorDeleteAllUnits);
+                toast.error(t.messages.errorDeleteAllUnits);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
     const handleDeleteBuilding = async () => {
-        if (!confirm(t.messages.confirmDeleteBuilding)) return;
+        if (!(await confirm(t.messages.confirmDeleteBuilding, { danger: true }))) return;
 
         try {
             const res = await authFetch(`/buildings/${id}`, {
                 method: 'DELETE'
             });
             if (res.ok) {
-                alert(t.messages.successDeleteBuilding);
+                toast.success(t.messages.successDeleteBuilding, { afterReload: true });
                 window.location.href = "/"; // Redirect to dashboard
             } else {
-                alert(t.messages.errorDeleteBuilding);
+                toast.error(t.messages.errorDeleteBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }, { label: building.name }]} />
                 <div className="flex justify-between items-start">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
@@ -458,6 +465,15 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     </div>
                                 )}
                                 {building.description && <p className="text-gray-600 mt-2">{building.description}</p>}
+
+                                {(isAdmin || user?.role === 'home_lord') && building.units_fetched && (
+                                    <Link
+                                        href={`/buildings/${id}/consumption`}
+                                        className="mt-4 mr-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                    >
+                                        {t.consumption.open}
+                                    </Link>
+                                )}
 
                                 {isAdmin && (
                                     <button

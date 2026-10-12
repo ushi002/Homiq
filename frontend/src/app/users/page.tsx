@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
+import { useConfirm } from '@/context/ConfirmContext';
 
 interface User {
     id: string;
@@ -33,6 +35,9 @@ export default function UsersPage() {
     const router = useRouter();
     const [origin, setOrigin] = useState('');
     const { t } = useLanguage();
+    const toast = useToast();
+    const apiError = useApiError();
+    const confirm = useConfirm();
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
@@ -75,7 +80,7 @@ export default function UsersPage() {
                 fetchUsers();
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorCreateUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorCreateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -83,7 +88,7 @@ export default function UsersPage() {
     };
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm(t.messages.confirmDeleteUser)) return;
+        if (!(await confirm(t.messages.confirmDeleteUser, { danger: true }))) return;
 
         try {
             const res = await authFetch(`/users/${userId}`, {
@@ -94,7 +99,7 @@ export default function UsersPage() {
                 fetchUsers(); // Refresh list
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorDeleteUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorDeleteUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -106,7 +111,7 @@ export default function UsersPage() {
 
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(link)
-                .then(() => alert(`${t.messages.inviteCopied}: ${link}`))
+                .then(() => toast.success(`${t.messages.inviteCopied}: ${link}`))
                 .catch(err => {
                     console.error('Async: Could not copy text: ', err);
                     fallbackCopyTextToClipboard(link);
@@ -132,7 +137,7 @@ export default function UsersPage() {
         try {
             const successful = document.execCommand('copy');
             if (successful) {
-                alert(`${t.messages.inviteCopied}: ${text}`);
+                toast.success(`${t.messages.inviteCopied}: ${text}`);
             } else {
                 console.error('Fallback: unable to copy');
                 prompt("Copy this link manually:", text);
@@ -170,7 +175,7 @@ export default function UsersPage() {
                 setEditingUser(null);
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorUpdateUser}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorUpdateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
@@ -178,7 +183,7 @@ export default function UsersPage() {
     };
 
     const handleUnassign = async (assignment: Assignment) => {
-        if (!confirm(t.messages.confirmUnassign.replace('{{name}}', assignment.name))) return;
+        if (!(await confirm(t.messages.confirmUnassign.replace('{{name}}', assignment.name), { danger: true }))) return;
 
         try {
             let url = '';
@@ -197,11 +202,11 @@ export default function UsersPage() {
                 fetchUsers();
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorUnassign}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorUnassign, err.detail));
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -226,7 +231,6 @@ export default function UsersPage() {
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.users.backToDashboard}</Link>
                 <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
 

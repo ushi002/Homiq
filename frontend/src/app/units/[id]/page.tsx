@@ -1,11 +1,17 @@
 "use client";
 import React, { useEffect, useState, use } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
+import ConsumptionChart from '@/components/ConsumptionChart';
+import Breadcrumbs from '@/components/Breadcrumbs';
+import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
+import YoyChange from '@/components/YoyChange';
+import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
+import { useApiError } from '@/lib/apiError';
 
 interface Meter {
     id: string;
@@ -44,10 +50,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const { id } = use(params);
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
+    const [buildingName, setBuildingName] = useState<string | null>(null);
     const [ownerId, setOwnerId] = useState<string>("");
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
     const { t, language } = useLanguage();
+    const toast = useToast();
+    const apiError = useApiError();
 
     useEffect(() => {
         if (authLoading) return;
@@ -61,6 +70,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .then(data => {
                 setUnit(data);
                 setOwnerId(data.owner_id || "");
+                // Building name for the breadcrumbs
+                return authFetch(`/buildings/${data.building_id}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(b => setBuildingName(b?.name ?? null));
             })
             .catch(err => console.error(err));
 
@@ -109,14 +122,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 const updatedUnit = await res.json();
                 setUnit(updatedUnit); // Update entire unit object to get populated owner
                 setOwnerId(updatedUnit.owner_id);
-                // alert(t.messages.successAssignOwner);
+                // toast.success(t.messages.successAssignOwner);
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorAssignOwner}: ${err.detail}`);
+                toast.error(apiError(t.messages.errorAssignOwner, err.detail));
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -151,25 +164,51 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         });
     };
 
-    const calculateConsumption = (readings: Reading[]) => {
-        if (readings.length < 2) return formatConsumption(0);
-        const start = readings[0].value;
-        const end = readings[readings.length - 1].value;
-        return formatConsumption(end - start);
+
+
+    const meterTypeLabel = (meterType: string) => {
+        const type = meterType.toLowerCase();
+        if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
+        if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
+        if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
+        return meterType; // Fallback
     };
 
+    // Daily readings of all meters of the unit in the selected year (dates in UTC, as stored)
+    const exportReadings = () => {
+        const rows = meters.flatMap(meter =>
+            [...meter.recent_readings]
+                .filter(r => r.time.startsWith(String(selectedYear)))
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map(r => [r.time.slice(0, 10), meterTypeLabel(meter.type), meter.serial_number, r.value, meter.unit_of_measure])
+        );
+        const header = [t.csv.date, t.csv.meter, t.csv.serial, t.csv.reading, t.csv.unitOfMeasure];
+        downloadCsv(`odecty_${fileSlug(unit?.unit_number ?? id)}_${selectedYear}.csv`, buildCsv([header, ...rows], language));
+    };
 
+    // Years offered in the selector: from the current year back to the oldest reading (at least 3 years)
+    const currentYear = new Date().getFullYear();
+    const oldestReadingYear = Math.min(
+        currentYear - 2,
+        ...meters.flatMap(m => m.recent_readings.map(r => new Date(r.time).getFullYear()))
+    );
+    const availableYears = Array.from({ length: currentYear - oldestReadingYear + 1 }, (_, i) => currentYear - i);
+    // ISO years have 52 or 53 weeks; 28 December always falls in the last one
+    const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
-                    <h1 className="text-3xl font-bold">{t.unit.title}</h1>
-                    <p className="text-gray-500">{t.unit.unitNumber}: {unit?.unit_number}</p>
+                    <Breadcrumbs items={[
+                        { label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' },
+                        ...(unit ? [{ label: buildingName ?? '…', href: `/buildings/${unit.building_id}` }] : []),
+                        { label: `${t.nav.unit} ${unit?.unit_number ?? ''}` },
+                    ]} />
+                    <h1 className="text-3xl font-bold">{t.nav.unit} {unit?.unit_number}</h1>
                 </div>
                 {canAssignOwner && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 w-full lg:max-w-sm">
+                    <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 w-auto sm:w-full lg:max-w-sm">
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
                         <form onSubmit={(e) => {
                             e.preventDefault();
@@ -212,15 +251,19 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 </div>
 
                 {/* Comparative Controls */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
+                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select
                             value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            onChange={(e) => {
+                                const year = parseInt(e.target.value);
+                                setSelectedYear(year);
+                                setSelectedWeek(w => Math.min(w, getWeekNumber(new Date(year, 11, 28))));
+                            }}
                             className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                         >
-                            {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
@@ -260,12 +303,19 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
                                 className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                             >
-                                {Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
+                                {Array.from({ length: weeksInSelectedYear }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
                                 ))}
                             </select>
                         )}
                     </div>
+                    <button
+                        onClick={exportReadings}
+                        disabled={!meters.some(m => m.recent_readings.some(r => r.time.startsWith(String(selectedYear))))}
+                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        ⬇ {t.csv.downloadReadings}
+                    </button>
                 </div>
 
                 {meters.map(meter => {
@@ -275,98 +325,72 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
-                    const calculatePeriodConsumption = (periodReadings: Reading[]) => {
-                        if (periodReadings.length < 1) return formatConsumption(0);
-                        if (periodReadings.length === 1) return formatConsumption(0);
+                    // Selected month/week against the same one a year earlier (rules in lib/consumption.ts)
+                    const periodBounds = (year: number) => viewMode === 'month'
+                        ? monthBounds(year, selectedMonth)
+                        : isoWeekBounds(year, selectedWeek);
+                    const currentConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear));
+                    const prevConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear - 1));
 
-                        const first = periodReadings[0];
-                        const last = periodReadings[periodReadings.length - 1];
+                    // Year to date: from 1 January to the latest reading (the whole year once it is over),
+                    // against the same days of the previous year
+                    const yearStart = Date.UTC(selectedYear, 0, 1);
+                    const yearEnd = Date.UTC(selectedYear + 1, 0, 1);
+                    const lastReadingTime = sortedReadings.length ? Date.parse(sortedReadings[sortedReadings.length - 1].time) : yearStart;
+                    const ytdEnd = Math.min(yearEnd, Math.max(yearStart, lastReadingTime));
+                    const wholeYear = ytdEnd === yearEnd;
+                    const prevYtdEnd = wholeYear ? yearStart : Date.UTC(selectedYear - 1, new Date(ytdEnd).getUTCMonth(), new Date(ytdEnd).getUTCDate());
+                    const currentYearTotal = periodConsumption(sortedReadings, yearStart, ytdEnd);
+                    const prevYearTotal = periodConsumption(sortedReadings, Date.UTC(selectedYear - 1, 0, 1), prevYtdEnd);
 
-                        // Try to find the next reading in the full sorted list to close the period
-                        const lastIndex = sortedReadings.findIndex(r => r.id === last.id && r.time === last.time);
-                        let endValue = last.value;
-
-                        if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
-                            // We have a next reading!
-                            endValue = sortedReadings[lastIndex + 1].value;
-                        }
-
-                        return formatConsumption(endValue - first.value);
-                    };
-
-                    const currentConsumption = calculatePeriodConsumption(currentReadings);
-                    const prevConsumption = calculatePeriodConsumption(prevReadings);
-
-                    const getYearReadings = (readings: Reading[], year: number) => {
-                        return readings.filter(r => new Date(r.time).getFullYear() === year)
-                            .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-                    };
-
-                    const currentYearReadings = getYearReadings(meter.recent_readings, selectedYear);
-                    let currentStartDate = new Date(selectedYear, 0, 1);
-                    let currentEndDate = new Date(); // Default to today for current year
-
-                    if (currentYearReadings.length > 0) {
-                        currentEndDate = new Date(currentYearReadings[currentYearReadings.length - 1].time);
-                    } else if (selectedYear !== new Date().getFullYear()) {
-                        currentEndDate = new Date(selectedYear, 11, 31);
-                    }
-
-
-                    let prevYearReadings = getYearReadings(meter.recent_readings, selectedYear - 1);
-                    let prevStartDate = new Date(selectedYear - 1, 0, 1);
-                    let prevEndDate = new Date(selectedYear - 1, 11, 31);
-
-                    // Filter previous year to same date as current year (YTD comparison)
-                    if (currentYearReadings.length > 0) {
-                        const lastReading = currentYearReadings[currentYearReadings.length - 1];
-                        const lastDate = new Date(lastReading.time);
-                        // Create cutoff date: same month/day but previous year
-                        const cutoffDate = new Date(selectedYear - 1, lastDate.getMonth(), lastDate.getDate(), 23, 59, 59);
-                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= cutoffDate);
-                        prevEndDate = cutoffDate;
-                    } else if (selectedYear === new Date().getFullYear()) {
-                        const today = new Date();
-                        prevEndDate = new Date(selectedYear - 1, today.getMonth(), today.getDate());
-                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= prevEndDate);
-                    }
-
-                    const currentYearTotal = calculateConsumption(currentYearReadings);
-                    const prevYearTotal = calculateConsumption(prevYearReadings);
-
-                    const formatDate = (d: Date) => d.toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US');
+                    const formatDate = (ts: number) => new Date(ts).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US', { timeZone: 'UTC' });
+                    // A whole year ends at midnight of 1 January (exclusive), its label shows 31 December
+                    const lastDayLabel = (end: number) => formatDate(wholeYear ? end - 86400000 : end);
+                    const missingTitle = (c: { missingDays: number; periodDays: number }) =>
+                        t.unit.missingDays.replace('{{missing}}', String(c.missingDays)).replace('{{total}}', String(c.periodDays));
 
                     return (
-                        <div key={meter.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div key={meter.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
                                         <h3 className="font-bold text-gray-800 text-lg">
-                                            {(() => {
-                                                const type = meter.type.toLowerCase();
-                                                if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
-                                                if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
-                                                if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
-                                                return meter.type; // Fallback
-                                            })()}
+                                            {meterTypeLabel(meter.type)}
                                         </h3>
                                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-mono border border-gray-200">{meter.serial_number}</span>
                                     </div>
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
-                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== "0.00" ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(currentStartDate)).replace('{{endDate}}', formatDate(currentEndDate))}:</span>
-                                            <span className="font-mono font-bold">{currentYearTotal}</span> {meter.unit_of_measure}
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(yearStart)).replace('{{endDate}}', lastDayLabel(ytdEnd))}:</span>
+                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            {currentYearTotal.value !== null && !currentYearTotal.complete && <span className="cursor-help" title={missingTitle(currentYearTotal)}>*</span>}
                                         </span>
-                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== "0.00" ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
-                                            <span className="font-mono font-bold">{prevYearTotal}</span> {meter.unit_of_measure}
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(Date.UTC(selectedYear - 1, 0, 1))).replace('{{endDate}}', lastDayLabel(prevYtdEnd))}:</span>
+                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            {prevYearTotal.value !== null && !prevYearTotal.complete && <span className="cursor-help" title={missingTitle(prevYearTotal)}>*</span>}
                                         </span>
+                                        {currentYearTotal.complete && prevYearTotal.complete && (
+                                            <YoyChange current={currentYearTotal.value as number} previous={prevYearTotal.value as number} previousYear={selectedYear - 1} className="py-1" />
+                                        )}
                                     </div>
                                 </div>
                                 <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{meter.unit_of_measure}</span>
                             </div>
+
+                            <ConsumptionChart
+                                readings={sortedReadings}
+                                year={selectedYear}
+                                unitOfMeasure={meter.unit_of_measure}
+                                selectedMonth={viewMode === 'month' ? selectedMonth : null}
+                                onSelectMonth={(month) => {
+                                    setViewMode('month');
+                                    setSelectedMonth(month);
+                                }}
+                                format={formatConsumption}
+                            />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Current Period Window */}
@@ -377,7 +401,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{currentConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-xs mt-1">
+                                                {currentConsumption.complete && prevConsumption.complete
+                                                    ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
+                                                    : currentConsumption.value !== null && (
+                                                        <span className="text-gray-400 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
+                                                    )}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">
@@ -399,7 +430,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{prevConsumption} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">

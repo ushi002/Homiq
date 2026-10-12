@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useApiErrorReason } from '@/lib/apiError';
 import { authFetch } from '@/lib/api';
 
 export default function ProfilePage() {
@@ -62,7 +62,6 @@ export default function ProfilePage() {
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
-                    <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
                     <h1 className="text-3xl font-bold">{t.profile.title}</h1>
                 </div>
 
@@ -134,6 +133,7 @@ const ChangePasswordForm = () => {
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { t } = useLanguage();
+    const apiErrorReason = useApiErrorReason();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -157,7 +157,7 @@ const ChangePasswordForm = () => {
                 setPasswords({ old_password: '', new_password: '', confirm_password: '' });
             } else {
                 const err = await res.json();
-                setMessage(`${t.profile.errorPassword}${err.detail}`);
+                setMessage(`${t.profile.errorPassword}${apiErrorReason(err.detail) ?? t.messages.errorGeneric}`);
             }
         } catch (err) {
             console.error(err);

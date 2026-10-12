@@ -14,6 +14,7 @@ export interface Translations {
         no: string;
         confirmDelete: string;
         unassign: string;
+        close: string;
     };
     login: {
         title: string;
@@ -26,6 +27,10 @@ export interface Translations {
         noBuildings: string;
         managedBy: string;
         manageUsers: string;
+        unitsSynced: string;
+        draft: string;
+        myUnits: string;
+        noUnits: string;
     };
     building: {
         name: string;
@@ -80,6 +85,13 @@ export interface Translations {
         noMeters: string;
         month: string;
         week: string;
+        monthlyConsumption: string;
+        chartHint: string;
+        showTable: string;
+        vsYear: string;
+        noChange: string;
+        incompletePeriod: string;
+        missingDays: string;
     };
     users: {
         title: string;
@@ -94,6 +106,8 @@ export interface Translations {
         roleAdmin: string;
         roleHomeLord: string;
         roleOwner: string;
+        selectHomeLord: string;
+        selectUser: string;
         deleteUser: string;
         adminInfo: string;
         homeLordInfo: string;
@@ -162,5 +176,45 @@ export interface Translations {
         invalidLink: string;
         linkInvalidMessage: string;
         backToLogin: string;
+    };
+    // Backend error messages, keyed by the English `detail` text; invalidInput for HTTP 422
+    apiErrors: Record<string, string> & { invalidInput: string };
+    csv: {
+        preparing: string;
+        exportFailed: string;
+        time: string;
+        downloadReadings: string;
+        change: string;
+        note: string;
+        date: string;
+        meter: string;
+        serial: string;
+        reading: string;
+        unitOfMeasure: string;
+    };
+    nav: {
+        buildings: string;
+        users: string;
+        profile: string;
+        unit: string;
+    };
+    consumption: {
+        title: string;
+        open: string;
+        period: string;
+        wholeYear: string;
+        unit: string;
+        owner: string;
+        total: string;
+        changeVs: string;
+        noComparison: string;
+        noComparisonPrevious: string;
+        noComparisonCurrent: string;
+        reasonPrevious: string;
+        reasonCurrent: string;
+        reasonPreviousZero: string;
+        incompleteNote: string;
+        noMeters: string;
+        categoryElectricity: string;
     };
 }
