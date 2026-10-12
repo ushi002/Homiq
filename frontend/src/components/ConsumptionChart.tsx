@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { periodConsumption, monthBounds } from '@/lib/consumption';
 
 interface Reading {
     value: number;
@@ -16,25 +17,10 @@ interface ConsumptionChartProps {
     format: (value: number) => string;
 }
 
-// Consumption per month (index 0 = January), null when the month has no usable readings.
-// Same rule as the period view: first reading in the month up to the first reading after it.
-const monthlyConsumption = (readings: Reading[], year: number): (number | null)[] => {
-    return Array.from({ length: 12 }, (_, month) => {
-        let firstIdx = -1;
-        let lastIdx = -1;
-        readings.forEach((r, i) => {
-            const d = new Date(r.time);
-            if (d.getFullYear() === year && d.getMonth() === month) {
-                if (firstIdx === -1) firstIdx = i;
-                lastIdx = i;
-            }
-        });
-        if (firstIdx === -1) return null;
-        const endIdx = lastIdx < readings.length - 1 ? lastIdx + 1 : lastIdx;
-        if (endIdx === firstIdx) return null;
-        return readings[endIdx].value - readings[firstIdx].value;
-    });
-};
+// Consumption per month (index 0 = January), null when the month has no data.
+// Same rule as the rest of the app (lib/consumption.ts); incomplete months are still drawn.
+const monthlyConsumption = (readings: Reading[], year: number): (number | null)[] =>
+    Array.from({ length: 12 }, (_, month) => periodConsumption(readings, ...monthBounds(year, month + 1)).value);
 
 // Round the axis maximum up to a clean step (1, 2, 2.5, 5 × 10^n), 4 intervals
 const niceScale = (max: number) => {

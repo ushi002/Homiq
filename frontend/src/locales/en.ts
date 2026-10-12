@@ -90,6 +90,7 @@ export const en: Translations = {
         vsYear: 'vs {{year}}',
         noChange: 'no change',
         incompletePeriod: 'Incomplete period – no comparison',
+        missingDays: 'Data is missing for {{missing}} of {{total}} days at the start or end of the period.',
     },
     users: {
         title: 'User Management',
@@ -187,10 +188,10 @@ export const en: Translations = {
         noComparison: 'no comparison',
         noComparisonPrevious: 'no comparison – {{year}} data incomplete',
         noComparisonCurrent: 'no comparison – period not closed',
-        reasonPrevious: 'The same period in {{year}} is incomplete (the meter started later or data is missing).',
+        reasonPrevious: 'The same period in {{year}} is incomplete.',
         reasonCurrent: 'The period is incomplete, the value is not final yet.',
         reasonPreviousZero: 'Consumption in the same period of {{year}} was zero, a percentage cannot be calculated.',
-        incompleteNote: '* Incomplete period: the meter started recording during it, or there is no later reading yet. The value is not final and is not compared.',
+        incompleteNote: '* Incomplete period: data is missing for more than 3 % of the days at the start or end of the period (the meter started or stopped recording, or there is no later reading yet). The value is not final and is not compared. Gaps in the middle of the period and meter replacements do not matter.',
         noMeters: 'There are no meters in this building.',
         categoryElectricity: 'Electricity',
     }
