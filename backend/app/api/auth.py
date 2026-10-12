@@ -7,6 +7,7 @@ from ..core.database import get_session
 from ..core.security import verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, get_password_hash
 from ..models.property import User
 from ..schemas.auth import Token, InviteAcceptRequest
+from .deps import get_current_user
 
 router = APIRouter()
 
@@ -39,6 +40,17 @@ async def login_for_access_token(
     session.refresh(user)
 
     return Token(access_token=access_token, token_type="bearer", role=user.role, user_id=str(user.id), full_name=user.full_name)
+
+@router.post("/token/refresh", response_model=Token)
+def refresh_access_token(current_user: Annotated[User, Depends(get_current_user)]):
+    """A new token for a still valid one, so an active user is not logged out after 8 hours.
+    A deleted user gets 401 (get_current_user reads the user from the database)."""
+    access_token = create_access_token(
+        data={"sub": str(current_user.id), "role": current_user.role},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+    return Token(access_token=access_token, token_type="bearer", role=current_user.role,
+                 user_id=str(current_user.id), full_name=current_user.full_name)
 
 @router.post("/accept-invite", response_model=Token)
 def accept_invite(
