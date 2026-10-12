@@ -87,6 +87,9 @@ export const en: Translations = {
         monthlyConsumption: 'Monthly consumption',
         chartHint: 'Click a month to show its readings below.',
         showTable: 'Show table',
+        vsYear: 'vs {{year}}',
+        noChange: 'no change',
+        incompletePeriod: 'Period not closed yet – no comparison',
     },
     users: {
         title: 'User Management',
