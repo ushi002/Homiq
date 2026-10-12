@@ -11,6 +11,7 @@ router = APIRouter()
 
 from ..core.security import get_password_hash, verify_password
 from .deps import get_current_user
+from .access import can_access_user, require
 
 @router.post("/", response_model=UserRead)
 def create_user(
@@ -73,10 +74,9 @@ def read_users(
     if current_user.role == "home_lord":
         # Only see users created by them (Owners)
         statement = statement.where(User.created_by_id == current_user.id)
-    elif current_user.role == "owner":
-         # Owners shouldn't see anyone really, maybe themselves?
+    elif current_user.role != "admin":
+         # Owners (and any other role) see only themselves
          statement = statement.where(User.id == current_user.id)
-    # Admin sees all
     
     users = session.exec(statement.offset(offset).limit(limit)).all()
     
@@ -109,10 +109,15 @@ def read_users(
     return results
 
 @router.get("/{user_id}", response_model=UserRead)
-def read_user(user_id: uuid.UUID, session: Session = Depends(get_session)):
+def read_user(
+    user_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
     user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    require(can_access_user(current_user, user))
     return user
 
 @router.delete("/{user_id}")
