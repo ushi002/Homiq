@@ -119,6 +119,14 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
 
+# Renewing the login: only with a valid token, the new token works
+r = client.post("/token/refresh")
+if r.status_code != 401:
+    failures.append(f"anonymous POST /token/refresh: {r.status_code}")
+r = client.post("/token/refresh", headers=as_user("owner_a"))
+if r.status_code != 200 or client.get(f"/units/{I['unit_a']}", headers={"Authorization": f"Bearer {r.json()['access_token']}"}).status_code != 200:
+    failures.append(f"owner_a POST /token/refresh: {r.status_code} {r.text[:120]}")
+
 os.remove(DB)
 if failures:
     print("FAILED:\n  " + "\n  ".join(failures))

@@ -9,7 +9,8 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# A session lasts 8 hours; the frontend renews the token while the user is active (POST /token/refresh)
+ACCESS_TOKEN_EXPIRE_MINUTES = 8 * 60
 
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 

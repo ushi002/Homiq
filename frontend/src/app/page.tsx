@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
+import { authFetch } from '@/lib/api';
 
 interface Building {
   id: string;
@@ -42,9 +43,7 @@ export default function Dashboard() {
       try {
         // An owner of a single unit goes straight to it, with more units they get a list of them
         if (user?.role === 'owner') {
-          const unitsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/units/`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const unitsRes = await authFetch('/units/');
           if (unitsRes.ok) {
             const units = await unitsRes.json();
             if (units.length === 1) {
@@ -56,9 +55,7 @@ export default function Dashboard() {
           }
         }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buildings/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await authFetch('/buildings/');
         if (res.ok) {
           const data = await res.json();
           setBuildings(data);
