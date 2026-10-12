@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
-import { periodConsumption, monthBounds } from '@/lib/consumption';
+import { combinedConsumption, monthBounds } from '@/lib/consumption';
 
 interface Reading {
     value: number;
@@ -9,7 +9,7 @@ interface Reading {
 }
 
 interface ConsumptionChartProps {
-    readings: Reading[]; // sorted by time ascending
+    meters: Reading[][]; // readings of each meter (old and new after a replacement), sorted by time
     year: number;
     unitOfMeasure: string;
     selectedMonth: number | null; // 1-12, highlighted column
@@ -19,8 +19,8 @@ interface ConsumptionChartProps {
 
 // Consumption per month (index 0 = January), null when the month has no data.
 // Same rule as the rest of the app (lib/consumption.ts); incomplete months are still drawn.
-const monthlyConsumption = (readings: Reading[], year: number): (number | null)[] =>
-    Array.from({ length: 12 }, (_, month) => periodConsumption(readings, ...monthBounds(year, month + 1)).value);
+const monthlyConsumption = (meters: Reading[][], year: number): (number | null)[] =>
+    Array.from({ length: 12 }, (_, month) => combinedConsumption(meters, ...monthBounds(year, month + 1)).value);
 
 // Round the axis maximum up to a clean step (1, 2, 2.5, 5 × 10^n), 4 intervals
 const niceScale = (max: number) => {
@@ -31,13 +31,13 @@ const niceScale = (max: number) => {
     return { step, top: Math.ceil(max / step) * step };
 };
 
-export default function ConsumptionChart({ readings, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
+export default function ConsumptionChart({ meters, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
     const { t, language } = useLanguage();
     const [hovered, setHovered] = useState<number | null>(null);
     const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
 
-    const current = monthlyConsumption(readings, year);
-    const previous = monthlyConsumption(readings, year - 1);
+    const current = monthlyConsumption(meters, year);
+    const previous = monthlyConsumption(meters, year - 1);
     const max = Math.max(0, ...current.map(v => v ?? 0), ...previous.map(v => v ?? 0));
 
     const monthName = (m: number, style: 'long' | 'short') => new Date(2000, m).toLocaleString(locale, { month: style });

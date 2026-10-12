@@ -267,3 +267,16 @@ def get_raw_readings(db_name: str, measurement: str, device_tag: str, start: dat
             if sn:
                 readings[sn] = [(v[0], v[1]) for v in series.get('values', []) if v[1] is not None]
     return readings
+
+def get_meter_last_seen_by_unit(db_name: str, measurements: List[str], unit_tag: str, device_tag: str, serial_number: str) -> Dict[str, str]:
+    """Time of the latest reading of a meter under each unit tag it was ever reported with."""
+    last_seen: Dict[str, str] = {}
+    for measurement in measurements:
+        q = (f'SELECT LAST("value") FROM "{measurement}" WHERE "{device_tag}" = \'{serial_number}\' '
+             f'GROUP BY "{unit_tag}"')
+        for result in query_influx(db_name, q).get('results', []):
+            for series in result.get('series', []):
+                unit = series.get('tags', {}).get(unit_tag)
+                if unit and series.get('values'):
+                    last_seen[unit] = max(last_seen.get(unit, ''), series['values'][0][0])
+    return last_seen

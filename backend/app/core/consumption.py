@@ -9,6 +9,7 @@ Same rule as frontend/src/lib/consumption.ts (the unit detail view), keep them i
   last one. Those days at the edges are missing; gaps in the middle are not counted.
 - A value is complete when at most 3 % of the period's days are missing.
 """
+import math
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -36,6 +37,12 @@ class PeriodResult:
     @property
     def complete(self) -> bool:
         return self.value is not None and self.missing_days <= self.period_days * (1 - COVERAGE_THRESHOLD)
+
+
+def _round(value: float, places: int) -> float:
+    """Half up, exactly like Math.round in the frontend (Python's round() rounds half to even)."""
+    factor = 10 ** places
+    return math.floor(value * factor + 0.5) / factor
 
 
 def _decimals(value: float) -> int:
@@ -84,6 +91,6 @@ def combine_meters(start: float, end: float, meters: List[Optional[MeterPeriod]]
         return PeriodResult(None, period_days, period_days)
     covered_from = min(m.covered_from for m in known)
     covered_to = max(m.covered_to for m in known)
-    value = round(sum(m.value for m in known), max(m.decimals for m in known))
+    value = _round(sum(m.value for m in known), max(m.decimals for m in known))
     missing = ((covered_from - start) + (end - covered_to)) / DAY
-    return PeriodResult(value, round(missing, 1), round(period_days, 1))
+    return PeriodResult(value, _round(missing, 1), _round(period_days, 1))

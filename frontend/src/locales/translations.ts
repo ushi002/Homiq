@@ -92,6 +92,9 @@ export interface Translations {
         noChange: string;
         incompletePeriod: string;
         missingDays: string;
+        meterUntil: string;
+        meterFrom: string;
+        meterReplaced: string;
     };
     users: {
         title: string;
@@ -145,7 +148,6 @@ export interface Translations {
         errorUpdateManager: string;
         successUpdateBuilding: string;
         errorUpdateBuilding: string;
-        confirmReloadUnits: string;
         successReloadUnits: string;
         errorReloadUnits: string;
         successSyncUnits: string;

@@ -30,17 +30,23 @@ interface Point {
     v: number;
 }
 
+// Half up, exactly like the backend (_round in app/core/consumption.py)
+const roundTo = (v: number, places: number) => Math.round(v * 10 ** places) / 10 ** places;
+
 const decimals = (v: number) => Math.min((String(v).split('.')[1] ?? '').length, 3);
 
 const interpolate = (a: Point, b: Point, t: number) =>
     b.t === a.t ? a.v : a.v + (b.v - a.v) * (t - a.t) / (b.t - a.t);
 
-// readings sorted by time ascending; start/end as Date.UTC timestamps, period is [start, end)
-export function periodConsumption(readings: Reading[], start: number, end: number): PeriodConsumption {
-    const periodDays = (end - start) / DAY;
-    const none = { value: null, missingDays: periodDays, periodDays, complete: false };
-    if (end <= start) return none;
+interface MeterPeriod {
+    value: number;
+    coveredFrom: number;
+    coveredTo: number;
+    places: number;
+}
 
+// One meter in [start, end); null when it has no data for the period (backend: meter_period)
+function meterPeriod(readings: Reading[], start: number, end: number): MeterPeriod | null {
     let before: Point | undefined;
     let first: Point | undefined;
     let last: Point | undefined;
@@ -57,18 +63,38 @@ export function periodConsumption(readings: Reading[], start: number, end: numbe
             break;
         }
     }
-    if (!first && !(before && after)) return none;
+    if (!first && !(before && after)) return null;
 
     const startValue = before ? interpolate(before, (first ?? after)!, start) : first!.v;
-    const coveredFrom = before ? start : first!.t;
     const endValue = after ? interpolate((last ?? before)!, after, end) : last!.v;
-    const coveredTo = after ? end : last!.t;
+    return {
+        value: endValue - startValue,
+        coveredFrom: before ? start : first!.t,
+        coveredTo: after ? end : last!.t,
+        places: Math.max(...[before, first, last, after].filter((p): p is Point => !!p).map(p => decimals(p.v))),
+    };
+}
 
-    const places = Math.max(...[before, first, last, after].filter((p): p is Point => !!p).map(p => decimals(p.v)));
-    const value = Number((endValue - startValue).toFixed(places));
-    const missingDays = Math.round(((coveredFrom - start) + (end - coveredTo)) / DAY * 10) / 10;
+// Meters of one type in a unit, e.g. an old and a new one after a replacement (backend:
+// combine_meters). Covered from the earliest start to the latest end of its meters; a gap between
+// them is in the middle of the period and not counted as missing.
+// Each meter's readings sorted by time ascending; start/end as Date.UTC timestamps, period [start, end).
+export function combinedConsumption(meters: Reading[][], start: number, end: number): PeriodConsumption {
+    const periodDays = (end - start) / DAY;
+    const none = { value: null, missingDays: periodDays, periodDays, complete: false };
+    if (end <= start) return none;
+    const known = meters.map(r => meterPeriod(r, start, end)).filter((m): m is MeterPeriod => m !== null);
+    if (known.length === 0) return none;
+
+    const coveredFrom = Math.min(...known.map(m => m.coveredFrom));
+    const coveredTo = Math.max(...known.map(m => m.coveredTo));
+    const value = roundTo(known.reduce((sum, m) => sum + m.value, 0), Math.max(...known.map(m => m.places)));
+    const missingDays = roundTo(((coveredFrom - start) + (end - coveredTo)) / DAY, 1);
     return { value, missingDays, periodDays, complete: missingDays <= periodDays * (1 - COVERAGE_THRESHOLD) };
 }
+
+export const periodConsumption = (readings: Reading[], start: number, end: number): PeriodConsumption =>
+    combinedConsumption([readings], start, end);
 
 // Period boundaries in UTC, matching the daily readings (stamped at midnight UTC) and the backend
 export const monthBounds = (year: number, month: number): [number, number] => [Date.UTC(year, month - 1, 1), Date.UTC(year, month, 1)];
