@@ -297,10 +297,10 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }, { label: building.name }]} />
-                <div className="flex justify-between items-start">
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
-                            <form onSubmit={handleUpdateBuilding} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                            <form onSubmit={handleUpdateBuilding} className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
                                     <input
@@ -488,7 +488,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     </div>
                     {/* Admin Manager Assignment */}
                     {isAdmin && (
-                        <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 max-w-xs w-full ml-4">
+                        <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 lg:max-w-xs lg:w-full">
                             <label className="block text-sm font-medium text-gray-700 mb-1">{t.building.assignedHomeLord}</label>
                             <UserSelect
                                 value={building.manager_id || ""}
@@ -501,10 +501,10 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-wrap justify-between items-center gap-3">
                     <h2 className="text-xl font-semibold">{t.building.units}</h2>
                     {isAdmin && (
-                        <div className="space-x-2">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={handleFetchUnits}
                                 className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
@@ -537,11 +537,11 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         </div>
                     )}
                 </div>
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
                     <ul className="divide-y divide-gray-100">
                         {units.map(unit => (
                             <li key={unit.id} className="hover:bg-gray-50 transition-colors">
-                                <Link href={`/units/${unit.id}`} className="block px-6 py-4 flex justify-between items-center">
+                                <Link href={`/units/${unit.id}`} className="block px-4 sm:px-6 py-4 flex justify-between items-center gap-3">
                                     <div>
                                         <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
                                         <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>
