@@ -185,7 +185,9 @@ export const en: Translations = {
         invalidInput: 'invalid form data',
     },
     csv: {
-        download: 'Download CSV',
+        preparing: 'Preparing…',
+        exportFailed: 'Export failed',
+        time: 'Reading time',
         downloadReadings: 'Download readings (CSV)',
         change: 'change %',
         note: 'note',
@@ -193,7 +195,7 @@ export const en: Translations = {
         meter: 'Meter',
         serial: 'Serial number',
         reading: 'Meter reading',
-        unitOfMeasure: 'Unit',
+        unitOfMeasure: 'Unit of measure',
     },
     nav: {
         buildings: 'Buildings',

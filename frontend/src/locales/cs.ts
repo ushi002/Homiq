@@ -203,10 +203,13 @@ export const cs: Translations = {
         'Invite expired': 'Platnost pozvánky vypršela.',
         'Invalid invite token': 'Odkaz s pozvánkou je neplatný.',
         'Building has no InfluxDB database configured': 'budova nemá nastavenou databázi InfluxDB',
+        'Invalid period': 'neplatné období',
         invalidInput: 'neplatné údaje ve formuláři',
     },
     csv: {
-        download: 'Stáhnout CSV',
+        preparing: 'Připravuji…',
+        exportFailed: 'Export se nepodařil',
+        time: 'Čas odečtu',
         downloadReadings: 'Stáhnout odečty (CSV)',
         change: 'změna %',
         note: 'poznámka',
@@ -214,7 +217,7 @@ export const cs: Translations = {
         meter: 'Měřič',
         serial: 'Výrobní číslo',
         reading: 'Stav měřiče',
-        unitOfMeasure: 'Jednotka',
+        unitOfMeasure: 'Měrná jednotka',
     },
     nav: {
         buildings: 'Domy',

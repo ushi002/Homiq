@@ -180,7 +180,9 @@ export interface Translations {
     // Backend error messages, keyed by the English `detail` text; invalidInput for HTTP 422
     apiErrors: Record<string, string> & { invalidInput: string };
     csv: {
-        download: string;
+        preparing: string;
+        exportFailed: string;
+        time: string;
         downloadReadings: string;
         change: string;
         note: string;

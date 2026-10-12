@@ -1,13 +1,14 @@
+import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
 from ..models.telemetry import Meter, MeterCreate, MeterReading
-from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_points, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_points, get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import meter_period, combine_meters
 from .deps import get_current_user
 
@@ -188,6 +189,60 @@ def read_building_consumption(
             for u in units
         ],
     }
+
+@router.get("/{building_id}/readings")
+def read_building_readings(
+    building_id: uuid.UUID,
+    start: datetime,
+    end: datetime,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """All readings of all meters in all units of the building in [start, end) (at most a year),
+    for the CSV export. The client sends the boundaries (local midnight). Admins and the
+    building's manager only, like the consumption overview."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    if current_user.role != "admin" and not (current_user.role == "home_lord" and building.manager_id == current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    if end.tzinfo is None:
+        end = end.replace(tzinfo=timezone.utc)
+    if not timedelta(0) < end - start <= timedelta(days=367):
+        raise HTTPException(status_code=422, detail="Invalid period")
+
+    units = {u.id: u for u in session.exec(select(Unit).where(Unit.building_id == building_id)).all()}
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_(list(units)))).all() if units else []
+    measurements = parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS
+    jobs = [(name, meta['type']) for name, meta in measurements.items() if any(m.type == meta['type'] for m in meters)]
+    if not (building.influx_db_name and building.influx_device_tag):
+        jobs = []
+
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(
+            lambda job: get_raw_readings(building.influx_db_name, job[0], building.influx_device_tag, start, end),
+            jobs,
+        ))
+
+    type_order = [t for _, t in jobs]
+    natural = lambda s: [int(p) if p.isdigit() else p for p in re.split(r'(\d+)', s)]
+    out = []
+    for (_, meter_type), by_sn in zip(jobs, results):
+        for m in meters:
+            if m.type == meter_type and by_sn.get(m.serial_number):
+                unit = units[m.unit_id]
+                out.append({
+                    "unit_number": unit.unit_number,
+                    "owner": (unit.owner.full_name or unit.owner.email) if unit.owner else None,
+                    "type": m.type,
+                    "unit_of_measure": m.unit_of_measure,
+                    "serial_number": m.serial_number,
+                    "readings": by_sn[m.serial_number],
+                })
+    out.sort(key=lambda r: (natural(r["unit_number"]), type_order.index(r["type"]), r["serial_number"]))
+    return {"device_tag": building.influx_device_tag, "meters": out}
 
 @router.patch("/{building_id}/assign_manager", response_model=BuildingRead)
 def assign_manager(
