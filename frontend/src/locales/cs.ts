@@ -89,7 +89,7 @@ export const cs: Translations = {
         showTable: 'Zobrazit tabulku',
         vsYear: 'oproti {{year}}',
         noChange: 'beze změny',
-        incompletePeriod: 'Období není uzavřené – bez srovnání',
+        incompletePeriod: 'Neúplné období – bez srovnání',
     },
     users: {
         title: 'Správa Uživatelů',
@@ -174,5 +174,24 @@ export const cs: Translations = {
         invalidLink: 'Neplatný nebo expirovaný odkaz',
         linkInvalidMessage: 'Tento odkaz na pozvánku již není platný. Pravděpodobně vypršela jeho platnost nebo byl již použit.',
         backToLogin: 'Zpět na přihlášení',
+    },
+    consumption: {
+        title: 'Přehled spotřeby',
+        open: 'Přehled spotřeby',
+        period: 'Období',
+        wholeYear: 'Celý rok',
+        unit: 'Jednotka',
+        owner: 'Vlastník',
+        total: 'Celkem',
+        changeVs: 'změna oproti {{year}}',
+        noComparison: 'bez srovnání',
+        noComparisonPrevious: 'bez srovnání – data za {{year}} neúplná',
+        noComparisonCurrent: 'bez srovnání – období neuzavřené',
+        reasonPrevious: 'Stejné období v roce {{year}} není úplné (měřič začal měřit později nebo chybí data).',
+        reasonCurrent: 'Období není úplné, hodnota ještě není konečná.',
+        reasonPreviousZero: 'Ve stejném období roku {{year}} byla spotřeba nulová, změnu v procentech nelze spočítat.',
+        incompleteNote: '* Neúplné období: měřič začal měřit až během něj, nebo ještě chybí pozdější odečet. Hodnota není konečná a neporovnává se.',
+        noMeters: 'V tomto domě nejsou žádné měřiče.',
+        categoryElectricity: 'Elektřina',
     }
 };

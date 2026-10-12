@@ -173,7 +173,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
                     <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
@@ -181,7 +181,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     <p className="text-gray-500">{t.unit.unitNumber}: {unit?.unit_number}</p>
                 </div>
                 {canAssignOwner && (
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 w-full lg:max-w-sm">
+                    <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 w-auto sm:w-full lg:max-w-sm">
                         <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
                         <form onSubmit={(e) => {
                             e.preventDefault();
@@ -224,7 +224,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 </div>
 
                 {/* Comparative Controls */}
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
+                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select
@@ -291,7 +291,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
-                    // complete = the period is closed by a reading after it, so its consumption is final
+                    // False when the meter only started recording inside the period (no reading before it)
+                    const startsBeforePeriod = (periodReadings: Reading[]) =>
+                        periodReadings.length > 0 && sortedReadings.length > 0 &&
+                        new Date(sortedReadings[0].time) < new Date(periodReadings[0].time);
+
+                    // complete = the meter recorded before the period and a later reading closes it,
+                    // so its consumption is final
                     const calculatePeriodConsumption = (periodReadings: Reading[]) => {
                         if (periodReadings.length < 2) return { value: 0, complete: false };
 
@@ -306,7 +312,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
                             // We have a next reading!
                             endValue = sortedReadings[lastIndex + 1].value;
-                            complete = true;
+                            complete = startsBeforePeriod(periodReadings);
                         }
 
                         return { value: endValue - first.value, complete };
@@ -355,7 +361,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const formatDate = (d: Date) => d.toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US');
 
                     return (
-                        <div key={meter.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div key={meter.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
@@ -381,7 +387,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
                                             <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
-                                        {currentYearTotal !== 0 && (
+                                        {currentYearTotal !== 0 && startsBeforePeriod(currentYearReadings) && startsBeforePeriod(prevYearReadings) && (
                                             <YoyChange current={currentYearTotal} previous={prevYearTotal} previousYear={selectedYear - 1} className="py-1" />
                                         )}
                                     </div>

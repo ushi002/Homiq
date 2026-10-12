@@ -89,7 +89,7 @@ export const en: Translations = {
         showTable: 'Show table',
         vsYear: 'vs {{year}}',
         noChange: 'no change',
-        incompletePeriod: 'Period not closed yet – no comparison',
+        incompletePeriod: 'Incomplete period – no comparison',
     },
     users: {
         title: 'User Management',
@@ -174,5 +174,24 @@ export const en: Translations = {
         invalidLink: 'Invalid or Expired Link',
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
+    },
+    consumption: {
+        title: 'Consumption overview',
+        open: 'Consumption overview',
+        period: 'Period',
+        wholeYear: 'Whole year',
+        unit: 'Unit',
+        owner: 'Owner',
+        total: 'Total',
+        changeVs: 'change vs {{year}}',
+        noComparison: 'no comparison',
+        noComparisonPrevious: 'no comparison – {{year}} data incomplete',
+        noComparisonCurrent: 'no comparison – period not closed',
+        reasonPrevious: 'The same period in {{year}} is incomplete (the meter started later or data is missing).',
+        reasonCurrent: 'The period is incomplete, the value is not final yet.',
+        reasonPreviousZero: 'Consumption in the same period of {{year}} was zero, a percentage cannot be calculated.',
+        incompleteNote: '* Incomplete period: the meter started recording during it, or there is no later reading yet. The value is not final and is not compared.',
+        noMeters: 'There are no meters in this building.',
+        categoryElectricity: 'Electricity',
     }
 };

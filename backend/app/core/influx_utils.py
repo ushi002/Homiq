@@ -1,11 +1,19 @@
 import requests
-from typing import List, Dict, Set, Tuple
+from datetime import datetime, timedelta
+from typing import List, Dict, Set, Tuple, Optional
 
 import os
 
 INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
 INFLUX_USER = os.getenv("INFLUX_USER", "alarmread")
 INFLUX_PASSWORD = os.getenv("INFLUX_PASSWORD", "")
+
+# Used when a building has no measurements configured
+DEFAULT_MEASUREMENTS = {
+    'sv_l': {'type': 'water_cold', 'uom': 'm3'},
+    'tv_l': {'type': 'water_hot', 'uom': 'm3'},
+    'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
+}
 
 def query_influx(db_name: str, query: str) -> dict:
     url = f"{INFLUX_HOST}/query"
@@ -200,3 +208,48 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
                  return readings # Return immediately as duplicate readings from other tags unlikely/redundant
                             
     return readings
+
+def get_period_consumption(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime, window: timedelta) -> Dict[str, Tuple[Optional[float], bool]]:
+    """
+    Consumption of every meter of a measurement in [start, end), keyed by serial number.
+    Uses daily MAX values and the same rule as the unit detail view: first reading in the period
+    up to the first reading after it (searched within `window` after the end). Without a reading
+    after the period the last reading in it is used. The value is complete only when the period is
+    closed that way and the meter also has a reading within `window` before the start; otherwise
+    the meter started recording inside the period and part of the consumption is missing.
+    Returns {serial_number: (value or None, complete)}.
+    """
+    def fmt(d: datetime) -> str:
+        return d.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    def daily(a: datetime, b: datetime) -> str:
+        return (f'SELECT MAX("value") AS d FROM "{measurement}" WHERE time >= \'{fmt(a)}\' AND time < \'{fmt(b)}\' '
+                f'GROUP BY time(1d), "{device_tag}"')
+
+    statements = [
+        ('first', f'SELECT FIRST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
+        ('last', f'SELECT LAST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
+        ('close', f'SELECT FIRST("d") FROM ({daily(end, end + window)}) GROUP BY "{device_tag}"'),
+        ('before', f'SELECT LAST("value") FROM "{measurement}" WHERE time >= \'{fmt(start - window)}\' AND time < \'{fmt(start)}\' GROUP BY "{device_tag}"'),
+    ]
+    data = query_influx(db_name, ';'.join(q for _, q in statements))
+
+    points: Dict[str, Dict[str, Tuple[str, float]]] = {}
+    for (key, _), result in zip(statements, data.get('results', [])):
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            if sn and series.get('values'):
+                time_str, value = series['values'][0][:2]
+                points.setdefault(sn, {})[key] = (time_str, value)
+
+    consumption = {}
+    for sn, p in points.items():
+        if 'first' not in p:
+            continue
+        if 'close' in p:
+            consumption[sn] = (p['close'][1] - p['first'][1], 'before' in p)
+        elif 'last' in p and p['last'][0] != p['first'][0]:
+            consumption[sn] = (p['last'][1] - p['first'][1], False)
+        else:
+            consumption[sn] = (None, False)
+    return consumption

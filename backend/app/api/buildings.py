@@ -1,11 +1,13 @@
 import uuid
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
 from ..models.telemetry import Meter, MeterCreate, MeterReading
-from ..core.influx_utils import get_unique_units, get_unit_meters
+from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_consumption, parse_measurements_config, DEFAULT_MEASUREMENTS
 from .deps import get_current_user
 
 router = APIRouter()
@@ -102,6 +104,88 @@ def read_building_units(
         statement = statement.where(Unit.owner_id == current_user.id)
         
     return session.exec(statement).all()
+
+@router.get("/{building_id}/consumption")
+def read_building_consumption(
+    building_id: uuid.UUID,
+    year: int = Query(ge=2000, le=2100),
+    month: Optional[int] = Query(default=None, ge=1, le=12),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Consumption of all units by meter type for a month (or a whole year when month is omitted),
+    next to the same period of the previous year. Owners have no access (other owners' data)."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    if current_user.role != "admin" and not (current_user.role == "home_lord" and building.manager_id == current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    units = session.exec(select(Unit).where(Unit.building_id == building_id).order_by(Unit.unit_number)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all() if units else []
+    measurements = parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS
+
+    def bounds(y: int):
+        start = datetime(y, month or 1, 1)
+        if month and month < 12:
+            end = datetime(y, month + 1, 1)
+        else:
+            end = datetime(y + 1, 1, 1)
+        return start, end, timedelta(days=62)
+
+    meter_types = []
+    jobs = []  # (measurement, type, meters of that type, period, year)
+    for meas_name, meta in measurements.items():
+        type_meters = [m for m in meters if m.type == meta['type']]
+        if not type_meters:
+            continue
+        if meta['type'] not in [mt['type'] for mt in meter_types]:
+            meter_types.append({"type": meta['type'], "unit_of_measure": meta['uom'] or type_meters[0].unit_of_measure})
+        for period, y in (("current", year), ("previous", year - 1)):
+            jobs.append((meas_name, meta['type'], type_meters, period, y))
+
+    if not (building.influx_db_name and building.influx_device_tag):
+        jobs = []
+
+    # Influx queries run in parallel, one per measurement and period
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(
+            lambda job: get_period_consumption(building.influx_db_name, job[0], building.influx_device_tag, *bounds(job[4])),
+            jobs,
+        ))
+
+    # values[unit_id][type] = {"current": [(value, complete), ...], "previous": [...]}
+    values: dict = {}
+    for (_, meter_type, type_meters, period, _), by_sn in zip(jobs, results):
+        for m in type_meters:
+            if m.serial_number in by_sn:
+                cell = values.setdefault(str(m.unit_id), {}).setdefault(meter_type, {"current": [], "previous": []})
+                cell[period].append(by_sn[m.serial_number])
+
+    def combine(parts):
+        # Sum of a unit's meters of one type; complete only if every meter is complete
+        known = [v for v, _ in parts if v is not None]
+        if not known:
+            return {"value": None, "complete": False}
+        return {"value": sum(known), "complete": len(known) == len(parts) and all(c for _, c in parts)}
+
+    return {
+        "year": year,
+        "month": month,
+        "meter_types": meter_types,
+        "units": [
+            {
+                "id": str(u.id),
+                "unit_number": u.unit_number,
+                "owner": (u.owner.full_name or u.owner.email) if u.owner else None,
+                "values": {
+                    t: {"current": combine(cell["current"]), "previous": combine(cell["previous"])}
+                    for t, cell in values.get(str(u.id), {}).items()
+                },
+            }
+            for u in units
+        ],
+    }
 
 @router.patch("/{building_id}/assign_manager", response_model=BuildingRead)
 def assign_manager(

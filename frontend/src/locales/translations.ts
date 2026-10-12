@@ -173,4 +173,23 @@ export interface Translations {
         linkInvalidMessage: string;
         backToLogin: string;
     };
+    consumption: {
+        title: string;
+        open: string;
+        period: string;
+        wholeYear: string;
+        unit: string;
+        owner: string;
+        total: string;
+        changeVs: string;
+        noComparison: string;
+        noComparisonPrevious: string;
+        noComparisonCurrent: string;
+        reasonPrevious: string;
+        reasonCurrent: string;
+        reasonPreviousZero: string;
+        incompleteNote: string;
+        noMeters: string;
+        categoryElectricity: string;
+    };
 }
