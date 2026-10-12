@@ -1,12 +1,17 @@
+import secrets
 import statistics
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
-from .deps import get_current_user
-from .access import can_access_unit, require
+from ..core.building_consumption import units_consumption
+from ..core.influx_utils import get_meter_readings, parse_measurements_config
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
+from ..models.telemetry import Meter
+from .access import can_access_unit, require
+from .deps import get_current_user
 
 router = APIRouter()
 
@@ -97,101 +102,6 @@ def assign_owner(
     session.commit()
     session.refresh(unit)
     return unit
-
-# Import needed models for sync
-from ..models.telemetry import Meter, MeterReading
-from ..core.influx_utils import get_meter_readings, parse_measurements_config
-from ..core.building_consumption import units_consumption
-from datetime import datetime, timedelta, timezone
-
-@router.post("/{unit_id}/sync_readings")
-def sync_unit_readings(
-    unit_id: uuid.UUID,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    # Authorization? 
-    # Allow admins, home lords, and owners (to view their own up-to-date data)?
-    # Let's verify access first.
-    unit = session.get(Unit, unit_id)
-    if not unit:
-        raise HTTPException(status_code=404, detail="Unit not found")
-        
-    building = session.get(Building, unit.building_id)
-    if not building:
-        raise HTTPException(status_code=404, detail="Building not found")
-
-    require(can_access_unit(current_user, unit, session))
-    
-    if not building.influx_db_name:
-         return {"message": "No InfluxDB configured", "readings_synced": 0}
-
-    # Parse measurements config
-    if building.influx_measurements:
-        measurements_config = parse_measurements_config(building.influx_measurements)
-    else:
-        # Default fallback
-        measurements_config = {
-            'sv_l': {'type': 'water_cold', 'uom': 'm3'},
-            'tv_l': {'type': 'water_hot', 'uom': 'm3'},
-            'teplo_kWh': {'type': 'heat', 'uom': 'kWh'},
-        }
-
-    # Get meters for unit
-    meters = session.exec(select(Meter).where(Meter.unit_id == unit_id)).all()
-    
-    total_synced = 0
-    
-    for meter in meters:
-        # We need to look up readings for this meter.
-        # We don't know exactly which measurement it came from unless we stored it?
-        # But we can try all measurements that match its type OR just all measurements?
-        # Simpler: Iterate all configured measurements. If a reading exists for this meter's SN in that measurement, take it.
-        # This is robust because SN should be unique globally or at least within the building/db context.
-        
-        found_readings = False
-        
-        for meas_name, meta in measurements_config.items():
-            # Optimization: Only check measurements that match the meter type?
-            # if meta['type'] != meter.type: continue 
-            
-            readings = get_meter_readings(building.influx_db_name, meter.serial_number, meas_name, building.influx_device_tag)
-            
-            if readings:
-                found_readings = True
-                for (time_str, value) in readings:
-                    try:
-                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-                    except ValueError:
-                        continue
-
-                    # Check if reading exists
-                    existing = session.exec(select(MeterReading).where(
-                        MeterReading.meter_id == meter.id, 
-                        MeterReading.time == dt
-                    )).first()
-                    
-                    if not existing:
-                        new_reading = MeterReading(
-                            meter_id=meter.id,
-                            value=value,
-                            time=dt,
-                            is_manual=False
-                        )
-                        session.add(new_reading)
-                        total_synced += 1
-                
-                # If we found readings in one measurement, should we stop? 
-                # Probably yes, a meter typically reports to one measurement.
-                # break 
-        
-        if found_readings:
-            session.commit() # Commit per meter
-
-    return {"message": "Readings synced", "readings_synced": total_synced}
-
-import secrets
-from datetime import timedelta
 
 @router.post("/{unit_id}/assign_by_email", response_model=UnitRead)
 def assign_owner_by_email(

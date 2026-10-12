@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import User, Building, Unit # Import User model
-from ..models.telemetry import Meter, MeterCreate, MeterRead, MeterReading, MeterReadingCreate, MeterReadingRead
+from ..models.telemetry import Meter, MeterCreate, MeterRead
 from .deps import get_current_user
 from .access import can_access_unit, require
 
@@ -67,43 +67,3 @@ def read_meter(
         
     require(can_access_unit(current_user, session.get(Unit, meter.unit_id), session))
     return meter
-
-# --- Readings ---
-@router.post("/readings/", response_model=MeterReadingRead)
-def create_reading(
-    reading: MeterReadingCreate, 
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-     # Allow manual readings by owners? Or only automated/admin?
-     # Let's say Home Lord or Admin for now. Owner maybe later.
-    if current_user.role not in ["admin", "home_lord"]:
-          raise HTTPException(status_code=403, detail="Not authorized")
-
-    # Verify meter exists and permissions (skipping detailed check for brevity, assuming trust for home_lord)
-    meter = session.get(Meter, reading.meter_id)
-    if not meter:
-        raise HTTPException(status_code=404, detail="Meter not found")
-        
-    db_reading = MeterReading.model_validate(reading)
-    session.add(db_reading)
-    session.commit()
-    session.refresh(db_reading)
-    return db_reading
-
-@router.get("/meters/{meter_id}/readings", response_model=List[MeterReadingRead])
-def read_meter_readings(
-    meter_id: uuid.UUID, 
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    # Basic check if meter exists
-    meter = session.get(Meter, meter_id)
-    if not meter:
-        raise HTTPException(status_code=404, detail="Meter not found")
-    
-    require(can_access_unit(current_user, session.get(Unit, meter.unit_id), session))
-    
-    # Return readings sorted by time desc
-    readings = session.exec(select(MeterReading).where(MeterReading.meter_id == meter_id).order_by(MeterReading.time.desc())).all()
-    return readings

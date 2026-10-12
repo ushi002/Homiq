@@ -1,5 +1,8 @@
 # 🗄️ Databázové schéma Homiq (v0.1)
 
+> **Původní návrh (v0.1).** Skutečný stav: SQLite (`backend/database.db`) s domy, jednotkami, měřiči
+> a uživateli; odečty se do databáze neukládají, čtou se živě z InfluxDB (viz `DEPLOY.md`).
+
 Tento dokument definuje základní datovou strukturu systému Homiq. Jako primární databázi používáme **PostgreSQL** (s rozšířením **TimescaleDB** pro ukládání časových řad odečtů).
 
 ---

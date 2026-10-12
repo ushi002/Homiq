@@ -1,3 +1,4 @@
+import re
 import requests
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Set, Tuple, Optional
@@ -68,7 +69,6 @@ def parse_measurements_config(config_str: str) -> Dict[str, Dict]:
     if not config_str: return {}
     
     measurements = {}
-    import re
     # Split by comma but ignore commas inside brackets
     parts = re.split(r',\s*(?![^\[]*\])', config_str)
     

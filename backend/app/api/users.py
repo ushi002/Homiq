@@ -1,17 +1,16 @@
+import secrets
 import uuid
+from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select, SQLModel
+from sqlmodel import Session, SQLModel, select
 from ..core.database import get_session
-from sqlmodel import Session, select
-from ..core.database import get_session
-from ..models.property import User, UserCreate, UserRead, UserUpdate, UserPasswordChange
+from ..core.security import get_password_hash, verify_password
+from ..models.property import Building, Unit, User, UserCreate, UserRead, UserUpdate, UserPasswordChange
+from .access import can_access_user, require
+from .deps import get_current_user
 
 router = APIRouter()
-
-from ..core.security import get_password_hash, verify_password
-from .deps import get_current_user
-from .access import can_access_user, require
 
 @router.post("/", response_model=UserRead)
 def create_user(
@@ -39,8 +38,6 @@ def create_user(
         db_user.status = "active"
     else:
         # Generate invite
-        import secrets
-        from datetime import datetime, timedelta
         db_user.invite_token = secrets.token_urlsafe(32)
         db_user.invite_expires_at = datetime.utcnow() + timedelta(hours=48)
         db_user.status = "pending"
@@ -81,7 +78,6 @@ def read_users(
     users = session.exec(statement.offset(offset).limit(limit)).all()
     
     # Enrich with assignments
-    from ..models.property import Building, Unit
     
     results = []
     for user in users:
