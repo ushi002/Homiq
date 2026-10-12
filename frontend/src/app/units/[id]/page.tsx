@@ -3,6 +3,7 @@ import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
+import ConsumptionChart from '@/components/ConsumptionChart';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -381,6 +382,18 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 </div>
                                 <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{meter.unit_of_measure}</span>
                             </div>
+
+                            <ConsumptionChart
+                                readings={sortedReadings}
+                                year={selectedYear}
+                                unitOfMeasure={meter.unit_of_measure}
+                                selectedMonth={viewMode === 'month' ? selectedMonth : null}
+                                onSelectMonth={(month) => {
+                                    setViewMode('month');
+                                    setSelectedMonth(month);
+                                }}
+                                format={formatConsumption}
+                            />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Current Period Window */}

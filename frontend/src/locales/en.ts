@@ -84,6 +84,9 @@ export const en: Translations = {
         noMeters: 'No meters installed in this unit.',
         month: 'Month',
         week: 'Week',
+        monthlyConsumption: 'Monthly consumption',
+        chartHint: 'Click a month to show its readings below.',
+        showTable: 'Show table',
     },
     users: {
         title: 'User Management',
