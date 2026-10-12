@@ -28,3 +28,7 @@ coverage/
 # System
 .DS_Store
 Thumbs.db
+
+# Secrets / local backups
+*.bak
+zsh_history*

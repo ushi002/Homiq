@@ -5,7 +5,7 @@ import os
 
 INFLUX_HOST = os.getenv("INFLUX_HOST", "http://localhost:8086")
 INFLUX_USER = os.getenv("INFLUX_USER", "alarmread")
-INFLUX_PASSWORD = os.getenv("INFLUX_PASSWORD", "***REMOVED***")
+INFLUX_PASSWORD = os.getenv("INFLUX_PASSWORD", "")
 
 def query_influx(db_name: str, query: str) -> dict:
     url = f"{INFLUX_HOST}/query"

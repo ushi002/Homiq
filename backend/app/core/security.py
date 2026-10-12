@@ -1,10 +1,13 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
 
-# Configuration (should be in env vars)
-SECRET_KEY = "CHANGE_ME_IN_PRODUCTION_SECRET_KEY" 
+# Configuration
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
