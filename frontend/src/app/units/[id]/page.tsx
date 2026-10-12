@@ -335,6 +335,17 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const series = group.map(m => [...m.recent_readings].sort((a, b) => a.time.localeCompare(b.time)));
                     const allTimes = series.flatMap(r => r.map(x => Date.parse(x.time)));
 
+                    // Meters shown in the header: those that recorded in the selected or the previous year
+                    // (both are on the card); an old meter disappears once it is out of both. Without any
+                    // data in these years the most recent meter is shown.
+                    const shownFrom = Date.UTC(selectedYear - 1, 0, 1);
+                    const shownTo = Date.UTC(selectedYear + 1, 0, 1);
+                    let shown = group.map((_, i) => i).filter(i => series[i].some(x => {
+                        const time = Date.parse(x.time);
+                        return time >= shownFrom && time < shownTo;
+                    }));
+                    if (shown.length === 0) shown = [group.length - 1];
+
                     // Selected month/week against the same one a year earlier (rules in lib/consumption.ts)
                     const periodBounds = (year: number) => viewMode === 'month'
                         ? monthBounds(year, selectedMonth)
@@ -387,12 +398,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         <h3 className="font-bold text-gray-800 text-lg mr-1">
                                             {meterTypeLabel(group[0].type)}
                                         </h3>
-                                        {group.map((m, i) => {
+                                        {shown.map((i, n) => {
+                                            const m = group[i];
                                             // With a replacement: until when the old meter and from when the new one recorded
                                             const times = series[i].map(x => Date.parse(x.time));
-                                            const range = group.length < 2 || times.length === 0 ? ''
-                                                : i === 0 ? t.unit.meterUntil.replace('{{date}}', formatDate(Math.max(...times)))
-                                                : i === group.length - 1 ? t.unit.meterFrom.replace('{{date}}', formatDate(Math.min(...times)))
+                                            const range = shown.length < 2 || times.length === 0 ? ''
+                                                : n === 0 ? t.unit.meterUntil.replace('{{date}}', formatDate(Math.max(...times)))
+                                                : n === shown.length - 1 ? t.unit.meterFrom.replace('{{date}}', formatDate(Math.min(...times)))
                                                 : `${formatDate(Math.min(...times))} – ${formatDate(Math.max(...times))}`;
                                             return (
                                                 <span key={m.id} className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full border border-gray-200">
@@ -401,7 +413,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             );
                                         })}
                                     </div>
-                                    {group.length > 1 && <p className="text-xs text-gray-500 mb-2">{t.unit.meterReplaced}</p>}
+                                    {shown.length > 1 && <p className="text-xs text-gray-500 mb-2">{t.unit.meterReplaced}</p>}
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
