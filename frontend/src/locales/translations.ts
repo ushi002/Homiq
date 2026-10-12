@@ -179,6 +179,17 @@ export interface Translations {
     };
     // Backend error messages, keyed by the English `detail` text; invalidInput for HTTP 422
     apiErrors: Record<string, string> & { invalidInput: string };
+    csv: {
+        download: string;
+        downloadReadings: string;
+        change: string;
+        note: string;
+        date: string;
+        meter: string;
+        serial: string;
+        reading: string;
+        unitOfMeasure: string;
+    };
     nav: {
         buildings: string;
         users: string;

@@ -184,6 +184,17 @@ export const en: Translations = {
         'Invalid user ID in token': 'your session has expired, please log in again',
         invalidInput: 'invalid form data',
     },
+    csv: {
+        download: 'Download CSV',
+        downloadReadings: 'Download readings (CSV)',
+        change: 'change %',
+        note: 'note',
+        date: 'Date',
+        meter: 'Meter',
+        serial: 'Serial number',
+        reading: 'Meter reading',
+        unitOfMeasure: 'Unit',
+    },
     nav: {
         buildings: 'Buildings',
         users: 'Users',

@@ -205,6 +205,17 @@ export const cs: Translations = {
         'Building has no InfluxDB database configured': 'budova nemá nastavenou databázi InfluxDB',
         invalidInput: 'neplatné údaje ve formuláři',
     },
+    csv: {
+        download: 'Stáhnout CSV',
+        downloadReadings: 'Stáhnout odečty (CSV)',
+        change: 'změna %',
+        note: 'poznámka',
+        date: 'Datum',
+        meter: 'Měřič',
+        serial: 'Výrobní číslo',
+        reading: 'Stav měřiče',
+        unitOfMeasure: 'Jednotka',
+    },
     nav: {
         buildings: 'Domy',
         users: 'Uživatelé',

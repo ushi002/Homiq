@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
 import ConsumptionChart from '@/components/ConsumptionChart';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
 import YoyChange from '@/components/YoyChange';
 import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
 import { authFetch } from '@/lib/api';
@@ -165,6 +166,26 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
 
 
+    const meterTypeLabel = (meterType: string) => {
+        const type = meterType.toLowerCase();
+        if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
+        if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
+        if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
+        return meterType; // Fallback
+    };
+
+    // Daily readings of all meters of the unit in the selected year (dates in UTC, as stored)
+    const exportReadings = () => {
+        const rows = meters.flatMap(meter =>
+            [...meter.recent_readings]
+                .filter(r => r.time.startsWith(String(selectedYear)))
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map(r => [r.time.slice(0, 10), meterTypeLabel(meter.type), meter.serial_number, r.value, meter.unit_of_measure])
+        );
+        const header = [t.csv.date, t.csv.meter, t.csv.serial, t.csv.reading, t.csv.unitOfMeasure];
+        downloadCsv(`odecty_${fileSlug(unit?.unit_number ?? id)}_${selectedYear}.csv`, buildCsv([header, ...rows], language));
+    };
+
     // Years offered in the selector: from the current year back to the oldest reading (at least 3 years)
     const currentYear = new Date().getFullYear();
     const oldestReadingYear = Math.min(
@@ -288,6 +309,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             </select>
                         )}
                     </div>
+                    <button
+                        onClick={exportReadings}
+                        disabled={!meters.some(m => m.recent_readings.some(r => r.time.startsWith(String(selectedYear))))}
+                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        ⬇ {t.csv.downloadReadings}
+                    </button>
                 </div>
 
                 {meters.map(meter => {
@@ -327,13 +355,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
                                         <h3 className="font-bold text-gray-800 text-lg">
-                                            {(() => {
-                                                const type = meter.type.toLowerCase();
-                                                if (type.includes('cold') || type === 'sv' || type === 'water_cold') return t.building.categoryColdWater;
-                                                if (type.includes('hot') || type === 'tv' || type === 'water_hot') return t.building.categoryHotWater;
-                                                if (type.includes('heat') || type === 'teplo') return t.building.categoryHeat;
-                                                return meter.type; // Fallback
-                                            })()}
+                                            {meterTypeLabel(meter.type)}
                                         </h3>
                                         <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-mono border border-gray-200">{meter.serial_number}</span>
                                     </div>

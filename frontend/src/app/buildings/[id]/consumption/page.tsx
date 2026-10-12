@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import YoyChange from '@/components/YoyChange';
 import Breadcrumbs from '@/components/Breadcrumbs';
+import { buildCsv, downloadCsv, fileSlug, CsvValue } from '@/lib/csv';
 
 interface Cell {
     value: number | null;
@@ -160,6 +161,31 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
         };
     };
 
+    // The table as shown (same order, totals last) for spreadsheets; per meter type: this year,
+    // previous year, change in % and a note when the value is incomplete or not compared
+    const exportCsv = () => {
+        if (!data) return;
+        const header: CsvValue[] = [t.consumption.unit, t.consumption.owner];
+        for (const mt of data.meter_types) {
+            const label = `${typeLabel(mt.type)} (${mt.unit_of_measure})`;
+            header.push(`${label} ${year}`, `${label} ${year - 1}`, `${typeLabel(mt.type)} – ${t.csv.change}`, `${typeLabel(mt.type)} – ${t.csv.note}`);
+        }
+        const columns = (c: Pair): CsvValue[] => {
+            const change = comparable(c)
+                ? Math.round(((c.current.value as number) - (c.previous.value as number)) / (c.previous.value as number) * 1000) / 10
+                : null;
+            const note = c.current.value === null ? '' : !c.current.complete ? missingTitle(c.current) : comparable(c) ? '' : noComparisonReason(c);
+            return [c.current.value, c.previous.value, change, note];
+        };
+        const body = rows.map(row => [row.unit_number, row.owner ?? '', ...data.meter_types.flatMap(mt => columns(cell(row, mt.type)))]);
+        const total = [t.consumption.total, '', ...data.meter_types.flatMap(mt => columns({
+            current: sumCells(data.units.map(u => cell(u, mt.type).current)),
+            previous: sumCells(data.units.map(u => cell(u, mt.type).previous)),
+        }))];
+        const period = month ? `${year}-${String(month).padStart(2, '0')}` : String(year);
+        downloadCsv(`spotreba_${fileSlug(building?.name ?? id)}_${period}.csv`, buildCsv([header, ...body, total], language));
+    };
+
     // columnComparable: when false the header already explains the missing change, so cells stay clean
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
@@ -202,6 +228,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                             ))}
                         </select>
                     </div>
+                    <button
+                        onClick={exportCsv}
+                        disabled={!data || loading || data.meter_types.length === 0}
+                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                        ⬇ {t.csv.download}
+                    </button>
                 </div>
 
                 {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{error}</div>}
