@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
 import ConsumptionChart from '@/components/ConsumptionChart';
 import YoyChange from '@/components/YoyChange';
+import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -153,13 +154,6 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         });
     };
 
-    const calculateConsumption = (readings: Reading[]) => {
-        if (readings.length < 2) return 0;
-        const start = readings[0].value;
-        const end = readings[readings.length - 1].value;
-        return end - start;
-    };
-
 
 
     // Years offered in the selector: from the current year back to the oldest reading (at least 3 years)
@@ -291,74 +285,29 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const currentReadings = getPeriodReadings(sortedReadings, selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
                     const prevReadings = getPeriodReadings(sortedReadings, selectedYear - 1, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek);
 
-                    // False when the meter only started recording inside the period (no reading before it)
-                    const startsBeforePeriod = (periodReadings: Reading[]) =>
-                        periodReadings.length > 0 && sortedReadings.length > 0 &&
-                        new Date(sortedReadings[0].time) < new Date(periodReadings[0].time);
+                    // Selected month/week against the same one a year earlier (rules in lib/consumption.ts)
+                    const periodBounds = (year: number) => viewMode === 'month'
+                        ? monthBounds(year, selectedMonth)
+                        : isoWeekBounds(year, selectedWeek);
+                    const currentConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear));
+                    const prevConsumption = periodConsumption(sortedReadings, ...periodBounds(selectedYear - 1));
 
-                    // complete = the meter recorded before the period and a later reading closes it,
-                    // so its consumption is final
-                    const calculatePeriodConsumption = (periodReadings: Reading[]) => {
-                        if (periodReadings.length < 2) return { value: 0, complete: false };
+                    // Year to date: from 1 January to the latest reading (the whole year once it is over),
+                    // against the same days of the previous year
+                    const yearStart = Date.UTC(selectedYear, 0, 1);
+                    const yearEnd = Date.UTC(selectedYear + 1, 0, 1);
+                    const lastReadingTime = sortedReadings.length ? Date.parse(sortedReadings[sortedReadings.length - 1].time) : yearStart;
+                    const ytdEnd = Math.min(yearEnd, Math.max(yearStart, lastReadingTime));
+                    const wholeYear = ytdEnd === yearEnd;
+                    const prevYtdEnd = wholeYear ? yearStart : Date.UTC(selectedYear - 1, new Date(ytdEnd).getUTCMonth(), new Date(ytdEnd).getUTCDate());
+                    const currentYearTotal = periodConsumption(sortedReadings, yearStart, ytdEnd);
+                    const prevYearTotal = periodConsumption(sortedReadings, Date.UTC(selectedYear - 1, 0, 1), prevYtdEnd);
 
-                        const first = periodReadings[0];
-                        const last = periodReadings[periodReadings.length - 1];
-
-                        // Try to find the next reading in the full sorted list to close the period
-                        const lastIndex = sortedReadings.findIndex(r => r.id === last.id && r.time === last.time);
-                        let endValue = last.value;
-                        let complete = false;
-
-                        if (lastIndex !== -1 && lastIndex < sortedReadings.length - 1) {
-                            // We have a next reading!
-                            endValue = sortedReadings[lastIndex + 1].value;
-                            complete = startsBeforePeriod(periodReadings);
-                        }
-
-                        return { value: endValue - first.value, complete };
-                    };
-
-                    const currentConsumption = calculatePeriodConsumption(currentReadings);
-                    const prevConsumption = calculatePeriodConsumption(prevReadings);
-
-                    const getYearReadings = (readings: Reading[], year: number) => {
-                        return readings.filter(r => new Date(r.time).getFullYear() === year)
-                            .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
-                    };
-
-                    const currentYearReadings = getYearReadings(meter.recent_readings, selectedYear);
-                    let currentStartDate = new Date(selectedYear, 0, 1);
-                    let currentEndDate = new Date(); // Default to today for current year
-
-                    if (currentYearReadings.length > 0) {
-                        currentEndDate = new Date(currentYearReadings[currentYearReadings.length - 1].time);
-                    } else if (selectedYear !== new Date().getFullYear()) {
-                        currentEndDate = new Date(selectedYear, 11, 31);
-                    }
-
-
-                    let prevYearReadings = getYearReadings(meter.recent_readings, selectedYear - 1);
-                    let prevStartDate = new Date(selectedYear - 1, 0, 1);
-                    let prevEndDate = new Date(selectedYear - 1, 11, 31);
-
-                    // Filter previous year to same date as current year (YTD comparison)
-                    if (currentYearReadings.length > 0) {
-                        const lastReading = currentYearReadings[currentYearReadings.length - 1];
-                        const lastDate = new Date(lastReading.time);
-                        // Create cutoff date: same month/day but previous year
-                        const cutoffDate = new Date(selectedYear - 1, lastDate.getMonth(), lastDate.getDate(), 23, 59, 59);
-                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= cutoffDate);
-                        prevEndDate = cutoffDate;
-                    } else if (selectedYear === new Date().getFullYear()) {
-                        const today = new Date();
-                        prevEndDate = new Date(selectedYear - 1, today.getMonth(), today.getDate());
-                        prevYearReadings = prevYearReadings.filter(r => new Date(r.time) <= prevEndDate);
-                    }
-
-                    const currentYearTotal = calculateConsumption(currentYearReadings);
-                    const prevYearTotal = calculateConsumption(prevYearReadings);
-
-                    const formatDate = (d: Date) => d.toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US');
+                    const formatDate = (ts: number) => new Date(ts).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US', { timeZone: 'UTC' });
+                    // A whole year ends at midnight of 1 January (exclusive), its label shows 31 December
+                    const lastDayLabel = (end: number) => formatDate(wholeYear ? end - 86400000 : end);
+                    const missingTitle = (c: { missingDays: number; periodDays: number }) =>
+                        t.unit.missingDays.replace('{{missing}}', String(c.missingDays)).replace('{{total}}', String(c.periodDays));
 
                     return (
                         <div key={meter.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
@@ -379,16 +328,18 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
-                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== 0 ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(currentStartDate)).replace('{{endDate}}', formatDate(currentEndDate))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal)}</span> {meter.unit_of_measure}
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(yearStart)).replace('{{endDate}}', lastDayLabel(ytdEnd))}:</span>
+                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            {currentYearTotal.value !== null && !currentYearTotal.complete && <span className="cursor-help" title={missingTitle(currentYearTotal)}>*</span>}
                                         </span>
-                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
-                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                            <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(Date.UTC(selectedYear - 1, 0, 1))).replace('{{endDate}}', lastDayLabel(prevYtdEnd))}:</span>
+                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {meter.unit_of_measure}
+                                            {prevYearTotal.value !== null && !prevYearTotal.complete && <span className="cursor-help" title={missingTitle(prevYearTotal)}>*</span>}
                                         </span>
-                                        {currentYearTotal !== 0 && startsBeforePeriod(currentYearReadings) && startsBeforePeriod(prevYearReadings) && (
-                                            <YoyChange current={currentYearTotal} previous={prevYearTotal} previousYear={selectedYear - 1} className="py-1" />
+                                        {currentYearTotal.complete && prevYearTotal.complete && (
+                                            <YoyChange current={currentYearTotal.value as number} previous={prevYearTotal.value as number} previousYear={selectedYear - 1} className="py-1" />
                                         )}
                                     </div>
                                 </div>
@@ -416,11 +367,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                             <p className="text-xs mt-1">
                                                 {currentConsumption.complete && prevConsumption.complete
-                                                    ? <YoyChange current={currentConsumption.value} previous={prevConsumption.value} previousYear={selectedYear - 1} />
-                                                    : currentReadings.length > 0 && <span className="text-gray-400">{t.unit.incompletePeriod}</span>}
+                                                    ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
+                                                    : currentConsumption.value !== null && (
+                                                        <span className="text-gray-400 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
+                                                    )}
                                             </p>
                                         </div>
                                     </div>
@@ -443,7 +396,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </h4>
                                         <div className="text-right">
                                             <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
+                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{meter.unit_of_measure}</span></p>
                                         </div>
                                     </div>
                                     <div className="max-h-48 overflow-y-auto space-y-2">

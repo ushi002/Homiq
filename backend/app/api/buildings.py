@@ -1,13 +1,14 @@
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
 from ..models.telemetry import Meter, MeterCreate, MeterReading
-from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_consumption, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_unique_units, get_unit_meters, get_period_points, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.consumption import meter_period, combine_meters
 from .deps import get_current_user
 
 router = APIRouter()
@@ -126,12 +127,12 @@ def read_building_consumption(
     measurements = parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS
 
     def bounds(y: int):
-        start = datetime(y, month or 1, 1)
+        start = datetime(y, month or 1, 1, tzinfo=timezone.utc)
         if month and month < 12:
-            end = datetime(y, month + 1, 1)
+            end = datetime(y, month + 1, 1, tzinfo=timezone.utc)
         else:
-            end = datetime(y + 1, 1, 1)
-        return start, end, timedelta(days=62)
+            end = datetime(y + 1, 1, 1, tzinfo=timezone.utc)
+        return start, end
 
     meter_types = []
     jobs = []  # (measurement, type, meters of that type, period, year)
@@ -150,24 +151,25 @@ def read_building_consumption(
     # Influx queries run in parallel, one per measurement and period
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(
-            lambda job: get_period_consumption(building.influx_db_name, job[0], building.influx_device_tag, *bounds(job[4])),
+            lambda job: get_period_points(building.influx_db_name, job[0], building.influx_device_tag, *bounds(job[4])),
             jobs,
         ))
 
-    # values[unit_id][type] = {"current": [(value, complete), ...], "previous": [...]}
-    values: dict = {}
-    for (_, meter_type, type_meters, period, _), by_sn in zip(jobs, results):
+    # periods[unit_id][type] = {"current": [MeterPeriod, ...], "previous": [...]}
+    periods: dict = {}
+    for (_, meter_type, type_meters, period, y), by_sn in zip(jobs, results):
+        start, end = (b.timestamp() for b in bounds(y))
         for m in type_meters:
-            if m.serial_number in by_sn:
-                cell = values.setdefault(str(m.unit_id), {}).setdefault(meter_type, {"current": [], "previous": []})
-                cell[period].append(by_sn[m.serial_number])
+            p = by_sn.get(m.serial_number)
+            mp = meter_period(start, end, p.get('before'), p.get('first'), p.get('last'), p.get('after')) if p else None
+            if mp:
+                cell = periods.setdefault(str(m.unit_id), {}).setdefault(meter_type, {"current": [], "previous": []})
+                cell[period].append(mp)
 
-    def combine(parts):
-        # Sum of a unit's meters of one type; complete only if every meter is complete
-        known = [v for v, _ in parts if v is not None]
-        if not known:
-            return {"value": None, "complete": False}
-        return {"value": sum(known), "complete": len(known) == len(parts) and all(c for _, c in parts)}
+    def combine(parts, y):
+        start, end = (b.timestamp() for b in bounds(y))
+        r = combine_meters(start, end, parts)
+        return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
 
     return {
         "year": year,
@@ -179,8 +181,8 @@ def read_building_consumption(
                 "unit_number": u.unit_number,
                 "owner": (u.owner.full_name or u.owner.email) if u.owner else None,
                 "values": {
-                    t: {"current": combine(cell["current"]), "previous": combine(cell["previous"])}
-                    for t, cell in values.get(str(u.id), {}).items()
+                    t: {"current": combine(cell["current"], year), "previous": combine(cell["previous"], year - 1)}
+                    for t, cell in periods.get(str(u.id), {}).items()
                 },
             }
             for u in units

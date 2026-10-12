@@ -10,6 +10,8 @@ import YoyChange from '@/components/YoyChange';
 interface Cell {
     value: number | null;
     complete: boolean;
+    missing_days?: number; // days without data at the start or end of the period
+    period_days?: number;
 }
 
 interface UnitRow {
@@ -133,10 +135,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     type Pair = { current: Cell; previous: Cell };
     // A percentage needs both periods complete and a non-zero previous value
     const comparable = (c: Pair) => c.current.complete && c.previous.complete && (c.previous.value ?? 0) > 0;
+    const missingTitle = (c: Cell) => c.missing_days !== undefined
+        ? t.unit.missingDays.replace('{{missing}}', String(c.missing_days)).replace('{{total}}', String(c.period_days))
+        : t.unit.incompletePeriod;
     const noComparisonReason = (c: Pair) => {
-        if (!c.current.complete) return t.consumption.reasonCurrent;
-        const reason = c.previous.complete && c.previous.value === 0 ? t.consumption.reasonPreviousZero : t.consumption.reasonPrevious;
-        return reason.replace('{{year}}', String(year - 1));
+        if (!c.current.complete) return missingTitle(c.current);
+        if (c.previous.complete && c.previous.value === 0) return t.consumption.reasonPreviousZero.replace('{{year}}', String(year - 1));
+        return `${t.consumption.reasonPrevious.replace('{{year}}', String(year - 1))} ${c.previous.value !== null ? missingTitle(c.previous) : ''}`;
     };
 
     // Header note of a column: the usual "change vs", or why nothing in it can be compared
@@ -158,7 +163,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
             <span className="font-mono">{format(c.current.value)}</span>
-            {c.current.value !== null && !c.current.complete && <span className="text-gray-400" title={t.unit.incompletePeriod}>*</span>}
+            {c.current.value !== null && !c.current.complete && <span className="text-gray-400 cursor-help" title={missingTitle(c.current)}>*</span>}
             {c.current.value !== null && <span className="text-xs text-gray-400 ml-1">{uom}</span>}
             {comparable(c) ? (
                 <div className="text-xs">

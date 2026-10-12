@@ -90,6 +90,7 @@ export const cs: Translations = {
         vsYear: 'oproti {{year}}',
         noChange: 'beze změny',
         incompletePeriod: 'Neúplné období – bez srovnání',
+        missingDays: 'Na začátku nebo konci období chybí data za {{missing}} z {{total}} dní.',
     },
     users: {
         title: 'Správa Uživatelů',
@@ -187,10 +188,10 @@ export const cs: Translations = {
         noComparison: 'bez srovnání',
         noComparisonPrevious: 'bez srovnání – data za {{year}} neúplná',
         noComparisonCurrent: 'bez srovnání – období neuzavřené',
-        reasonPrevious: 'Stejné období v roce {{year}} není úplné (měřič začal měřit později nebo chybí data).',
+        reasonPrevious: 'Stejné období v roce {{year}} není úplné.',
         reasonCurrent: 'Období není úplné, hodnota ještě není konečná.',
         reasonPreviousZero: 'Ve stejném období roku {{year}} byla spotřeba nulová, změnu v procentech nelze spočítat.',
-        incompleteNote: '* Neúplné období: měřič začal měřit až během něj, nebo ještě chybí pozdější odečet. Hodnota není konečná a neporovnává se.',
+        incompleteNote: '* Neúplné období: na začátku nebo na konci období chybí data za více než 3 % dní (měřič začal měřit později, přestal měřit, nebo ještě nepřišel další odečet). Hodnota není konečná a neporovnává se. Výpadky uprostřed období a výměna měřiče nevadí.',
         noMeters: 'V tomto domě nejsou žádné měřiče.',
         categoryElectricity: 'Elektřina',
     }

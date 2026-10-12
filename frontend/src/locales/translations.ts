@@ -88,6 +88,7 @@ export interface Translations {
         vsYear: string;
         noChange: string;
         incompletePeriod: string;
+        missingDays: string;
     };
     users: {
         title: string;
