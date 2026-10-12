@@ -15,6 +15,7 @@ export const cs: Translations = {
         yes: 'Ano',
         no: 'Ne',
         confirmDelete: 'Opravdu to chcete smazat?',
+        close: 'Zavřít',
         unassign: 'Odebrat přiřazení',
     },
     login: {

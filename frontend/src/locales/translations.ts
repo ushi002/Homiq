@@ -14,6 +14,7 @@ export interface Translations {
         no: string;
         confirmDelete: string;
         unassign: string;
+        close: string;
     };
     login: {
         title: string;

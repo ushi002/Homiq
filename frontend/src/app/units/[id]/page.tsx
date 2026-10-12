@@ -9,6 +9,7 @@ import { periodConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 
 interface Meter {
     id: string;
@@ -52,6 +53,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
     const { t, language } = useLanguage();
+    const toast = useToast();
 
     useEffect(() => {
         if (authLoading) return;
@@ -117,14 +119,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 const updatedUnit = await res.json();
                 setUnit(updatedUnit); // Update entire unit object to get populated owner
                 setOwnerId(updatedUnit.owner_id);
-                // alert(t.messages.successAssignOwner);
+                // toast.success(t.messages.successAssignOwner);
             } else {
                 const err = await res.json();
-                alert(`${t.messages.errorAssignOwner}: ${err.detail}`);
+                toast.error(`${t.messages.errorAssignOwner}: ${err.detail}`);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 

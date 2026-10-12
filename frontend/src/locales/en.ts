@@ -15,6 +15,7 @@ export const en: Translations = {
         yes: 'Yes',
         no: 'No',
         confirmDelete: 'Are you sure you want to delete this?',
+        close: 'Close',
         unassign: 'Unassign',
     },
     login: {

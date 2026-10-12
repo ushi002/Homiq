@@ -5,10 +5,12 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function CreateBuilding() {
     const router = useRouter();
     const { t } = useLanguage();
+    const toast = useToast();
     const [form, setForm] = useState({
         name: '',
         address: '',
@@ -85,11 +87,11 @@ export default function CreateBuilding() {
                 const newBuilding = await res.json();
                 router.push(`/buildings/${newBuilding.id}`);
             } else {
-                alert(t.messages.errorCreateBuilding);
+                toast.error(t.messages.errorCreateBuilding);
             }
         } catch (err) {
             console.error(err);
-            alert(t.messages.errorGeneric);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
