@@ -28,6 +28,8 @@ export const cs: Translations = {
         noBuildings: 'Zatím žádné budovy. Vytvořte nějakou!',
         managedBy: 'Správce',
         manageUsers: 'Spravovat uživatele',
+        unitsSynced: 'Jednotky načteny',
+        draft: 'Koncept',
     },
     building: {
         name: 'Název',
@@ -96,6 +98,8 @@ export const cs: Translations = {
         roleAdmin: 'Admin',
         roleHomeLord: 'Správce',
         roleOwner: 'Vlastník',
+        selectHomeLord: '-- Vyberte správce --',
+        selectUser: '-- Vyberte uživatele --',
         deleteUser: 'Smazat uživatele',
         adminInfo: "Admini mohou vytvářet Správce, Vlastníky a další Adminy.",
         homeLordInfo: "Správci mohou vytvářet pouze Vlastníky.",

@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { authFetch } from '@/lib/api';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface User {
     id: string;
@@ -17,6 +18,7 @@ interface UserSelectProps {
 
 export default function UserSelect({ value, onChange, roleFilter }: UserSelectProps) {
     const [users, setUsers] = useState<User[]>([]);
+    const { t } = useLanguage();
 
     useEffect(() => {
         authFetch('/users/')
@@ -41,7 +43,7 @@ export default function UserSelect({ value, onChange, roleFilter }: UserSelectPr
             onChange={(e) => onChange(e.target.value)}
             className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
         >
-            <option value="">-- Select {roleFilter === 'home_lord' ? 'Home Lord' : 'User'} --</option>
+            <option value="">{roleFilter === 'home_lord' ? t.users.selectHomeLord : t.users.selectUser}</option>
             {users.map(user => (
                 <option key={user.id} value={user.id}>
                     {user.full_name} ({user.email})

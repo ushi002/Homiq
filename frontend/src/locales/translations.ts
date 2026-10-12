@@ -26,6 +26,8 @@ export interface Translations {
         noBuildings: string;
         managedBy: string;
         manageUsers: string;
+        unitsSynced: string;
+        draft: string;
     };
     building: {
         name: string;
@@ -94,6 +96,8 @@ export interface Translations {
         roleAdmin: string;
         roleHomeLord: string;
         roleOwner: string;
+        selectHomeLord: string;
+        selectUser: string;
         deleteUser: string;
         adminInfo: string;
         homeLordInfo: string;
