@@ -30,6 +30,8 @@ export const cs: Translations = {
         manageUsers: 'Spravovat uživatele',
         unitsSynced: 'Jednotky načteny',
         draft: 'Koncept',
+        myUnits: 'Moje jednotky',
+        noUnits: 'Zatím vám nebyla přiřazena žádná jednotka.',
     },
     building: {
         name: 'Název',

@@ -176,7 +176,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
                     <Breadcrumbs items={[
-                        { label: t.nav.buildings, href: '/' },
+                        { label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' },
                         ...(unit ? [{ label: buildingName ?? '…', href: `/buildings/${unit.building_id}` }] : []),
                         { label: `${t.nav.unit} ${unit?.unit_number ?? ''}` },
                     ]} />

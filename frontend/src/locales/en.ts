@@ -30,6 +30,8 @@ export const en: Translations = {
         manageUsers: 'Manage Users',
         unitsSynced: 'Units Synced',
         draft: 'Draft',
+        myUnits: 'My units',
+        noUnits: 'No unit has been assigned to you yet.',
     },
     building: {
         name: 'Name',

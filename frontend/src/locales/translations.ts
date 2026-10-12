@@ -28,6 +28,8 @@ export interface Translations {
         manageUsers: string;
         unitsSynced: string;
         draft: string;
+        myUnits: string;
+        noUnits: string;
     };
     building: {
         name: string;
