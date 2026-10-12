@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export default function AppHeader() {
     const { user, token, logout } = useAuth();
@@ -20,7 +21,7 @@ export default function AppHeader() {
 
     return (
         <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-            <div className="px-4 sm:px-8 h-14 flex items-center gap-2 sm:gap-6">
+            <div className="px-4 sm:px-8 h-14 flex items-center gap-1.5 sm:gap-6">
                 <Link href="/" className="font-bold text-lg text-blue-700">Homiq</Link>
                 {token && (
                     <nav className="flex gap-1 text-sm">
@@ -28,14 +29,15 @@ export default function AppHeader() {
                             <Link
                                 key={l.href}
                                 href={l.href}
-                                className={`px-2 sm:px-3 py-1.5 rounded-md ${l.active ? 'bg-blue-50 text-blue-800 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
+                                className={`px-1.5 sm:px-3 py-1.5 rounded-md ${l.active ? 'bg-blue-50 text-blue-800 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
                             >
                                 {l.label}
                             </Link>
                         ))}
                     </nav>
                 )}
-                <div className="ml-auto flex items-center gap-2 sm:gap-4">
+                <div className="ml-auto flex items-center gap-1 sm:gap-4">
+                    <ThemeToggle />
                     <span className="sm:hidden"><LanguageSwitcher compact /></span>
                     <span className="hidden sm:block"><LanguageSwitcher /></span>
                     {token && (

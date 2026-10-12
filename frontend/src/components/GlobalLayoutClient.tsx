@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation';
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AppHeader from "@/components/AppHeader";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function GlobalLayoutClient({
     children,
@@ -16,7 +17,8 @@ export default function GlobalLayoutClient({
     return (
         <>
             {isOverlayPage ? (
-                <div className="absolute top-4 right-4 z-50">
+                <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+                    <ThemeToggle />
                     <LanguageSwitcher />
                 </div>
             ) : (

@@ -463,7 +463,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
                             {/* Selected month/week: consumption, last year's value and the change, readings on demand
                                 (last year's readings: switch the year) */}
-                            <div className="border rounded-lg p-3 bg-blue-50/50">
+                            <div className="border border-blue-100 rounded-lg p-3 bg-blue-50/50">
                                 <div className="flex flex-wrap justify-between items-start gap-3">
                                     <div>
                                         <h4 className="font-semibold text-sm text-blue-800">{periodLabel} {selectedYear}</h4>
