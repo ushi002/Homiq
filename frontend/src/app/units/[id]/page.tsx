@@ -370,25 +370,25 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     const missingTitle = (c: { missingDays: number; periodDays: number }) =>
                         t.unit.missingDays.replace('{{missing}}', String(c.missingDays)).replace('{{total}}', String(c.periodDays));
 
-                    // Readings listed in a period window; with several meters each gets its serial number
-                    const readingsIn = (year: number) => group
-                        .map((m, i) => ({ serial: m.serial_number, readings: getPeriodReadings(series[i], year, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek) }))
+                    // Readings of the selected month/week; with several meters each gets its serial number
+                    const periodLabel = viewMode === 'month'
+                        ? new Date(2000, selectedMonth - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: 'long' })
+                        : `${t.unit.week} ${selectedWeek}`;
+                    const parts = group
+                        .map((m, i) => ({ serial: m.serial_number, readings: getPeriodReadings(series[i], selectedYear, viewMode, viewMode === 'month' ? selectedMonth : selectedWeek) }))
                         .filter(x => x.readings.length > 0);
-                    const renderReadings = (year: number, valueClass: string, rowClass: string) => {
-                        const parts = readingsIn(year);
-                        if (parts.length === 0) return <p className="text-xs text-gray-400 italic">{t.unit.noData}</p>;
-                        return parts.map(part => (
+                    const readingCount = parts.reduce((n, part) => n + part.readings.length, 0);
+                    const renderReadings = () => parts.map(part => (
                             <div key={part.serial}>
                                 {parts.length > 1 && <p className="text-[11px] font-mono text-gray-500 pt-1">{part.serial}</p>}
                                 {part.readings.map(reading => (
-                                    <div key={reading.time} className={`flex justify-between text-sm py-1 border-b last:border-0 ${rowClass}`}>
+                                    <div key={reading.time} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
                                         <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
-                                        <span className={`font-mono ${valueClass}`}>{reading.value}</span>
+                                        <span className="font-mono font-bold">{reading.value}</span>
                                     </div>
                                 ))}
                             </div>
                         ));
-                    };
 
                     return (
                         <div key={group[0].type} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
@@ -447,45 +447,40 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 format={formatConsumption}
                             />
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {/* Current Period Window */}
-                                <div className="border rounded-lg p-3 bg-blue-50/50">
-                                    <div className="flex justify-between items-end mb-2 border-b border-blue-100 pb-2">
-                                        <h4 className="font-semibold text-sm text-blue-800">
-                                            {viewMode === 'month' ? new Date(2000, selectedMonth - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedWeek}`} {selectedYear}
-                                        </h4>
-                                        <div className="text-right">
-                                            <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
-                                            <p className="text-xs mt-1">
-                                                {currentConsumption.complete && prevConsumption.complete
-                                                    ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
-                                                    : currentConsumption.value !== null && (
-                                                        <span className="text-gray-400 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
-                                                    )}
-                                            </p>
-                                        </div>
+                            {/* Selected month/week: consumption, last year's value and the change, readings on demand
+                                (last year's readings: switch the year) */}
+                            <div className="border rounded-lg p-3 bg-blue-50/50">
+                                <div className="flex flex-wrap justify-between items-start gap-3">
+                                    <div>
+                                        <h4 className="font-semibold text-sm text-blue-800">{periodLabel} {selectedYear}</h4>
+                                        <p className="text-xs text-gray-600 mt-1">
+                                            {t.unit.lastYear} ({language === 'cs' ? periodLabel.toLocaleLowerCase('cs-CZ') : periodLabel} {selectedYear - 1}):{' '}
+                                            <span className="font-mono font-medium">{prevConsumption.value === null ? '–' : `${formatConsumption(prevConsumption.value)} ${uom}`}</span>
+                                            {prevConsumption.value !== null && !prevConsumption.complete && <span className="cursor-help" title={missingTitle(prevConsumption)}>*</span>}
+                                        </p>
                                     </div>
-                                    <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {renderReadings(selectedYear, 'font-bold', 'border-blue-100')}
-                                    </div>
-                                </div>
-
-                                {/* Previous Year Window */}
-                                <div className="border rounded-lg p-3 bg-gray-50/50">
-                                    <div className="flex justify-between items-end mb-2 border-b border-gray-200 pb-2">
-                                        <h4 className="font-semibold text-sm text-gray-600">
-                                            {viewMode === 'month' ? new Date(2000, selectedMonth - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: language === 'cs' ? 'long' : 'short' }) : `${t.unit.week} ${selectedWeek}`} {selectedYear - 1}
-                                        </h4>
-                                        <div className="text-right">
-                                            <p className="text-xs text-gray-500 uppercase font-bold">{t.unit.consumption}</p>
-                                            <p className="text-lg font-bold font-mono text-gray-700 leading-none">{formatConsumption(prevConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
-                                        </div>
-                                    </div>
-                                    <div className="max-h-48 overflow-y-auto space-y-2">
-                                        {renderReadings(selectedYear - 1, 'font-medium text-gray-700', 'border-gray-200')}
+                                    <div className="text-right">
+                                        <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
+                                        <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
+                                        <p className="text-xs mt-1">
+                                            {currentConsumption.complete && prevConsumption.complete
+                                                ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
+                                                : currentConsumption.value !== null && (
+                                                    <span className="text-gray-400 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
+                                                )}
+                                        </p>
                                     </div>
                                 </div>
+                                {readingCount > 0 ? (
+                                    <details className="mt-2">
+                                        <summary className="cursor-pointer text-xs text-blue-600 hover:underline">{t.unit.showReadings.replace('{{count}}', String(readingCount))}</summary>
+                                        <div className="mt-2 max-h-64 overflow-y-auto space-y-2">
+                                            {renderReadings()}
+                                        </div>
+                                    </details>
+                                ) : (
+                                    <p className="mt-2 text-xs text-gray-400 italic">{t.unit.noData}</p>
+                                )}
                             </div>
                         </div>
                     );

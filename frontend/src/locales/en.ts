@@ -88,7 +88,7 @@ export const en: Translations = {
         month: 'Month',
         week: 'Week',
         monthlyConsumption: 'Monthly consumption',
-        chartHint: 'Click a month to show its readings below.',
+        chartHint: 'Click a month to show its consumption below.',
         showTable: 'Show table',
         vsYear: 'vs {{year}}',
         noChange: 'no change',
@@ -97,6 +97,8 @@ export const en: Translations = {
         meterUntil: 'until {{date}}',
         meterFrom: 'from {{date}}',
         meterReplaced: 'Meter replaced: consumption of the old and the new meter is added up.',
+        lastYear: 'Last year',
+        showReadings: 'Show readings ({{count}})',
     },
     users: {
         title: 'User Management',
