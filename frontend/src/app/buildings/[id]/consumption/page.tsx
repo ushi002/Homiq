@@ -176,7 +176,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 <Link href={`/buildings/${id}`} className="text-blue-500 hover:underline text-sm mb-2 inline-block">← {building?.name ?? ''}</Link>
                 <h1 className="text-3xl font-bold mb-6">{t.consumption.title}</h1>
 
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center mb-6">
+                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center mb-6">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm">
@@ -202,16 +202,16 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 )}
 
                 {data && data.meter_types.length > 0 && (
-                    <div className={`bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
+                    <div className={`bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-200 text-left text-gray-500">
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-3 sm:px-4 py-3 font-medium">
                                         <button onClick={() => toggleSort('unit')} className="hover:text-gray-900">{t.consumption.unit}{sortArrow('unit')}</button>
                                     </th>
-                                    <th className="px-4 py-3 font-medium hidden sm:table-cell">{t.consumption.owner}</th>
+                                    <th className="px-3 sm:px-4 py-3 font-medium hidden sm:table-cell">{t.consumption.owner}</th>
                                     {data.meter_types.map(mt => (
-                                        <th key={mt.type} className="px-4 py-3 font-medium text-right whitespace-nowrap">
+                                        <th key={mt.type} className="px-3 sm:px-4 py-3 font-medium text-right whitespace-nowrap">
                                             <button onClick={() => toggleSort(mt.type)} className="hover:text-gray-900">
                                                 {typeLabel(mt.type)} ({mt.unit_of_measure}){sortArrow(mt.type)}
                                             </button>
@@ -223,12 +223,12 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                             <tbody>
                                 {rows.map(row => (
                                     <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                        <td className="px-4 py-2 whitespace-nowrap">
+                                        <td className="px-3 sm:px-4 py-2 whitespace-nowrap">
                                             <Link href={`/units/${row.id}`} className="text-blue-600 hover:underline font-medium">{row.unit_number}</Link>
                                         </td>
-                                        <td className="px-4 py-2 text-gray-600 hidden sm:table-cell">{row.owner ?? <span className="text-gray-300">–</span>}</td>
+                                        <td className="px-3 sm:px-4 py-2 text-gray-600 hidden sm:table-cell">{row.owner ?? <span className="text-gray-300">–</span>}</td>
                                         {data.meter_types.map(mt => (
-                                            <td key={mt.type} className="px-4 py-2 text-right whitespace-nowrap align-top">
+                                            <td key={mt.type} className="px-3 sm:px-4 py-2 text-right whitespace-nowrap align-top">
                                                 {renderCell(cell(row, mt.type), mt.unit_of_measure, columnNote(mt.type).comparable)}
                                             </td>
                                         ))}
@@ -237,10 +237,10 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                             </tbody>
                             <tfoot>
                                 <tr className="border-t-2 border-gray-200 font-semibold bg-gray-50">
-                                    <td className="px-4 py-3">{t.consumption.total}</td>
+                                    <td className="px-3 sm:px-4 py-3">{t.consumption.total}</td>
                                     <td className="hidden sm:table-cell" />
                                     {data.meter_types.map(mt => (
-                                        <td key={mt.type} className="px-4 py-3 text-right whitespace-nowrap align-top">
+                                        <td key={mt.type} className="px-3 sm:px-4 py-3 text-right whitespace-nowrap align-top">
                                             {renderCell({
                                                 current: sumCells(data.units.map(u => cell(u, mt.type).current)),
                                                 previous: sumCells(data.units.map(u => cell(u, mt.type).previous)),
