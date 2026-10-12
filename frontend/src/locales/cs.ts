@@ -99,6 +99,11 @@ export const cs: Translations = {
         meterReplaced: 'Výměna měřiče: spotřeba starého a nového měřiče se sčítá.',
         lastYear: 'Loni',
         showReadings: 'Zobrazit odečty ({{count}})',
+        typicalUnit: 'Běžná jednotka v domě',
+        typicalHint: 'Medián z {{units}} jednotek domu s úplnými daty: polovina z nich má spotřebu nižší, polovina vyšší. Jednotky s nulovou spotřebou se nepočítají.',
+        moreThan: 'o {{pct}} více',
+        lessThan: 'o {{pct}} méně',
+        aboutSame: 'přibližně stejně',
     },
     users: {
         title: 'Správa Uživatelů',

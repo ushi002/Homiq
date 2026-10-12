@@ -97,6 +97,11 @@ export interface Translations {
         meterReplaced: string;
         lastYear: string;
         showReadings: string;
+        typicalUnit: string;
+        typicalHint: string;
+        moreThan: string;
+        lessThan: string;
+        aboutSame: string;
     };
     users: {
         title: string;
