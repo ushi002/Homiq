@@ -152,10 +152,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     };
 
     const calculateConsumption = (readings: Reading[]) => {
-        if (readings.length < 2) return formatConsumption(0);
+        if (readings.length < 2) return 0;
         const start = readings[0].value;
         const end = readings[readings.length - 1].value;
-        return formatConsumption(end - start);
+        return end - start;
     };
 
 
@@ -363,13 +363,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
-                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== "0.00" ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== 0 ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(currentStartDate)).replace('{{endDate}}', formatDate(currentEndDate))}:</span>
-                                            <span className="font-mono font-bold">{currentYearTotal}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
-                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== "0.00" ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
-                                            <span className="font-mono font-bold">{prevYearTotal}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
                                     </div>
                                 </div>
