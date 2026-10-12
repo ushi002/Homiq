@@ -167,6 +167,8 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         ...meters.flatMap(m => m.recent_readings.map(r => new Date(r.time).getFullYear()))
     );
     const availableYears = Array.from({ length: currentYear - oldestReadingYear + 1 }, (_, i) => currentYear - i);
+    // ISO years have 52 or 53 weeks; 28 December always falls in the last one
+    const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
 
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
@@ -225,7 +227,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select
                             value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            onChange={(e) => {
+                                const year = parseInt(e.target.value);
+                                setSelectedYear(year);
+                                setSelectedWeek(w => Math.min(w, getWeekNumber(new Date(year, 11, 28))));
+                            }}
                             className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                         >
                             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
@@ -268,7 +274,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
                                 className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                             >
-                                {Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
+                                {Array.from({ length: weeksInSelectedYear }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
                                 ))}
                             </select>
