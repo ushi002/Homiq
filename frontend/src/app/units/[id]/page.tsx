@@ -152,13 +152,23 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     };
 
     const calculateConsumption = (readings: Reading[]) => {
-        if (readings.length < 2) return formatConsumption(0);
+        if (readings.length < 2) return 0;
         const start = readings[0].value;
         const end = readings[readings.length - 1].value;
-        return formatConsumption(end - start);
+        return end - start;
     };
 
 
+
+    // Years offered in the selector: from the current year back to the oldest reading (at least 3 years)
+    const currentYear = new Date().getFullYear();
+    const oldestReadingYear = Math.min(
+        currentYear - 2,
+        ...meters.flatMap(m => m.recent_readings.map(r => new Date(r.time).getFullYear()))
+    );
+    const availableYears = Array.from({ length: currentYear - oldestReadingYear + 1 }, (_, i) => currentYear - i);
+    // ISO years have 52 or 53 weeks; 28 December always falls in the last one
+    const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
 
     return (
         <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
@@ -217,10 +227,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
                         <select
                             value={selectedYear}
-                            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                            onChange={(e) => {
+                                const year = parseInt(e.target.value);
+                                setSelectedYear(year);
+                                setSelectedWeek(w => Math.min(w, getWeekNumber(new Date(year, 11, 28))));
+                            }}
                             className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                         >
-                            {[2026, 2025, 2024].map(y => <option key={y} value={y}>{y}</option>)}
+                            {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
@@ -260,7 +274,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
                                 className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                             >
-                                {Array.from({ length: 52 }, (_, i) => i + 1).map(w => (
+                                {Array.from({ length: weeksInSelectedYear }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
                                 ))}
                             </select>
@@ -355,13 +369,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
-                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== "0.00" ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal !== 0 ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(currentStartDate)).replace('{{endDate}}', formatDate(currentEndDate))}:</span>
-                                            <span className="font-mono font-bold">{currentYearTotal}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
-                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== "0.00" ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal !== 0 ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(prevStartDate)).replace('{{endDate}}', formatDate(prevEndDate))}:</span>
-                                            <span className="font-mono font-bold">{prevYearTotal}</span> {meter.unit_of_measure}
+                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal)}</span> {meter.unit_of_measure}
                                         </span>
                                     </div>
                                 </div>

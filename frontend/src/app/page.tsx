@@ -112,12 +112,12 @@ export default function Dashboard() {
               <div className="flex justify-between items-center">
                 {user?.role === 'admin' && (
                   <span className={`px-2 py-1 rounded-full text-xs ${building.units_fetched ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {building.units_fetched ? 'Units Synced' : 'Draft'}
+                    {building.units_fetched ? t.dashboard.unitsSynced : t.dashboard.draft}
                   </span>
                 )}
                 {building.manager && (
                   <span className="text-xs text-gray-400" title={building.manager.email}>
-                    {t.dashboard.managedBy}: {building.manager.full_name || 'Home Lord'}
+                    {t.dashboard.managedBy}: {building.manager.full_name || t.users.roleHomeLord}
                   </span>
                 )}
               </div>

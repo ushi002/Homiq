@@ -28,6 +28,8 @@ export const en: Translations = {
         noBuildings: 'No buildings yet. Create one!',
         managedBy: 'Managed by',
         manageUsers: 'Manage Users',
+        unitsSynced: 'Units Synced',
+        draft: 'Draft',
     },
     building: {
         name: 'Name',
@@ -96,6 +98,8 @@ export const en: Translations = {
         roleAdmin: 'Admin',
         roleHomeLord: 'Home Lord',
         roleOwner: 'Owner',
+        selectHomeLord: '-- Select Home Lord --',
+        selectUser: '-- Select User --',
         deleteUser: 'Delete User',
         adminInfo: "Admins can create Home Lords, Owners, and other Admins.",
         homeLordInfo: "Home Lords can only create Owners.",
