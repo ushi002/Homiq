@@ -174,6 +174,12 @@ export interface Translations {
         linkInvalidMessage: string;
         backToLogin: string;
     };
+    nav: {
+        buildings: string;
+        users: string;
+        profile: string;
+        unit: string;
+    };
     consumption: {
         title: string;
         open: string;

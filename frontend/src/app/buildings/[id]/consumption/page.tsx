@@ -6,6 +6,7 @@ import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import YoyChange from '@/components/YoyChange';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 interface Cell {
     value: number | null;
@@ -178,7 +179,11 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     return (
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900">
             <div className="max-w-7xl mx-auto">
-                <Link href={`/buildings/${id}`} className="text-blue-500 hover:underline text-sm mb-2 inline-block">← {building?.name ?? ''}</Link>
+                <Breadcrumbs items={[
+                    { label: t.nav.buildings, href: '/' },
+                    { label: building?.name ?? '…', href: `/buildings/${id}` },
+                    { label: t.consumption.title },
+                ]} />
                 <h1 className="text-3xl font-bold mb-6">{t.consumption.title}</h1>
 
                 <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center mb-6">

@@ -176,6 +176,12 @@ export const en: Translations = {
         linkInvalidMessage: 'This invitation link is no longer valid. It may have expired or already been used.',
         backToLogin: 'Back to Login',
     },
+    nav: {
+        buildings: 'Buildings',
+        users: 'Users',
+        profile: 'Profile',
+        unit: 'Unit',
+    },
     consumption: {
         title: 'Consumption overview',
         open: 'Consumption overview',

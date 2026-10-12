@@ -31,7 +31,23 @@ export default function Dashboard() {
     }
 
     const fetchBuildings = async () => {
+      let redirecting = false;
       try {
+        // An owner of a single unit goes straight to it
+        if (user?.role === 'owner') {
+          const unitsRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/units/`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (unitsRes.ok) {
+            const units = await unitsRes.json();
+            if (units.length === 1) {
+              redirecting = true; // keep the loading state until the unit page opens
+              router.replace(`/units/${units[0].id}`);
+              return;
+            }
+          }
+        }
+
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/buildings/`, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -46,12 +62,12 @@ export default function Dashboard() {
         console.error("Failed to fetch buildings", error);
         setError(t.login.error);
       } finally {
-        setLoading(false);
+        if (!redirecting) setLoading(false);
       }
     };
 
     fetchBuildings();
-  }, [token, router, authLoading]);
+  }, [token, router, authLoading, user?.role]);
 
   if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
   if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
@@ -60,23 +76,7 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{t.dashboard.title}</h1>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/profile"
-              className="text-gray-700 font-medium hover:text-gray-900 hover:underline transition-all"
-            >
-              {user?.full_name || user?.role}
-            </Link>
-            <button
-              onClick={() => logout()}
-              className="bg-red-50 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors text-sm font-medium"
-            >
-              {t.common.logout}
-            </button>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">{t.dashboard.title}</h1>
 
         {user?.role === 'admin' && (
           <div className="mb-8 flex gap-4">

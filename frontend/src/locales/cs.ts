@@ -176,6 +176,12 @@ export const cs: Translations = {
         linkInvalidMessage: 'Tento odkaz na pozvánku již není platný. Pravděpodobně vypršela jeho platnost nebo byl již použit.',
         backToLogin: 'Zpět na přihlášení',
     },
+    nav: {
+        buildings: 'Domy',
+        users: 'Uživatelé',
+        profile: 'Profil',
+        unit: 'Jednotka',
+    },
     consumption: {
         title: 'Přehled spotřeby',
         open: 'Přehled spotřeby',

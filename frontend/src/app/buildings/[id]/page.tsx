@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import UserSelect from '@/components/UserSelect';
+import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 
@@ -287,9 +288,9 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     };
 
     return (
-        <main className="min-h-screen p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
-                <Link href="/" className="text-blue-500 hover:underline text-sm mb-2 inline-block">{t.common.backToDashboard}</Link>
+                <Breadcrumbs items={[{ label: t.nav.buildings, href: '/' }, { label: building.name }]} />
                 <div className="flex justify-between items-start">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
