@@ -1,14 +1,40 @@
+import asyncio
+import logging
+import os
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.routing import Match
 from .core.database import create_db_and_tables
 from .api import buildings, units, users, telemetry, auth
+from .core.unit_sync import sync_all_buildings
+
+
+async def daily_unit_sync():
+    """Load new units and meters from InfluxDB every night (UNIT_SYNC_HOUR_UTC, default 2:30 UTC).
+    UNIT_SYNC=0 turns it off; the button in the building detail works either way."""
+    hour = int(os.getenv("UNIT_SYNC_HOUR_UTC", "2"))
+    while True:
+        now = datetime.now(timezone.utc)
+        next_run = now.replace(hour=hour, minute=30, second=0, microsecond=0)
+        # A minute of margin: waking up a moment early must not run the sync twice the same night
+        if next_run <= now + timedelta(minutes=1):
+            next_run += timedelta(days=1)
+        await asyncio.sleep((next_run - now).total_seconds())
+        try:
+            await asyncio.to_thread(sync_all_buildings)
+        except Exception:
+            logging.getLogger("uvicorn.error").exception("Daily unit sync failed")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    task = asyncio.create_task(daily_unit_sync()) if os.getenv("UNIT_SYNC", "1") != "0" else None
     yield
+    if task:
+        task.cancel()
 
 app = FastAPI(title="Homiq API", version="0.1.0", lifespan=lifespan)
 

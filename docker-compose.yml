@@ -11,6 +11,8 @@ services:
       - INFLUX_PASSWORD=${INFLUX_PASSWORD}
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env}
       - SQL_ECHO=${SQL_ECHO:-0}
+      - UNIT_SYNC=${UNIT_SYNC:-1}
+      - UNIT_SYNC_HOUR_UTC=${UNIT_SYNC_HOUR_UTC:-2}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always

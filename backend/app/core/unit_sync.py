@@ -1,4 +1,5 @@
 """Units and meters of a building, synchronised from InfluxDB tags."""
+import logging
 from typing import Dict, List, Tuple
 from sqlmodel import Session, select
 from ..models.property import Building, Unit
@@ -77,3 +78,22 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
         "units_found": len(influx_units),
         "units_fetched": building.units_fetched,
     }
+
+
+def sync_all_buildings() -> None:
+    """Daily job: load new units and meters for every building already set up from InfluxDB
+    (units loaded at least once), so a replaced meter shows up without pressing the button."""
+    from .database import engine  # imported here: the module is also used from request handlers
+    log = logging.getLogger("uvicorn.error")
+    with Session(engine) as session:
+        buildings = session.exec(select(Building).where(Building.units_fetched == True)).all()  # noqa: E712
+        for building in buildings:
+            if not (building.influx_db_name and building.influx_device_tag):
+                continue
+            try:
+                result = sync_units_from_influx(building, session)
+                log.info("Unit sync %s: %d new units, %d new meters, %d meters moved",
+                         building.id, result["units_created"], result["meters_connected"], result["meters_moved"])
+            except Exception:
+                session.rollback()
+                log.exception("Unit sync %s failed", building.id)
