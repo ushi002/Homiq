@@ -11,7 +11,6 @@ from ..models.telemetry import Meter, MeterCreate
 from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
-from ..core.anomaly import typical, unusual
 from ..core.building_consumption import units_consumption
 from .deps import get_current_user
 from .access import can_access_building, require
@@ -71,9 +70,8 @@ def read_buildings_stats(
     current_user: User = Depends(get_current_user)
 ):
     """Numbers for the building cards on the admin's and manager's dashboard: units, units with an
-    owner, owners who have not accepted the invitation, the newest reading, and how many units had
-    unusually high consumption in the last full month with data (the month before the month of the
-    newest reading). Owners get an empty list (their dashboard has its own summary)."""
+    owner, owners who have not accepted the invitation and the newest reading. Owners get an empty
+    list (their dashboard has its own summary)."""
     if current_user.role == "admin":
         buildings = session.exec(select(Building)).all()
     elif current_user.role == "home_lord":
@@ -91,29 +89,11 @@ def read_buildings_stats(
             "units_with_owner": len(owners),
             "pending_invites": len({o.id for o in owners if o.status == "pending"}),
             "last_reading": None,
-            "unusual": None,
         }
         if building.influx_db_name and building.influx_device_tag and units:
             measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
             last = get_last_reading_time(building.influx_db_name, measurements)
             entry["last_reading"] = last
-            if last:
-                last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
-                y, m = (last_dt.year, last_dt.month - 1) if last_dt.month > 1 else (last_dt.year - 1, 12)
-                start = datetime(y, m, 1, tzinfo=timezone.utc)
-                end = datetime(y + (m == 12), m % 12 + 1, 1, tzinfo=timezone.utc)
-                meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
-                types, (current, previous) = units_consumption(
-                    building, meters, [(start, end), (start.replace(year=y - 1), end.replace(year=end.year - 1))])
-                medians = {mt["type"]: typical(other.get(mt["type"]) for other in current.values()) for mt in types}
-                flagged = 0
-                for unit_id, by_type in current.items():
-                    for t, r in by_type.items():
-                        median = medians.get(t)
-                        if unusual(r, previous.get(unit_id, {}).get(t), median[0] if median else None):
-                            flagged += 1
-                            break
-                entry["unusual"] = {"month": f"{y}-{m:02d}", "units": flagged}
         stats.append(entry)
     return stats
 
@@ -180,18 +160,11 @@ def read_building_consumption(
 
     meter_types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
 
-    def cell(r, unusual_flag=None):
-        c = {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
-        if unusual_flag:
-            c["unusual"] = unusual_flag
-        return c
-
-    medians = {mt["type"]: typical(by_type.get(mt["type"]) for by_type in current.values()) for mt in meter_types}
+    def cell(r):
+        return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
 
     def current_cell(unit_id, t):
-        r = current.get(unit_id, {}).get(t) or _no_data(bounds(year))
-        median = medians.get(t)
-        return cell(r, unusual(r, previous.get(unit_id, {}).get(t), median[0] if median else None))
+        return cell(current.get(unit_id, {}).get(t) or _no_data(bounds(year)))
 
     measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
     return {
