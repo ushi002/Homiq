@@ -154,6 +154,40 @@ def _no_data(period):
     start, end = period
     return combine_meters(start.timestamp(), end.timestamp(), [])
 
+@router.get("/{building_id}/consumption_monthly")
+def read_building_consumption_monthly(
+    building_id: uuid.UUID,
+    year: int = Query(ge=2000, le=2100),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Consumption of the whole building by month (sum over its units) for the year and the year
+    before, by meter type, for the chart in the building overview. Months not started yet are
+    null. Access as the building overview (admins and the building's manager)."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    if current_user.role != "admin" and not (current_user.role == "home_lord" and building.manager_id == current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all() if units else []
+
+    now = datetime.now(timezone.utc)
+    months = [(y, m) for y in (year, year - 1) for m in range(1, 13)]
+    started = [(y, m) for y, m in months if datetime(y, m, 1, tzinfo=timezone.utc) <= now]
+    periods = [(datetime(y, m, 1, tzinfo=timezone.utc),
+                datetime(y + (m == 12), m % 12 + 1, 1, tzinfo=timezone.utc)) for y, m in started]
+    meter_types, results = units_consumption(building, meters, periods)
+
+    totals = {mt["type"]: {"current": [None] * 12, "previous": [None] * 12} for mt in meter_types}
+    for (y, m), by_unit in zip(started, results):
+        for mt in meter_types:
+            values = [r.value for by_type in by_unit.values() if (r := by_type.get(mt["type"])) and r.value is not None]
+            if values:
+                totals[mt["type"]]["current" if y == year else "previous"][m - 1] = round(sum(values), 2)
+    return {"year": year, "meter_types": meter_types, "months": totals}
+
 @router.get("/{building_id}/readings")
 def read_building_readings(
     building_id: uuid.UUID,
