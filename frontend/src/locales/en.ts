@@ -105,6 +105,8 @@ export const en: Translations = {
         prevPeriod: 'Previous',
         nextPeriod: 'Next',
         changeOwner: 'Change',
+        lastReading: 'Latest reading',
+        lastReadingOld: 'No data from the meters for more than a week.',
     },
     users: {
         title: 'User Management',
