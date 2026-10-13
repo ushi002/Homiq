@@ -40,6 +40,8 @@ export default function UsersPage() {
     const toast = useToast();
     const apiError = useApiError();
     const confirm = useConfirm();
+    const [search, setSearch] = useState('');
+    const [roleFilter, setRoleFilter] = useState<string>('all'); // a role, 'pending' or 'all'
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
@@ -175,12 +177,14 @@ export default function UsersPage() {
             if (res.ok) {
                 fetchUsers();
                 setEditingUser(null);
+                toast.success(t.users.nameSaved);
             } else {
                 const err = await res.json();
                 toast.error(apiError(t.messages.errorUpdateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -229,6 +233,21 @@ export default function UsersPage() {
     if (authLoading || !token || currentUser?.role !== 'admin') {
         return <div className="p-8 text-center">{t.common.loading}</div>;
     }
+
+    const isPending = (u: User) => !!u.invite_token && u.status === 'pending';
+    const filters = [
+        { key: 'all', label: t.users.filterAll, count: users.length },
+        { key: 'admin', label: t.users.roleAdmin, count: users.filter(u => u.role === 'admin').length },
+        { key: 'home_lord', label: t.users.roleHomeLord, count: users.filter(u => u.role === 'home_lord').length },
+        { key: 'owner', label: t.users.roleOwner, count: users.filter(u => u.role === 'owner').length },
+        { key: 'pending', label: t.users.pendingInvite, count: users.filter(isPending).length },
+    ];
+    // Search in name, e-mail and assigned buildings/units
+    const query = search.trim().toLocaleLowerCase();
+    const visibleUsers = users.filter(u =>
+        (roleFilter === 'all' || (roleFilter === 'pending' ? isPending(u) : u.role === roleFilter))
+        && (!query || [u.full_name, u.email, ...(u.assignments ?? []).map(a => `${a.name} ${a.detail ?? ''}`)]
+            .some(text => (text ?? '').toLocaleLowerCase().includes(query))));
 
     return (
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
@@ -289,11 +308,31 @@ export default function UsersPage() {
 
                 {/* User List */}
                 <div className="lg:col-span-2 bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                        <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
+                    <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                        <div className="flex flex-wrap justify-between items-center gap-2">
+                            <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
+                            <input
+                                type="search"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder={t.users.searchPlaceholder}
+                                className="w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-1.5 text-sm"
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 text-xs">
+                            {filters.map(f => (
+                                <button
+                                    key={f.key}
+                                    onClick={() => setRoleFilter(f.key)}
+                                    className={`px-2.5 py-1 rounded-full border ${roleFilter === f.key ? 'bg-blue-100 border-blue-200 text-blue-800 font-medium' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    {f.label} ({f.count})
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                        {users.map(user => (
+                    <ul className="divide-y divide-gray-100">
+                        {visibleUsers.map(user => (
                             <li key={user.id} className="px-6 py-4 flex flex-col hover:bg-gray-50">
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1">
@@ -303,6 +342,11 @@ export default function UsersPage() {
                                                     type="text"
                                                     value={editName}
                                                     onChange={e => setEditName(e.target.value)}
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') saveEdit(user.id);
+                                                        if (e.key === 'Escape') cancelEdit();
+                                                    }}
+                                                    autoFocus
                                                     className="border rounded px-2 py-1 text-sm w-full max-w-xs"
                                                 />
                                                 <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{t.common.save}</button>
@@ -337,7 +381,7 @@ export default function UsersPage() {
                                         <button
                                             onClick={() => handleDeleteUser(user.id)}
                                             className="text-red-500 hover:text-red-700 text-sm font-medium"
-                                            title="Delete User"
+                                            title={t.common.delete}
                                         >
                                             {t.common.delete}
                                         </button>
@@ -376,22 +420,22 @@ export default function UsersPage() {
                                             <span className="text-sm font-semibold text-amber-900 border-b border-amber-100 pb-1">{t.users.pendingInvite}</span>
                                             {isExpired(user.invite_expires_at) ? (
                                                 <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-bold rounded-full border border-red-200">
-                                                    EXPIRED
+                                                    {t.users.inviteExpired}
                                                 </span>
                                             ) : (
                                                 <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-200">
-                                                    VALID
+                                                    {t.users.inviteValid}
                                                 </span>
                                             )}
                                         </div>
 
                                         <div className="text-xs space-y-1 text-gray-600 mb-2">
                                             <div className="flex justify-between">
-                                                <span>Created:</span>
+                                                <span>{t.users.inviteCreated}:</span>
                                                 <span className="font-mono">{formatDate(user.created_at)}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>Expires:</span>
+                                                <span>{t.users.inviteExpires}:</span>
                                                 <span className="font-mono">{formatDate(user.invite_expires_at)}</span>
                                             </div>
                                         </div>
@@ -410,8 +454,8 @@ export default function UsersPage() {
                                 )}
                             </li>
                         ))}
-                        {users.length === 0 && (
-                            <li className="px-6 py-8 text-center text-gray-400">{t.unit.noData}</li>
+                        {visibleUsers.length === 0 && (
+                            <li className="px-6 py-8 text-center text-gray-400">{t.users.noMatch}</li>
                         )}
                     </ul>
                 </div>

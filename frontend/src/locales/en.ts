@@ -62,6 +62,8 @@ export const en: Translations = {
         categoryHotWater: 'Hot water',
         categoryHeat: 'Heat',
         noOwner: 'no owner',
+        dangerZone: 'Danger zone',
+        dangerZoneHint: 'Deleting cannot be undone. A building can be deleted only after its units are deleted.',
     },
     unit: {
         assignOwner: 'Assign Owner by Email',
@@ -102,6 +104,7 @@ export const en: Translations = {
         loadingReadings: 'Loading readings…',
         prevPeriod: 'Previous',
         nextPeriod: 'Next',
+        changeOwner: 'Change',
     },
     users: {
         title: 'User Management',
@@ -120,6 +123,14 @@ export const en: Translations = {
         adminInfo: "Admins can create Home Lords, Owners, and other Admins.",
         homeLordInfo: "Home Lords can only create Owners.",
         assignedTo: "Assigned To",
+        searchPlaceholder: 'Search name, e-mail, unit…',
+        filterAll: 'All',
+        noMatch: 'No user matches.',
+        nameSaved: 'Name saved.',
+        inviteValid: 'Valid',
+        inviteExpired: 'Expired',
+        inviteCreated: 'Created',
+        inviteExpires: 'Expires',
     },
     profile: {
         title: 'Your Profile',
