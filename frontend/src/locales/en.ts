@@ -251,5 +251,6 @@ export const en: Translations = {
         categoryElectricity: 'Electricity',
         buildingChart: 'Building consumption by month',
         chartLoading: 'Loading the chart… (the first load of a year can take up to half a minute)',
+        onlyUnusual: 'Only unusual ({{count}})',
     }
 };
