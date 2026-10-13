@@ -1,4 +1,5 @@
 "use client";
+import { CARD, FILTER_SELECT } from '@/lib/ui';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { authFetch } from '@/lib/api';
@@ -146,7 +147,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
     }, [] as { building_id: string; building_name: string; units: OwnedUnitLink[] }[]);
     const valuesOf = (id: string) => data?.units.find(u => u.id === id)?.values ?? {};
 
-    const card = 'bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100';
+    const card = CARD;
     const arrow = 'px-2 py-1 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40';
     const totals = byType(Object.entries(data?.totals ?? {}));
 
@@ -157,11 +158,11 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                     <h2 className="text-lg font-semibold text-gray-800">{t.dashboard.totalFor.replace('{{period}}', periodLabel)}</h2>
                     <div className="flex items-center gap-1">
                         <button type="button" onClick={() => shift(-1)} disabled={atOldest} className={arrow} aria-label={t.unit.prevPeriod} title={t.unit.prevPeriod}>‹</button>
-                        <select value={month} onChange={e => { setPeriodTouched(true); setMonth(parseInt(e.target.value)); }} aria-label={t.consumption.period} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <select value={month} onChange={e => { setPeriodTouched(true); setMonth(parseInt(e.target.value)); }} aria-label={t.consumption.period} className={FILTER_SELECT}>
                             <option value={0}>{t.consumption.wholeYear}</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{monthName(m)}</option>)}
                         </select>
-                        <select value={year} onChange={e => { setPeriodTouched(true); setYear(parseInt(e.target.value)); }} aria-label={t.unit.year} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <select value={year} onChange={e => { setPeriodTouched(true); setYear(parseInt(e.target.value)); }} aria-label={t.unit.year} className={FILTER_SELECT}>
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                         <button type="button" onClick={() => shift(1)} disabled={atLatest} className={arrow} aria-label={t.unit.nextPeriod} title={t.unit.nextPeriod}>›</button>

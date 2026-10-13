@@ -1,4 +1,5 @@
 "use client";
+import { BUTTON, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
@@ -301,60 +302,60 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         && (!unitQuery || [u.unit_number, u.owner?.full_name, u.owner?.email].some(x => (x ?? '').toLocaleLowerCase().includes(unitQuery))));
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="mb-6">
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }, { label: building.name }]} />
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
-                            <form onSubmit={handleUpdateBuilding} className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 space-y-4">
+                            <form onSubmit={handleUpdateBuilding} className={`${CARD} p-4 sm:p-6 space-y-4`}>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
+                                    <label className={LABEL}>{t.building.name}</label>
                                     <input
                                         type="text"
                                         value={editForm.name}
                                         onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.address}</label>
+                                    <label className={LABEL}>{t.building.address}</label>
                                     <input
                                         type="text"
                                         value={editForm.address}
                                         onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxDbName}</label>
+                                    <label className={LABEL}>{t.building.influxDbName}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_db_name}
                                         onChange={e => setEditForm({ ...editForm, influx_db_name: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderDbName}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxUnitTag}</label>
+                                    <label className={LABEL}>{t.building.influxUnitTag}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_unit_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_unit_tag: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderUnitTag}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxDeviceTag}</label>
+                                    <label className={LABEL}>{t.building.influxDeviceTag}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_device_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_device_tag: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderDeviceTag}
                                     />
                                 </div>
@@ -445,11 +446,11 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 </div>
                                 <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
+                                    <label className={LABEL}>{t.building.description}</label>
                                     <textarea
                                         value={editForm.description}
                                         onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         rows={3}
                                     />
                                 </div>
@@ -482,7 +483,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     </div>
                                 </div>
                                 <div className="flex space-x-2">
-                                    <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <button type="submit" className={BUTTON}>
                                         {t.common.save}
                                     </button>
                                     <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
@@ -504,7 +505,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 {(isAdmin || user?.role === 'home_lord') && building.units_fetched && (
                                     <Link
                                         href={`/buildings/${id}/consumption`}
-                                        className="mt-4 mr-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                        className={`mt-4 mr-4 inline-block ${BUTTON} text-sm font-medium`}
                                     >
                                         {t.consumption.open}
                                     </Link>
@@ -523,8 +524,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     </div>
                     {/* Admin Manager Assignment */}
                     {isAdmin && (
-                        <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 lg:max-w-xs lg:w-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.building.assignedHomeLord}</label>
+                        <div className={`${CARD} p-4 lg:max-w-xs lg:w-full`}>
+                            <label className={`${LABEL} mb-1`}>{t.building.assignedHomeLord}</label>
                             <UserSelect
                                 value={building.manager_id || ""}
                                 onChange={handleAssignManager}
@@ -569,7 +570,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         )}
                     </div>
                 )}
-                <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
+                <div className={`${CARD} overflow-hidden`}>
                     <ul className="divide-y divide-gray-100">
                         {visibleUnits.map(unit => (
                             <li key={unit.id} className="hover:bg-gray-50 transition-colors">

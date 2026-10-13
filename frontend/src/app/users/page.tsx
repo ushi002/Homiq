@@ -1,4 +1,5 @@
 "use client";
+import { CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -272,7 +273,7 @@ export default function UsersPage() {
             .some(text => (text ?? '').toLocaleLowerCase().includes(query))));
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
@@ -288,32 +289,32 @@ export default function UsersPage() {
                         + {t.users.inviteNew}
                     </button>
                 )}
-                <div className={`${inviteOpen ? '' : 'hidden'} lg:block bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 h-fit`}>
+                <div className={`${CARD} ${inviteOpen ? '' : 'hidden'} lg:block p-4 sm:p-6 h-fit`}>
                     <h2 className="text-lg font-semibold mb-4">{t.users.inviteNew}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.common.email}</label>
+                            <label className={LABEL}>{t.common.email}</label>
                             <input
                                 type="email"
                                 required
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                className={INPUT}
                                 value={newUser.email}
                                 onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.users.fullName}</label>
+                            <label className={LABEL}>{t.users.fullName}</label>
                             <input
                                 type="text"
                                 required
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                className={INPUT}
                                 value={newUser.full_name}
                                 onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
                             />
                         </div>
                         {/* Password field removed for invite flow */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.users.role}</label>
+                            <label className={LABEL}>{t.users.role}</label>
                             <select
                                 className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-white`}
                                 value={newUser.role}
@@ -340,7 +341,7 @@ export default function UsersPage() {
                 </div>
 
                 {/* User List */}
-                <div className="lg:col-span-2 bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
+                <div className={`lg:col-span-2 ${CARD} overflow-hidden`}>
                     <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
                         <div className="flex flex-wrap justify-between items-center gap-2">
                             <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>

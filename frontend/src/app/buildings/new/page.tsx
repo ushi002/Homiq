@@ -1,4 +1,5 @@
 "use client";
+import { INPUT, LABEL, PAGE } from '@/lib/ui';
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -96,7 +97,7 @@ export default function CreateBuilding() {
     };
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans flex items-center justify-center">
+        <main className={`${PAGE} flex items-center justify-center`}>
             <div className="bg-white p-4 sm:p-8 -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x shadow-sm border border-gray-100 max-w-lg w-[calc(100%+2rem)] sm:w-full">
                 <div className="mb-6">
                     <Breadcrumbs items={[{ label: t.nav.buildings, href: '/' }, { label: t.dashboard.addBuilding }]} />
@@ -105,63 +106,63 @@ export default function CreateBuilding() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
+                        <label className={LABEL}>{t.building.name}</label>
                         <input
                             type="text"
                             value={form.name}
                             onChange={e => setForm({ ...form, name: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             placeholder={t.building.placeholderName}
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.address}</label>
+                        <label className={LABEL}>{t.building.address}</label>
                         <input
                             type="text"
                             value={form.address}
                             onChange={e => setForm({ ...form, address: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             placeholder={t.building.placeholderAddress}
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.influxDbName}</label>
+                        <label className={LABEL}>{t.building.influxDbName}</label>
                         <input
                             type="text"
                             value={form.influx_db_name}
                             onChange={e => setForm({ ...form, influx_db_name: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             placeholder={t.building.placeholderDbName}
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.influxUnitTag}</label>
+                        <label className={LABEL}>{t.building.influxUnitTag}</label>
                         <input
                             type="text"
                             value={form.influx_unit_tag}
                             onChange={e => setForm({ ...form, influx_unit_tag: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             placeholder={t.building.placeholderUnitTag}
                             required
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.influxDeviceTag}</label>
+                        <label className={LABEL}>{t.building.influxDeviceTag}</label>
                         <input
                             type="text"
                             value={form.influx_device_tag}
                             onChange={e => setForm({ ...form, influx_device_tag: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             placeholder={t.building.placeholderDeviceTag}
                             required
                         />
                     </div>
 
                     <div className="space-y-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.building.influxMeasurements}</label>
+                        <label className={`${LABEL} mb-2`}>{t.building.influxMeasurements}</label>
                         {[
                             { type: 'water_cold', label: t.building.categoryColdWater, color: 'text-blue-600', bg: 'bg-blue-50' },
                             { type: 'water_hot', label: t.building.categoryHotWater, color: 'text-red-600', bg: 'bg-red-50' },
@@ -250,11 +251,11 @@ export default function CreateBuilding() {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
+                        <label className={LABEL}>{t.building.description}</label>
                         <textarea
                             value={form.description}
                             onChange={e => setForm({ ...form, description: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2.5"
+                            className={INPUT}
                             rows={3}
                             placeholder={t.building.placeholderDescription}
                         />

@@ -1,4 +1,5 @@
 "use client";
+import { BUTTON_SECONDARY, CARD, EMPTY_STATE, FILTER_LABEL, FILTER_SELECT, LABEL, PAGE } from '@/lib/ui';
 import React, { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import UserSelect from '@/components/UserSelect';
@@ -284,7 +285,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
     if (unitError) {
         return (
-            <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+            <main className={PAGE}>
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
                 <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{unitError}</div>
             </main>
@@ -292,7 +293,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     }
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
                 <div>
                     <Breadcrumbs items={[
@@ -303,7 +304,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     <h1 className="text-3xl font-bold">{t.nav.unit} {unit?.unit_number}</h1>
                 </div>
                 {canAssignOwner && unit && (
-                    <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 w-auto sm:w-full lg:max-w-sm">
+                    <div className={`${CARD} p-4 w-auto sm:w-full lg:max-w-sm`}>
                         <div className="flex justify-between items-start gap-3">
                             <div className="min-w-0">
                                 <p className="text-xs font-bold text-gray-500 uppercase">{t.unit.currentOwner}</p>
@@ -329,7 +330,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 const email = (form.elements.namedItem('email') as HTMLInputElement).value;
                                 handleAssignOwner(email);
                             }} className="mt-3">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
+                                <label className={`${LABEL} mb-1`}>{t.unit.assignOwner}</label>
                                 <div className="flex gap-2">
                                     <input
                                         name="email"
@@ -355,9 +356,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
 
             <div className="grid grid-cols-1 gap-6">
                 {/* Comparative Controls */}
-                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
+                <div className={`${CARD} p-4 flex flex-wrap gap-4 items-center`}>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
+                        <label className={FILTER_LABEL}>{t.unit.year}</label>
                         <select
                             value={selectedYear}
                             onChange={(e) => {
@@ -365,13 +366,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 setSelectedYear(year);
                                 setSelectedWeek(w => Math.min(w, getWeekNumber(new Date(year, 11, 28))));
                             }}
-                            className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                            className={`mt-1 block w-24 ${FILTER_SELECT}`}
                         >
                             {availableYears.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.viewMode}</label>
+                        <label className={FILTER_LABEL}>{t.unit.viewMode}</label>
                         <div className="flex mt-1 border rounded-md overflow-hidden">
                             <button
                                 onClick={() => setViewMode('month')}
@@ -388,7 +389,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">
+                        <label className={FILTER_LABEL}>
                             {viewMode === 'month' ? t.unit.selectMonth : t.unit.selectWeek}
                         </label>
                         <div className="mt-1 flex items-center gap-1">
@@ -397,7 +398,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             <select
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                className="block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                                className={`block w-32 ${FILTER_SELECT}`}
                             >
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: 'long' })}</option>
@@ -407,7 +408,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             <select
                                 value={selectedWeek}
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                                className="block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                                className={`block w-32 ${FILTER_SELECT}`}
                             >
                                 {Array.from({ length: weeksInSelectedYear }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
@@ -425,7 +426,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     <button
                         onClick={exportReadings}
                         disabled={!meters.some(m => m.recent_readings.some(r => r.time.startsWith(String(selectedYear))))}
-                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        className={`sm:ml-auto self-end ${BUTTON_SECONDARY}`}
                     >
                         ⬇ {t.csv.downloadReadings}
                     </button>
@@ -494,7 +495,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         ));
 
                     return (
-                        <div key={group[0].type} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6">
+                        <div key={group[0].type} className={`${CARD} p-4 sm:p-6`}>
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                                 <div>
                                     <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -617,7 +618,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     );
                 })}
                 {metersLoading && (
-                    <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6 space-y-4" aria-busy="true">
+                    <div className={`${CARD} p-4 sm:p-6 space-y-4`} aria-busy="true">
                         <span className="sr-only">{t.common.loading}</span>
                         <div className="bg-gray-200 rounded animate-pulse h-5 w-48" />
                         <div className="bg-gray-200 rounded animate-pulse h-40 w-full" />
@@ -625,7 +626,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     </div>
                 )}
                 {!metersLoading && meters.length === 0 && (
-                    <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">
+                    <div className={EMPTY_STATE}>
                         {t.unit.noMeters}
                     </div>
                 )}

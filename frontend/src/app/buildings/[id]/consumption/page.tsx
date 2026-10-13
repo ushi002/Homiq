@@ -1,4 +1,5 @@
 "use client";
+import { BUTTON_SECONDARY, CARD, EMPTY_STATE, FILTER_LABEL, FILTER_SELECT, PAGE } from '@/lib/ui';
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -257,7 +258,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     );
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900">
+        <main className={PAGE}>
             <div className="max-w-7xl mx-auto">
                 <Breadcrumbs items={[
                     { label: t.nav.buildings, href: '/' },
@@ -266,16 +267,16 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 ]} />
                 <h1 className="text-3xl font-bold mb-6">{t.consumption.title}</h1>
 
-                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center mb-6">
+                <div className={`${CARD} p-4 flex flex-wrap gap-4 items-center mb-6`}>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
-                        <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <label className={FILTER_LABEL}>{t.unit.year}</label>
+                        <select value={year} onChange={e => setYear(parseInt(e.target.value))} className={`mt-1 block w-24 ${FILTER_SELECT}`}>
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.consumption.period}</label>
-                        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className="mt-1 block w-36 rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <label className={FILTER_LABEL}>{t.consumption.period}</label>
+                        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className={`mt-1 block w-36 ${FILTER_SELECT}`}>
                             <option value={0}>{t.consumption.wholeYear}</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                 <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(locale, { month: 'long' })}</option>
@@ -294,7 +295,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                     <button
                         onClick={exportReadings}
                         disabled={!data || data.meter_types.length === 0 || exporting}
-                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        className={`sm:ml-auto self-end ${BUTTON_SECONDARY}`}
                     >
                         ⬇ {exporting ? t.csv.preparing : t.csv.downloadReadings}
                     </button>
@@ -316,7 +317,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                     const type = chartType && data.meter_types.some(mt => mt.type === chartType) ? chartType : data.meter_types[0].type;
                     const uom = data.meter_types.find(mt => mt.type === type)!.unit_of_measure;
                     return (
-                        <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 mb-6">
+                        <div className={`${CARD} p-4 sm:p-6 mb-6`}>
                             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
                                 <h2 className="text-lg font-semibold">{t.consumption.buildingChart}</h2>
                                 <div className="flex flex-wrap gap-1 text-sm">
@@ -351,11 +352,11 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 {!data && loading && <div className="p-8 text-center">{t.common.loading}</div>}
 
                 {data && data.meter_types.length === 0 && (
-                    <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">{t.consumption.noMeters}</div>
+                    <div className={EMPTY_STATE}>{t.consumption.noMeters}</div>
                 )}
 
                 {data && data.meter_types.length > 0 && (
-                    <div className={`bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
+                    <div className={`${CARD} overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-200 text-left text-gray-500">

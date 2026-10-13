@@ -1,4 +1,5 @@
 "use client";
+import { INPUT, LABEL } from '@/lib/ui';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -141,21 +142,21 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
 
                 <form onSubmit={handleAcceptInvite} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.invite.newPassword}</label>
+                        <label className={LABEL}>{t.invite.newPassword}</label>
                         <input
                             type="password"
                             required
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                            className={INPUT}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t.invite.confirmPassword}</label>
+                        <label className={LABEL}>{t.invite.confirmPassword}</label>
                         <input
                             type="password"
                             required
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-3 border"
+                            className={INPUT}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
                         />
