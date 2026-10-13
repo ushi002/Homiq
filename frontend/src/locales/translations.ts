@@ -140,6 +140,9 @@ export interface Translations {
         inviteExpires: string;
         createdAt: string;
         lastLogin: string;
+        renewInvite: string;
+        inviteRenewed: string;
+        inviteRenewFailed: string;
     };
     profile: {
         title: string;

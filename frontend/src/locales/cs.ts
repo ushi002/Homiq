@@ -142,6 +142,9 @@ export const cs: Translations = {
         inviteExpires: 'Platí do',
         createdAt: 'Vytvořen',
         lastLogin: 'Naposledy přihlášen',
+        renewInvite: 'Obnovit pozvánku (platnost 48 h)',
+        inviteRenewed: 'Pozvánka obnovena.',
+        inviteRenewFailed: 'Pozvánku se nepodařilo obnovit',
     },
     profile: {
         title: 'Můj profil',

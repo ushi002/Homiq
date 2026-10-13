@@ -142,6 +142,9 @@ export const en: Translations = {
         inviteExpires: 'Expires',
         createdAt: 'Created',
         lastLogin: 'Last login',
+        renewInvite: 'Renew invite (valid 48 h)',
+        inviteRenewed: 'Invite renewed.',
+        inviteRenewFailed: 'Failed to renew the invite',
     },
     profile: {
         title: 'Your Profile',
