@@ -1,10 +1,13 @@
 "use client";
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useCallback, useMemo, useContext } from 'react';
 import { useRouter } from 'next/navigation';
+import { setStored, useStored } from '@/lib/stored';
+
+type User = { id: string; role: string; full_name?: string; email?: string };
 
 interface AuthContextType {
     token: string | null;
-    user: { id: string; role: string; full_name?: string; email?: string } | null;
+    user: User | null;
     login: (token: string, user_id: string, role: string, full_name?: string, email?: string) => void;
     logout: (shouldRedirect?: boolean) => void;
     isAuthenticated: boolean;
@@ -21,40 +24,35 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [token, setToken] = useState<string | null>(null);
-    const [user, setUser] = useState<{ id: string; role: string; full_name?: string; email?: string } | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    // The session lives in localStorage (lib/api.ts renews the token there); undefined = not read yet
+    const storedToken = useStored('token');
+    const storedUser = useStored('user');
+    const isLoading = storedToken === undefined;
+    const user = useMemo<User | null>(() => {
+        if (!storedToken || !storedUser) return null;
+        try {
+            return JSON.parse(storedUser);
+        } catch {
+            return null;
+        }
+    }, [storedToken, storedUser]);
+    const token = user ? storedToken ?? null : null;
     const router = useRouter();
 
-    useEffect(() => {
-        // Load from localStorage
-        const storedToken = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        if (storedToken && storedUser) {
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
-        }
-        setIsLoading(false);
-    }, []);
-
-    const login = (newToken: string, user_id: string, role: string, full_name?: string, email?: string) => {
-        const userData = { id: user_id, role, full_name, email };
-        setToken(newToken);
-        setUser(userData);
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('user', JSON.stringify(userData));
+    // Stable, so pages can call them from effects
+    const login = useCallback((newToken: string, user_id: string, role: string, full_name?: string, email?: string) => {
+        setStored('user', JSON.stringify({ id: user_id, role, full_name, email }));
+        setStored('token', newToken);
         router.push('/');
-    };
+    }, [router]);
 
-    const logout = (shouldRedirect: boolean = true) => {
-        setToken(null);
-        setUser(null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const logout = useCallback((shouldRedirect: boolean = true) => {
+        setStored('token', null);
+        setStored('user', null);
         if (shouldRedirect) {
             router.push('/login');
         }
-    };
+    }, [router]);
 
     return (
         <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated: !!token, isLoading }}>

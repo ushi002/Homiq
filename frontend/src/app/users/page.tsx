@@ -36,7 +36,6 @@ export default function UsersPage() {
     const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
     const { user: currentUser, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
-    const [origin, setOrigin] = useState('');
     const { t, language } = useLanguage();
     usePageTitle(t.users.title);
     const toast = useToast();
@@ -48,6 +47,19 @@ export default function UsersPage() {
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
+    const newUserRole = newUser.role || allowedRole; // '' = the default for the current user
+    // Only called in the browser (handlers, and the user list, which is loaded there)
+    const inviteLink = (inviteToken: string) => `${window.location.origin}/invite/${inviteToken}`;
+
+    const fetchUsers = () => {
+        authFetch('/users/')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => setUsers(data))
+            .catch(err => console.error(err));
+    };
 
     useEffect(() => {
         if (authLoading) return;
@@ -62,31 +74,18 @@ export default function UsersPage() {
             return;
         }
 
-        setOrigin(window.location.origin);
         fetchUsers();
-        // Set default role
-        setNewUser(prev => ({ ...prev, role: currentUser?.role === 'admin' ? 'home_lord' : 'owner' }));
     }, [currentUser, token, authLoading, router]);
-
-    const fetchUsers = () => {
-        authFetch('/users/')
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                return res.json();
-            })
-            .then(data => setUsers(data))
-            .catch(err => console.error(err));
-    };
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const res = await authFetch('/users/', {
                 method: 'POST',
-                body: JSON.stringify(newUser)
+                body: JSON.stringify({ ...newUser, role: newUserRole })
             });
             if (res.ok) {
-                setNewUser({ email: '', full_name: '', role: allowedRole });
+                setNewUser({ email: '', full_name: '', role: '' });
                 setInviteOpen(false);
                 fetchUsers();
             } else {
@@ -137,7 +136,7 @@ export default function UsersPage() {
     };
 
     const copyInviteLink = (token: string) => {
-        const link = `${origin}/invite/${token}`;
+        const link = inviteLink(token);
 
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(link)
@@ -323,7 +322,7 @@ export default function UsersPage() {
                             <label className={LABEL}>{t.users.role}</label>
                             <select
                                 className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-white`}
-                                value={newUser.role}
+                                value={newUserRole}
                                 onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                                 disabled={currentUser?.role !== 'admin'}
                             >
@@ -487,7 +486,7 @@ export default function UsersPage() {
                                             </button>
                                         ) : (
                                         <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded border border-gray-200">
-                                            <code className="text-xs text-gray-600 break-all flex-1">{`${origin}/invite/${user.invite_token}`}</code>
+                                            <code className="text-xs text-gray-600 break-all flex-1">{inviteLink(user.invite_token)}</code>
                                             <button
                                                 onClick={() => copyInviteLink(user.invite_token!)}
                                                 className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"

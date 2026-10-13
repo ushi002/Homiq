@@ -22,7 +22,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
     // Clear any existing session when landing on invite page
     React.useEffect(() => {
         logout(false);
-    }, []);
+    }, [logout]);
 
     // Validate token on load
     React.useEffect(() => {
@@ -44,7 +44,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         };
 
         validateToken();
-    }, [token, t]);
+    }, [token, t, apiErrorReason]);
 
     const handleAcceptInvite = async (e: React.FormEvent) => {
         e.preventDefault();

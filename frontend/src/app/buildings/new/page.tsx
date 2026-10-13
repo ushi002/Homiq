@@ -1,10 +1,10 @@
 "use client";
 import { INPUT, LABEL, PAGE } from '@/lib/ui';
 import React, { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
+import { MeasurementItem, newMeasurementId, serializeMeasurements } from '@/lib/measurements';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -32,52 +32,7 @@ export default function CreateBuilding() {
         influx_measurements: ''
     });
 
-    // Measurements UI State
-    interface MeasurementItem {
-        id: string;
-        name: string;
-        uom: string;
-        type: string;
-    }
     const [measurementsList, setMeasurementsList] = useState<MeasurementItem[]>([]);
-
-    // Helper: Serialize objects back to string
-    const serializeMeasurements = (items: MeasurementItem[]): string => {
-        return items.map(m => {
-            if (!m.name.trim()) return null;
-            const name = m.name.trim();
-            const uom = m.uom.trim();
-            const type = m.type.trim();
-
-            if (uom || type) {
-                // name[uom,type]
-                let content = uom;
-                if (type) {
-                    content = `${uom},${type}`;
-                }
-                return `${name}[${content}]`;
-            }
-            return name;
-        }).filter(Boolean).join(', ');
-    };
-
-    const addMeasurement = () => {
-        setMeasurementsList([...measurementsList, { id: Math.random().toString(36).substr(2, 9), name: '', uom: '', type: '' }]);
-    };
-
-    const removeMeasurement = (index: number) => {
-        const newList = [...measurementsList];
-        newList.splice(index, 1);
-        setMeasurementsList(newList);
-        setForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
-
-    const updateMeasurement = (index: number, field: keyof MeasurementItem, value: string) => {
-        const newList = [...measurementsList];
-        newList[index] = { ...newList[index], [field]: value };
-        setMeasurementsList(newList);
-        setForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -184,7 +139,7 @@ export default function CreateBuilding() {
                                     <button
                                         type="button"
                                         onClick={() => {
-                                            const newId = Math.random().toString(36).substr(2, 9);
+                                            const newId = newMeasurementId();
                                             setMeasurementsList([...measurementsList, { id: newId, name: '', uom: '', type: category.type }]);
                                         }}
                                         className={`text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm`}

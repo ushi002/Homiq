@@ -66,13 +66,12 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
     const [year, setYear] = useState(lastMonth.getFullYear());
     const [month, setMonth] = useState(lastMonth.getMonth() + 1); // 0 = whole year
     const [data, setData] = useState<Summary | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loadedPeriod, setLoadedPeriod] = useState(''); // year-month of the last finished request
     const [failed, setFailed] = useState(false);
     const [periodTouched, setPeriodTouched] = useState(false); // the owner chose a period: no automatic jump
 
     useEffect(() => {
         let stale = false; // a newer period was selected meanwhile
-        setLoading(true);
         authFetch(`/units/summary?year=${year}${month ? `&month=${month}` : ''}`)
             .then(async res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -94,9 +93,11 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                 console.error(err);
                 if (!stale) setFailed(true);
             })
-            .finally(() => { if (!stale) setLoading(false); });
+            .finally(() => { if (!stale) setLoadedPeriod(`${year}-${month}`); });
         return () => { stale = true; };
     }, [year, month]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const loading = loadedPeriod !== `${year}-${month}`;
 
     const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
     const monthName = (m: number) => new Date(2000, m - 1).toLocaleString(locale, { month: 'long' });

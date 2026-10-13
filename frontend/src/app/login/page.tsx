@@ -38,9 +38,9 @@ export default function LoginPage() {
             // Alternatively, backend returns it in `data` if we added it there.
             // Since backend returns `full_name`, let's assume valid email is in `email` state.
             login(data.access_token, data.user_id, data.role, data.full_name, email);
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            setError(err.message || t.login.error);
+            setError((err instanceof Error && err.message) || t.login.error);
         }
     };
 

@@ -1,11 +1,12 @@
 "use client";
 import { BUTTON, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
-import React, { useEffect, useState, use } from 'react';
+import React, { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
+import { MeasurementItem, newMeasurementId, parseMeasurements, serializeMeasurements } from '@/lib/measurements';
 import UserSelect from '@/components/UserSelect';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/context/AuthContext';
@@ -32,13 +33,14 @@ interface Building {
     influx_device_tag?: string;
     influx_measurements?: string;
     units_fetched?: boolean;
+    manager_id?: string | null;
 }
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
+    const [building, setBuilding] = useState<Building | null>(null);
     const [units, setUnits] = useState<Unit[]>([]);
-    const [loadError, setLoadError] = useState('');
+    const [loadError, setLoadError] = useState<'notFound' | 'failed' | null>(null);
     const [unitSearch, setUnitSearch] = useState('');
     const [onlyWithoutOwner, setOnlyWithoutOwner] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth();
@@ -61,79 +63,22 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
 
 
-    // Measurements UI State
-    interface MeasurementItem {
-        id: string;
-        name: string;
-        uom: string;
-        type: string;
-    }
     const [measurementsList, setMeasurementsList] = useState<MeasurementItem[]>([]);
 
-    // Helper: Parse string "sv_l[m3,Cold Water], ..." to objects
-    const parseMeasurements = (str: string): MeasurementItem[] => {
-        if (!str) return [];
-        const parts = str.split(/,(?![^\[]*\])/); // Split by comma ignoring brackets
-        return parts.map(part => {
-            part = part.trim();
-            if (!part) return null;
-            let name = part;
-            let uom = '';
-            let type = '';
-
-            if (part.includes('[') && part.endsWith(']')) {
-                const [n, content] = part.split('[');
-                name = n.trim();
-                const inner = content.slice(0, -1); // remove closing ]
-                if (inner.includes(',')) {
-                    const [u, t] = inner.split(',', 2);
-                    uom = u.trim();
-                    type = t.trim();
-                } else {
-                    uom = inner.trim();
-                }
-            }
-            return { id: Math.random().toString(36).substr(2, 9), name, uom, type };
-        }).filter(Boolean) as MeasurementItem[];
-    };
-
-    // Helper: Serialize objects back to string
-    const serializeMeasurements = (items: MeasurementItem[]): string => {
-        return items.map(m => {
-            if (!m.name.trim()) return null;
-            const name = m.name.trim();
-            const uom = m.uom.trim();
-            const type = m.type.trim();
-
-            if (uom || type) {
-                // name[uom,type]
-                let content = uom;
-                if (type) {
-                    content = `${uom},${type}`;
-                }
-                return `${name}[${content}]`;
-            }
-            return name;
-        }).filter(Boolean).join(', ');
-    };
-
-    const addMeasurement = () => {
-        setMeasurementsList([...measurementsList, { id: Math.random().toString(36).substr(2, 9), name: '', uom: '', type: '' }]);
-    };
-
-    const removeMeasurement = (index: number) => {
-        const newList = [...measurementsList];
-        newList.splice(index, 1);
-        setMeasurementsList(newList);
-        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
-
-    const updateMeasurement = (index: number, field: keyof MeasurementItem, value: string) => {
-        const newList = [...measurementsList];
-        newList[index] = { ...newList[index], [field]: value };
-        setMeasurementsList(newList);
-        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
+    // The building as loaded or saved, and the edit form filled from it
+    const showBuilding = useCallback((data: Building) => {
+        setBuilding(data);
+        setEditForm({
+            name: data.name,
+            address: data.address,
+            description: data.description || '',
+            influx_db_name: data.influx_db_name || '',
+            influx_unit_tag: data.influx_unit_tag || '',
+            influx_device_tag: data.influx_device_tag || '',
+            influx_measurements: data.influx_measurements || ''
+        });
+        setMeasurementsList(parseMeasurements(data.influx_measurements || ''));
+    }, []);
 
     useEffect(() => {
         if (authLoading || !token) return;
@@ -142,7 +87,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         // 403/404: the building does not exist or belongs to someone else
         const failed = (err: Error) => {
             console.error(err);
-            setLoadError(['403', '404'].includes(err.message) ? t.building.notFound : t.messages.errorGeneric);
+            setLoadError(['403', '404'].includes(err.message) ? 'notFound' : 'failed');
         };
         const json = async (res: Response) => {
             if (!res.ok) throw new Error(String(res.status));
@@ -150,7 +95,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         };
         authFetch(`/buildings/${id}`)
             .then(json)
-            .then(data => setBuilding(data))
+            .then(showBuilding)
             .catch(failed);
 
         // Fetch units
@@ -158,28 +103,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             .then(json)
             .then(data => setUnits(data))
             .catch(failed);
-    }, [id, token, authLoading]);
-
-    useEffect(() => {
-        if (building) {
-            setEditForm({
-                name: building.name,
-                address: building.address,
-                description: building.description || '',
-                influx_db_name: building.influx_db_name || '',
-                influx_unit_tag: building.influx_unit_tag || '',
-                influx_device_tag: building.influx_device_tag || '',
-                influx_measurements: building.influx_measurements || ''
-            });
-            setMeasurementsList(parseMeasurements(building.influx_measurements || ''));
-        }
-    }, [building]);
+    }, [id, token, authLoading, showBuilding]);
 
     if (loadError) {
         return (
             <main className={PAGE}>
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
-                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{loadError}</div>
+                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{loadError === 'notFound' ? t.building.notFound : t.messages.errorGeneric}</div>
             </main>
         );
     }
@@ -194,7 +124,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             if (res.ok) {
                 // Update local state or reload
                 const updated = await res.json();
-                setBuilding(updated);
+                showBuilding(updated);
                 toast.success(t.messages.successUpdateManager);
             } else {
                 toast.error(t.messages.errorUpdateManager);
@@ -216,7 +146,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             });
             if (res.ok) {
                 const updated = await res.json();
-                setBuilding(updated);
+                showBuilding(updated);
                 setIsEditing(false);
                 toast.success(t.messages.successUpdateBuilding);
             } else {
@@ -389,7 +319,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        const newId = Math.random().toString(36).substr(2, 9);
+                                                        const newId = newMeasurementId();
                                                         setMeasurementsList([...measurementsList, { id: newId, name: '', uom: '', type: category.type }]);
                                                     }}
                                                     className={`text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm`}

@@ -46,8 +46,8 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      # Build includes the TypeScript check. Lint is left out until the react-hooks/set-state-in-effect
-      # findings (state read from localStorage on mount) are cleaned up.
+      - run: npm run lint -- --max-warnings=0
+      # Includes the TypeScript check
       - run: npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8000
