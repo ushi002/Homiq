@@ -1,5 +1,5 @@
 "use client";
-import { BUTTON, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
+import { BUTTON, BUTTON_SECONDARY, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
 import React, { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
@@ -34,6 +34,8 @@ interface Building {
     influx_measurements?: string;
     units_fetched?: boolean;
     manager_id?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
 }
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -47,7 +49,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const router = useRouter();
     const isAdmin = user?.role === 'admin';
     const [isEditing, setIsEditing] = useState(false);
-    const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_device_tag: '', influx_measurements: '' });
+    const [editForm, setEditForm] = useState({ name: '', address: '', description: '', influx_db_name: '', influx_unit_tag: '', influx_device_tag: '', influx_measurements: '', latitude: '', longitude: '' });
     const { t } = useLanguage();
     const toast = useToast();
     const apiError = useApiError();
@@ -75,6 +77,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             influx_db_name: data.influx_db_name || '',
             influx_unit_tag: data.influx_unit_tag || '',
             influx_device_tag: data.influx_device_tag || '',
+            latitude: data.latitude?.toString() ?? '',
+            longitude: data.longitude?.toString() ?? '',
             influx_measurements: data.influx_measurements || ''
         });
         setMeasurementsList(parseMeasurements(data.influx_measurements || ''));
@@ -142,7 +146,12 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             const res = await authFetch(`/buildings/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(editForm)
+                // Coordinates: a number, or none (empty field); a decimal comma is accepted
+                body: JSON.stringify({
+                    ...editForm,
+                    latitude: editForm.latitude.trim() ? parseFloat(editForm.latitude.replace(',', '.')) : null,
+                    longitude: editForm.longitude.trim() ? parseFloat(editForm.longitude.replace(',', '.')) : null,
+                })
             });
             if (res.ok) {
                 const updated = await res.json();
@@ -307,6 +316,19 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         placeholder={t.building.placeholderDeviceTag}
                                     />
                                 </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="building-lat" className={LABEL}>{t.building.latitude}</label>
+                                        <input id="building-lat" type="text" inputMode="decimal" value={editForm.latitude}
+                                               onChange={e => setEditForm({ ...editForm, latitude: e.target.value })} className={INPUT} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="building-lon" className={LABEL}>{t.building.longitude}</label>
+                                        <input id="building-lon" type="text" inputMode="decimal" value={editForm.longitude}
+                                               onChange={e => setEditForm({ ...editForm, longitude: e.target.value })} className={INPUT} />
+                                    </div>
+                                    <p className="col-span-2 -mt-2 text-xs text-gray-500">{t.building.locationHint}</p>
+                                </div>
                                 <div className="space-y-6">
                                     {[
                                         { type: 'water_cold', label: t.building.categoryColdWater, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -458,6 +480,14 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         {t.consumption.open}
                                     </Link>
                                 )}
+                                {(isAdmin || user?.role === 'home_lord') && building.units_fetched && (
+                                    <Link
+                                        href={`/buildings/${id}/energy`}
+                                        className={`mt-4 mr-4 inline-block ${BUTTON_SECONDARY}`}
+                                    >
+                                        {t.energy.open}
+                                    </Link>
+                                )}
 
                                 {isAdmin && (
                                     <button
@@ -532,7 +562,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     )}
                                     {/* Floor and area are not filled in yet for most units: shown only when known */}
                                     <span className="hidden sm:inline text-sm text-gray-500 shrink-0">
-                                        {unit.floor > 0 && <>{t.building.floor}: {unit.floor}</>}
+                                        {unit.floor > 0 && t.building.storey.replace('{{n}}', String(unit.floor))}
                                         {unit.area_m2 > 0 && <span className="ml-4">{unit.area_m2} m²</span>}
                                     </span>
                                     <span className="text-blue-500 shrink-0 ml-auto" aria-hidden="true">&rarr;</span>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
+import { niceScale } from '@/lib/chart';
 import { combinedConsumption, monthBounds } from '@/lib/consumption';
 
 interface Reading {
@@ -22,15 +23,6 @@ interface ConsumptionChartProps {
 // Same rule as the rest of the app (lib/consumption.ts); incomplete months are still drawn.
 const monthlyConsumption = (meters: Reading[][], year: number): (number | null)[] =>
     Array.from({ length: 12 }, (_, month) => combinedConsumption(meters, ...monthBounds(year, month + 1)).value);
-
-// Round the axis maximum up to a clean step (1, 2, 2.5, 5 × 10^n), 4 intervals
-const niceScale = (max: number) => {
-    const raw = max / 4;
-    const pow = Math.pow(10, Math.floor(Math.log10(raw)));
-    const f = raw / pow;
-    const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * pow;
-    return { step, top: Math.ceil(max / step) * step };
-};
 
 export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
     const { t, language } = useLanguage();
