@@ -113,6 +113,25 @@ export default function UsersPage() {
         }
     };
 
+    // New invite link valid for another 48 hours; the old link stops working
+    const renewInvite = async (userId: string) => {
+        try {
+            const res = await authFetch(`/users/${userId}/renew_invite`, { method: 'POST' });
+            if (res.ok) {
+                const updated: User = await res.json();
+                fetchUsers();
+                if (updated.invite_token) copyInviteLink(updated.invite_token);
+                else toast.success(t.users.inviteRenewed);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                toast.error(apiError(t.users.inviteRenewFailed, err.detail));
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(t.messages.errorGeneric);
+        }
+    };
+
     const copyInviteLink = (token: string) => {
         const link = `${origin}/invite/${token}`;
 
@@ -450,6 +469,14 @@ export default function UsersPage() {
                                             </div>
                                         </div>
 
+                                        {isExpired(user.invite_expires_at) ? (
+                                            <button
+                                                onClick={() => renewInvite(user.id)}
+                                                className="w-full sm:w-auto px-3 py-1.5 rounded-md bg-amber-600 text-white text-sm font-medium hover:bg-amber-700"
+                                            >
+                                                {t.users.renewInvite}
+                                            </button>
+                                        ) : (
                                         <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded border border-gray-200">
                                             <code className="text-xs text-gray-600 break-all flex-1">{`${origin}/invite/${user.invite_token}`}</code>
                                             <button
@@ -460,6 +487,7 @@ export default function UsersPage() {
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                             </button>
                                         </div>
+                                        )}
                                     </div>
                                 )}
                             </li>
