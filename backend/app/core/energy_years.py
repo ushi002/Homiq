@@ -40,11 +40,15 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
     warnings = []
     heating_gj, hot_gj = row.get("heating_gj"), row.get("hot_water_gj")
     unreliable = bool(row.get("unreliable"))
-    corrected = row.get("corrected_heating_gj") is not None or row.get("corrected_hot_water_gj") is not None
-    if corrected:
-        warnings.append({"code": "corrected", "billed_heating_gj": heating_gj, "billed_hot_water_gj": hot_gj})
-        heating_gj = row.get("corrected_heating_gj") if row.get("corrected_heating_gj") is not None else heating_gj
-        hot_gj = row.get("corrected_hot_water_gj") if row.get("corrected_hot_water_gj") is not None else hot_gj
+    corrected_heating = row.get("corrected_heating_gj") is not None
+    corrected_hot = row.get("corrected_hot_water_gj") is not None
+    corrected = corrected_heating or corrected_hot
+    if corrected_heating:
+        warnings.append({"code": "corrected", "part": "heating", "billed_gj": heating_gj, "gj": row["corrected_heating_gj"]})
+        heating_gj = row["corrected_heating_gj"]
+    if corrected_hot:
+        warnings.append({"code": "corrected", "part": "hot_water", "billed_gj": hot_gj, "gj": row["corrected_hot_water_gj"]})
+        hot_gj = row["corrected_hot_water_gj"]
     if not unreliable and not corrected:  # a correction explains the billed prices
         prices = [p for p in (row.get("heating_price"), row.get("hot_water_price")) if p]
         if len(prices) == 2 and abs(prices[0] - prices[1]) > PRICE_MISMATCH * max(prices):
@@ -73,6 +77,8 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
         "year": row["year"],
         "unreliable": unreliable,
         "corrected": corrected,
+        "corrected_heating": corrected_heating,
+        "corrected_hot_water": corrected_hot,
         "heating_gj": heating_gj,
         "hot_water_gj": hot_gj,
         "heating_cost": row.get("heating_cost"),

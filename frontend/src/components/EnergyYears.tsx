@@ -6,8 +6,9 @@ import { CARD } from '@/lib/ui';
 
 interface YearWarning {
     code: 'price_mismatch' | 'degree_days' | 'split_differs' | 'corrected';
-    billed_heating_gj?: number | null;
-    billed_hot_water_gj?: number | null;
+    part?: 'heating' | 'hot_water';
+    billed_gj?: number | null;
+    gj?: number;
     share?: number;
     usual?: number;
     heating?: number;
@@ -19,7 +20,9 @@ interface YearWarning {
 interface EnergyYear {
     year: number;
     unreliable: boolean; // shown, but left out of comparisons
-    corrected: boolean; // heat corrected, the bill's figures were evidently wrong
+    corrected: boolean; // heat corrected, the bill's figure was evidently wrong
+    corrected_heating: boolean;
+    corrected_hot_water: boolean;
     heating_gj: number | null;
     hot_water_gj: number | null;
     total_cost: number | null;
@@ -89,14 +92,11 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
 
     const warnings = data.years.flatMap(y => {
         const out: string[] = [];
-        const corrected = y.warnings.find(w => w.code === 'corrected');
-        if (corrected) {
-            const ratio = data.split?.fixed
-                ? `${fmt((1 - data.split.hot_water_share) * 100)}/${fmt(data.split.hot_water_share * 100)}` : null;
+        y.warnings.filter(w => w.code === 'corrected').forEach(w => {
             out.push(t.energyYears.warnCorrected.replace('{{year}}', String(y.year))
-                .replace('{{heating}}', fmt(corrected.billed_heating_gj ?? null, 2)).replace('{{hotWater}}', fmt(corrected.billed_hot_water_gj ?? null, 2))
-                + (ratio ? ` ${t.energyYears.correctedBySplit.replace('{{ratio}}', ratio)}` : ''));
-        }
+                .replace('{{part}}', w.part === 'heating' ? t.energyYears.partHeating : t.energyYears.partHotWater)
+                .replace('{{billed}}', fmt(w.billed_gj ?? null, 2)).replace('{{gj}}', fmt(w.gj ?? null, 2)));
+        });
         const mismatch = y.warnings.find(w => w.code === 'price_mismatch');
         if (mismatch) {
             out.push(t.energyYears.warnPrice.replace('{{year}}', String(y.year))
@@ -116,7 +116,7 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
     });
     // A fixed split: the heat for hot water is not measured, energy per m3 would only echo the split
     const fixedSplit = data.split?.fixed ? data.split : null;
-    const fix = (y: EnergyYear) => y.corrected ? <span className="text-amber-700" title={t.energyYears.correctedNote}>*</span> : null;
+    const fix = (y: EnergyYear, applies = true) => y.corrected && applies ? <span className="text-amber-700" title={t.energyYears.correctedNote}>*</span> : null;
     const notes = data.years.filter(y => y.note);
 
     return (
@@ -152,8 +152,8 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
                                 <td className="px-3 py-2 font-medium" title={y.unreliable ? t.energyYears.unreliable : undefined}>
                                     {y.year}{y.unreliable && <span className="block text-xs font-normal">{t.energyYears.unreliableLabel}</span>}
                                 </td>
-                                <td className={TD}>{fmt(y.heating_gj, 1)}{fix(y)}</td>
-                                <td className={TD}>{fmt(y.hot_water_gj, 1)}{fix(y)}</td>
+                                <td className={TD}>{fmt(y.heating_gj, 1)}{fix(y, y.corrected_heating)}</td>
+                                <td className={TD}>{fmt(y.hot_water_gj, 1)}{fix(y, y.corrected_hot_water)}</td>
                                 <td className={TD}>{fmt(y.total_cost)}</td>
                                 <td className={TD}>{fmt(y.price_per_gj)}{fix(y)}</td>
                                 <td className={TD}>

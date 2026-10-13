@@ -319,8 +319,9 @@ export const cs: Translations = {
         loading: 'Načítám… (první načtení může trvat několik sekund)',
     },
     energyYears: {
-        warnCorrected: 'Rok {{year}}: množství tepla ve vyúčtování je zjevně chybné (vytápění {{heating}} GJ, ohřev TV {{hotWater}} GJ).',
-        correctedBySplit: 'Opraveno podle pevného poměru {{ratio}}, náklady v Kč platí podle vyúčtování.',
+        warnCorrected: 'Rok {{year}}: {{part}} má ve vyúčtování zjevně chybné množství tepla ({{billed}} GJ); výpočty používají {{gj}} GJ (z nákladů a ceny). Náklady v Kč platí podle vyúčtování.',
+        partHeating: 'vytápění',
+        partHotWater: 'ohřev TV',
         correctedNote: 'opravené množství tepla',
         warnPrice: 'Rok {{year}}: vytápění a ohřev TV mají ve vyúčtování různou cenu ({{heating}} a {{hotWater}} Kč/GJ).',
         warnSplit: 'Rok {{year}}: podíl ohřevu TV na teple z kotelny je {{share}} %, v ostatních letech {{usual}} %.',

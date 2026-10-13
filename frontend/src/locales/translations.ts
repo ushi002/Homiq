@@ -291,7 +291,8 @@ export interface Translations {
     };
     energyYears: {
         warnCorrected: string;
-        correctedBySplit: string;
+        partHeating: string;
+        partHotWater: string;
         correctedNote: string;
         warnPrice: string;
         warnSplit: string;

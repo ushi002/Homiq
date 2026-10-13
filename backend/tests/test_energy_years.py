@@ -41,9 +41,11 @@ assert all(s[k] is None for k in ("price_per_gj", "heating_kwh_per_dd", "heating
                                   "cold_water_diff", "hot_water_diff", "hot_water_share")), s
 
 # Corrected heat: used in every figure, the bill's kept in a warning, no price warning
-s = year_summary({**bad, "corrected_heating_gj": 600.0, "corrected_hot_water_gj": 400.0}, {"value": 2000, "days": 365, "complete": True})
-assert s["corrected"] and s["heating_gj"] == 600.0 and s["hot_water_gj"] == 400.0 and s["price_per_gj"] == 500.0, s
-assert s["warnings"] == [{"code": "corrected", "billed_heating_gj": 500.0, "billed_hot_water_gj": 500.0}], s["warnings"]
+# (only the heating figure wrong: the hot water stays as billed)
+s = year_summary({**bad, "hot_water_gj": 400.0, "corrected_heating_gj": 600.0}, {"value": 2000, "days": 365, "complete": True})
+assert s["corrected"] and s["corrected_heating"] and not s["corrected_hot_water"], s
+assert s["heating_gj"] == 600.0 and s["hot_water_gj"] == 400.0 and s["price_per_gj"] == 500.0, s
+assert s["warnings"] == [{"code": "corrected", "part": "heating", "billed_gj": 500.0, "gj": 600.0}], s["warnings"]
 assert s["hot_water_share"] == 0.4 and s["heating_kwh_per_dd"] == round(600 * KWH_PER_GJ / 2000, 1)
 
 # The bills split the heat by a fixed share: energy per m3 of hot water is removed
