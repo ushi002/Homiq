@@ -229,7 +229,7 @@ function AboutSection() {
     const server = useServerVersion();
     const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
     const built = (v: VersionInfo | null) =>
-        v?.built ? `${t.version.built} ${new Date(v.built).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}` : '';
+        v?.built ? `${t.version.built} ${new Date(v.built).toLocaleString(locale, { dateStyle: 'medium', timeStyle: 'short' })}` : '';
     const row = (label: string, v: VersionInfo | null) => (
         <div className="flex flex-wrap justify-between gap-x-4 py-2">
             <dt className="text-gray-500">{label}</dt>
