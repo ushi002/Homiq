@@ -69,6 +69,7 @@ export const en: Translations = {
         searchUnits: 'Search unit or owner…',
         onlyWithoutOwner: 'Only without owner',
         noUnitMatch: 'No unit matches.',
+        notFound: 'The building does not exist or you have no access to it.',
     },
     unit: {
         assignOwner: 'Assign owner by e-mail',

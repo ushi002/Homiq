@@ -15,7 +15,7 @@ export default function AppHeader() {
     const links = [
         // Owners see a list of their units on the home page, not buildings
         { href: '/', label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, active: pathname === '/' || pathname.startsWith('/buildings') || pathname.startsWith('/units') },
-        ...(user?.role === 'admin' ? [{ href: '/users', label: t.nav.users, active: pathname.startsWith('/users') }] : []),
+        ...(user?.role === 'admin' || user?.role === 'home_lord' ? [{ href: '/users', label: t.nav.users, active: pathname.startsWith('/users') }] : []),
     ];
     const name = user?.full_name || user?.email || '';
 
