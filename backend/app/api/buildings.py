@@ -346,6 +346,7 @@ def read_building_energy_years(
     # Heat meters against the bill's units, for the part of each year with meter data
     units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
+    unit_of_serial = {m.serial_number: str(m.unit_id) for m in meters}
     coefs = {str(u.id): u.position_coef for u in units if u.position_coef}
     measurements = [name for name, meta in (parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS).items()
                     if meta["type"] == "heat"]
@@ -361,7 +362,7 @@ def read_building_energy_years(
                                                  datetime(row.year + 1, 1, 1, tzinfo=timezone.utc)) or {}).items():
                     if sn in serials and (daily := energy.meter_daily(points, start, end)):
                         per_meter[sn] = daily
-            covered = [d["date"] for d in energy.building_daily(per_meter, {}, start, end) if d["complete"]]
+            covered = [d["date"] for d in energy.building_daily(energy.by_unit(per_meter, unit_of_serial), {}, start, end) if d["complete"]]
             if not covered:
                 continue
             first, last = date.fromisoformat(covered[0]), date.fromisoformat(covered[-1])
