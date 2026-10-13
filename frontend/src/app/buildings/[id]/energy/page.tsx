@@ -302,7 +302,7 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {units.map(u => (
-                                        <tr key={u.id} className={u.flag === 'high' ? 'bg-red-50' : u.flag === 'low' ? 'bg-amber-50' : ''}>
+                                        <tr key={u.id} className={u.flag === 'high' ? 'bg-red-500/10' : u.flag === 'low' ? 'bg-amber-500/10' : ''}>
                                             <td className="px-3 py-2 whitespace-nowrap">
                                                 <Link href={`/units/${u.id}`} className="font-medium text-blue-600 hover:underline">{u.unit_number}</Link>
                                                 {u.flag && <span className="sr-only"> ({u.flag === 'high' ? t.energy.high : t.energy.low})</span>}
