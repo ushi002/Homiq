@@ -27,7 +27,6 @@ interface BuildingStats {
   units_with_owner: number;
   pending_invites: number;
   last_reading: string | null;
-  unusual: { month: string; units: number } | null; // last month with data, "YYYY-MM"
 }
 
 interface OwnedUnit {
@@ -118,16 +117,9 @@ export default function Dashboard() {
   }
 
   const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
-  // "1 jednotka", "3 jednotky", "5 jednotek" (Czech has three plural forms for whole numbers)
-  const unitCount = (n: number) => {
-    const form = new Intl.PluralRules(locale).select(n);
-    const text = form === 'one' ? t.dashboard.unitsOne : form === 'few' ? t.dashboard.unitsFew : t.dashboard.unitsMany;
-    return text.replace('{{count}}', String(n));
-  };
-  // Units, owners, pending invites, latest reading and unusual consumption of a building
-  const renderStats = (buildingId: string, s: BuildingStats) => {
+  // Units, owners, pending invites and latest reading of a building
+  const renderStats = (s: BuildingStats) => {
     const stale = s.last_reading !== null && Date.now() - Date.parse(s.last_reading) > 7 * 86400000;
-    const [uy, um] = s.unusual ? s.unusual.month.split('-').map(Number) : [0, 0];
     return (
       <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-4">
         <div>
@@ -146,25 +138,6 @@ export default function Dashboard() {
             <dt className="sr-only">{t.unit.lastReading}</dt>
             <dd className={`text-xs ${stale ? 'text-amber-700 font-medium' : 'text-gray-500'}`} title={stale ? t.unit.lastReadingOld : undefined}>
               {t.unit.lastReading}: {new Date(s.last_reading).toLocaleDateString(locale)}
-            </dd>
-          </div>
-        )}
-        {s.unusual && s.unusual.units > 0 && (
-          <div className="col-span-2">
-            <dt className="sr-only">{t.unit.unusualTitle}</dt>
-            <dd>
-              {/* A link inside the card link would be invalid HTML: navigate by script instead */}
-              <span
-                role="link"
-                tabIndex={0}
-                onClick={e => { e.preventDefault(); router.push(`/buildings/${buildingId}/consumption?year=${uy}&month=${um}&unusual=1`); }}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); router.push(`/buildings/${buildingId}/consumption?year=${uy}&month=${um}&unusual=1`); } }}
-                className="text-xs font-medium text-red-700 hover:underline cursor-pointer"
-              >
-                ⚠ {t.dashboard.unusualUnits
-                  .replace('{{units}}', unitCount(s.unusual.units))
-                  .replace('{{month}}', new Date(uy, um - 1).toLocaleString(locale, { month: 'long', year: 'numeric' }))}
-              </span>
             </dd>
           </div>
         )}
@@ -202,7 +175,7 @@ export default function Dashboard() {
                   {building.description}
                 </p>
               )}
-              {stats[building.id] && renderStats(building.id, stats[building.id])}
+              {stats[building.id] && renderStats(stats[building.id])}
               <div className="flex justify-between items-center">
                 {user?.role === 'admin' && (
                   <span className={`px-2 py-1 rounded-full text-xs ${building.units_fetched ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>

@@ -20,7 +20,6 @@ interface Pair {
 
 interface UnitValue extends Pair {
     unit_of_measure: string;
-    unusual?: { median_factor: number; previous_factor: number | null } | null;
 }
 
 interface SummaryUnit {
@@ -135,7 +134,6 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
         ? t.unit.missingDays.replace('{{missing}}', String(c.missing_days)).replace('{{total}}', String(c.period_days))
         : t.unit.incompletePeriod;
     const comparable = (p: Pair) => p.current.complete && p.previous.complete && (p.previous.value ?? 0) > 0;
-    const factor = (f: number) => f.toLocaleString(locale, { maximumFractionDigits: f < 10 ? 1 : 0 });
 
     // Units by building (the backend sorts them); without the summary the plain list is shown
     const units: OwnedUnitLink[] = data?.units ?? fallbackUnits;
@@ -215,9 +213,6 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                                                 <span className="font-mono">{format(v.current.value)}</span> {v.current.value !== null && <span className="text-xs text-gray-500">{v.unit_of_measure}</span>}
                                                 {v.current.value !== null && !v.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(v.current)}>*</span>}
                                                 {comparable(v) && <> <YoyChange current={v.current.value as number} previous={v.previous.value as number} previousYear={year - 1} compact className="text-xs" /></>}
-                                                {v.unusual && (
-                                                    <span className="ml-1 text-red-700 cursor-help" title={`${t.unit.unusualTitle}: ${t.unit.unusualMedian.replace('{{factor}}', factor(v.unusual.median_factor))}`}>⚠</span>
-                                                )}
                                             </span>
                                         ))}
                                         <span className="ml-auto text-gray-500" aria-hidden="true">→</span>

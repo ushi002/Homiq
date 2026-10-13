@@ -34,10 +34,6 @@ export const cs: Translations = {
         summaryFailed: 'Souhrn spotřeby se nepodařilo načíst.',
         withOwner: 'S vlastníkem',
         pendingInvites: 'pozvánky: {{count}}',
-        unusualUnits: 'Neobvyklá spotřeba ({{month}}): {{units}}',
-        unitsOne: '{{count}} jednotka',
-        unitsFew: '{{count}} jednotky',
-        unitsMany: '{{count}} jednotek',
     },
     building: {
         name: 'Název',
