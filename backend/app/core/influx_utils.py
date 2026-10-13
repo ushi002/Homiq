@@ -293,3 +293,18 @@ def get_last_reading_time(db_name: str, measurements: List[str]) -> Optional[str
                 if series.get('values'):
                     times.append(series['values'][0][0])
     return max(times) if times else None
+
+
+def get_meters_last_time(db_name: str, measurements: List[str], device_tag: str, serials: List[str]) -> Optional[str]:
+    """Time of the newest reading of the given meters (serial numbers), or None."""
+    if not serials:
+        return None
+    pattern = "|".join(re.escape(s) for s in serials)
+    times = []
+    for measurement in measurements:
+        q = f'SELECT LAST("value") FROM "{measurement}" WHERE "{device_tag}" =~ /^({pattern})$/'
+        for result in query_influx(db_name, q).get('results', []):
+            for series in result.get('series', []):
+                if series.get('values'):
+                    times.append(series['values'][0][0])
+    return max(times) if times else None

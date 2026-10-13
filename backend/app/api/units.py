@@ -9,7 +9,7 @@ from ..core.database import get_session
 from ..core.anomaly import typical, unusual
 from ..core.consumption import PeriodResult, combine_meters
 from ..core.building_consumption import units_consumption
-from ..core.influx_utils import get_meter_readings, parse_measurements_config
+from ..core.influx_utils import get_meter_readings, get_meters_last_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
 from ..models.telemetry import Meter
 from .access import can_access_unit, require
@@ -68,7 +68,7 @@ def read_owner_summary(
     (or the whole year without month) and the same period a year earlier, per unit and in total.
     Same rules as the building overview. Other roles get an empty list (they use the overview).
     Totals add up only the same meter type and unit of measure (litres and m3 are not mixed)."""
-    empty = {"year": year, "month": month, "meter_types": [], "units": [], "totals": {}}
+    empty = {"year": year, "month": month, "last_reading": None, "meter_types": [], "units": [], "totals": {}}
     if current_user.role != "owner":
         return empty
 
@@ -84,7 +84,7 @@ def read_owner_summary(
     natural = lambda text: [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", text)]
     units = session.exec(select(Unit).where(Unit.owner_id == current_user.id)).all()
     buildings = sorted((session.get(Building, b) for b in {u.building_id for u in units}), key=lambda b: natural(b.name))
-    result_units, meter_types, totals = [], [], {}
+    result_units, meter_types, totals, last_times = [], [], {}, []
     for building in buildings:
         building_id = building.id
         own = sorted((u for u in units if u.building_id == building_id), key=lambda u: natural(u.unit_number))
@@ -93,6 +93,14 @@ def read_owner_summary(
         meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in all_units]))).all()
         types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
         uom = {mt["type"]: mt["unit_of_measure"] for mt in types}
+        # newest reading of the owner's own meters, regardless of the period (to open on data)
+        if building.influx_db_name and building.influx_device_tag:
+            own_ids = {u.id for u in own}
+            last = get_meters_last_time(building.influx_db_name,
+                                        list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS),
+                                        building.influx_device_tag, [m.serial_number for m in meters if m.unit_id in own_ids])
+            if last:
+                last_times.append(last)
         medians = {t: typical(by_type.get(t) for by_type in current.values()) for t in uom}
         own_types = {t for u in own for t in current.get(str(u.id), {}) | previous.get(str(u.id), {})}
         for mt in types:
@@ -119,7 +127,8 @@ def read_owner_summary(
                 "complete": bool(cells) and all(c["complete"] for c in cells)}
 
     return {
-        "year": year, "month": month, "meter_types": meter_types, "units": result_units,
+        "year": year, "month": month, "last_reading": max(last_times) if last_times else None,
+        "meter_types": meter_types, "units": result_units,
         "totals": {k: {"type": v["type"], "unit_of_measure": v["unit_of_measure"],
                        "current": add_up(v["current"]), "previous": add_up(v["previous"])} for k, v in totals.items()},
     }
