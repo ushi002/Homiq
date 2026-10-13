@@ -7,7 +7,7 @@ from sqlmodel import Session, SQLModel, select
 from ..core.database import get_session
 from ..core.security import get_password_hash, verify_password
 from ..models.property import Building, Unit, User, UserCreate, UserRead, UserUpdate, UserPasswordChange
-from .access import can_access_user, require
+from .access import can_access_user, can_manage_user, require
 from .deps import get_current_user
 
 router = APIRouter()
@@ -185,6 +185,27 @@ def update_user(
     if user_update.full_name is not None:
         user.full_name = user_update.full_name
         
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+@router.post("/{user_id}/renew_invite", response_model=UserRead)
+def renew_invite(
+    user_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """A new invitation link valid for 48 hours for a user who has not accepted the invitation yet
+    (the old link stops working)."""
+    user = session.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    require(can_manage_user(current_user, user))
+    if user.status != "pending":
+        raise HTTPException(status_code=400, detail="Invite already accepted")
+    user.invite_token = secrets.token_urlsafe(32)
+    user.invite_expires_at = datetime.utcnow() + timedelta(hours=48)
     session.add(user)
     session.commit()
     session.refresh(user)

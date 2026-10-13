@@ -230,7 +230,8 @@ export const cs: Translations = {
         'Invalid invite token': 'Odkaz s pozvánkou je neplatný.',
         'Building has no InfluxDB database configured': 'budova nemá nastavenou databázi InfluxDB',
         'Invalid period': 'neplatné období',
-        invalidInput: 'neplatné údaje ve formuláři',
+        'Invite already accepted': 'pozvánka už byla přijata',
+        'invalidInput': 'neplatné údaje ve formuláři',
     },
     csv: {
         preparing: 'Připravuji…',
