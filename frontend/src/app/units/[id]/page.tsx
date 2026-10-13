@@ -177,7 +177,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
 
     // Typical unit of the building (median) for the selected month/week, by meter type
-    const [typical, setTypical] = useState<Record<string, { median: number; units: number }>>({});
+    const [typical, setTypical] = useState<Record<string, { median: number; units: number; unusual?: { median_factor: number; previous_factor: number | null } | null }>>({});
     useEffect(() => {
         if (authLoading || !token) return;
         const [start, end] = viewMode === 'month' ? monthBounds(selectedYear, selectedMonth) : isoWeekBounds(selectedYear, selectedWeek);
@@ -553,6 +553,20 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             {/* Selected month/week: consumption, last year's value and the change, readings on demand
                                 (last year's readings: switch the year) */}
                             <div className="border border-blue-100 rounded-lg p-3 bg-blue-50/50">
+                                {/* Unusually high consumption in the selected period (rules in the backend): a possible leak */}
+                                {typical[group[0].type]?.unusual && (() => {
+                                    const { median_factor, previous_factor } = typical[group[0].type].unusual!;
+                                    const factor = (f: number) => f.toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { maximumFractionDigits: f < 10 ? 1 : 0 });
+                                    const isWater = group[0].type.startsWith('water');
+                                    return (
+                                        <div role="alert" className="mb-3 p-2.5 rounded-md border border-red-200 bg-red-50 text-sm text-red-800">
+                                            <span className="font-semibold">⚠ {t.unit.unusualTitle}:</span>{' '}
+                                            {t.unit.unusualMedian.replace('{{factor}}', factor(median_factor))}
+                                            {previous_factor !== null && <>, {t.unit.unusualPrevious.replace('{{factor}}', factor(previous_factor))}</>}.
+                                            {isWater && <> {t.unit.unusualWater}</>}
+                                        </div>
+                                    );
+                                })()}
                                 <div className="flex flex-wrap justify-between items-start gap-3">
                                     <div>
                                         <h4 className="font-semibold text-sm text-blue-800">{periodLabel} {selectedYear}</h4>

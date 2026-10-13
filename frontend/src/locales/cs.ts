@@ -110,6 +110,10 @@ export const cs: Translations = {
         changeOwner: 'Změnit',
         lastReading: 'Poslední odečet',
         lastReadingOld: 'Z měřičů déle než týden nepřišla data.',
+        unusualTitle: 'Neobvykle vysoká spotřeba',
+        unusualMedian: '{{factor}}× víc než běžná jednotka domu',
+        unusualPrevious: '{{factor}}× víc než loni',
+        unusualWater: 'Zkontrolujte, zda neuniká voda (kapající kohoutek, protékající WC).',
     },
     users: {
         title: 'Správa uživatelů',
