@@ -18,15 +18,16 @@ _cache: "OrderedDict[tuple, dict]" = OrderedDict()
 _cache_lock = threading.Lock()
 
 
-def _period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> dict:
+def _period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime,
+                   serials: Tuple[str, ...]) -> dict:
     if end + AFTER_WINDOW + timedelta(days=1) > datetime.now(timezone.utc):
-        return get_period_points(db_name, measurement, device_tag, start, end) or {}
-    key = (db_name, measurement, device_tag, start, end)
+        return get_period_points(db_name, measurement, device_tag, start, end, list(serials)) or {}
+    key = (db_name, measurement, device_tag, start, end, serials)
     with _cache_lock:
         if key in _cache:
             _cache.move_to_end(key)
             return _cache[key]
-    points = get_period_points(db_name, measurement, device_tag, start, end)
+    points = get_period_points(db_name, measurement, device_tag, start, end, list(serials))
     if points is None:  # InfluxDB error: answer empty now, ask again next time
         return {}
     with _cache_lock:
@@ -61,7 +62,8 @@ def units_consumption(building: Building, meters: List[Meter], periods: List[Tup
     # Influx queries run in parallel, one per measurement and period
     with ThreadPoolExecutor(max_workers=6) as pool:
         points = list(pool.map(
-            lambda job: _period_points(building.influx_db_name, job[0], building.influx_device_tag, *periods[job[3]]),
+            lambda job: _period_points(building.influx_db_name, job[0], building.influx_device_tag, *periods[job[3]],
+                                       tuple(sorted(m.serial_number for m in job[2]))),
             jobs,
         ))
 

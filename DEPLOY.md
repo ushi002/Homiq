@@ -99,7 +99,7 @@ Každý dům má v Homiq vlastní nastavení:
 
 | Pole domu | Význam | Příklad |
 |---|---|---|
-| `influx_db_name` | databáze v InfluxDB s daty domu | `svjkk469db` |
+| `influx_db_name` | databáze v InfluxDB s daty domu | `svj_priklad_db` |
 | `influx_unit_tag` | tag, který nese označení bytu/jednotky | `unit` |
 | `influx_device_tag` | tag s výrobním číslem měřiče | `sn` |
 | `influx_measurements` | seznam measurementů ve tvaru `název[jednotka,typ]`, oddělené čárkou | `sv_l[L,water_cold], tv_l[L,water_hot], teplo_kWh[kWh,heat]` |
