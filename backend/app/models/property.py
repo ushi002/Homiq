@@ -61,6 +61,9 @@ class BuildingBase(SQLModel):
     influx_device_tag: Optional[str] = None
     influx_measurements: Optional[str] = None
     units_fetched: bool = Field(default=False)
+    # Location for the outdoor temperature in the energy overview (Open-Meteo)
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class Building(BuildingBase, table=True):
     __tablename__ = "buildings"
@@ -83,6 +86,8 @@ class BuildingUpdate(SQLModel):
     influx_device_tag: Optional[str] = None
     influx_measurements: Optional[str] = None
     units_fetched: Optional[bool] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class BuildingRead(BuildingBase):
     id: uuid.UUID
@@ -95,6 +100,12 @@ class UnitBase(SQLModel):
     area_m2: float
     building_id: uuid.UUID = Field(foreign_key="buildings.id")
     owner_id: Optional[uuid.UUID] = Field(default=None, foreign_key="users.id")
+    # From the building's heat loss calculation (scripts/import_heat_losses.py), for the energy
+    # overview: design heat loss [W], heated area used for billing [m2] (area x coefficients of
+    # use and room height) and the coefficient of the unit's position (billing correction)
+    heat_loss_w: Optional[float] = None
+    heated_area_m2: Optional[float] = None
+    position_coef: Optional[float] = None
 
 class Unit(UnitBase, table=True):
     __tablename__ = "units"

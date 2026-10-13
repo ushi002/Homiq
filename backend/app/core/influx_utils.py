@@ -1,6 +1,6 @@
 import re
 import requests
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Dict, Set, Tuple, Optional
 
 import os
@@ -293,3 +293,23 @@ def get_meters_last_time(db_name: str, measurements: List[str], device_tag: str,
                 if series.get('values'):
                     times.append(series['values'][0][0])
     return max(times) if times else None
+
+
+def get_daily_max(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Optional[Dict[str, List[Tuple[date, float]]]]:
+    """Daily MAX of every meter of a measurement in [start, end) (UTC days), keyed by serial number;
+    for a cumulative meter that is the reading at the end of the day. None when InfluxDB fails."""
+    def fmt(d: datetime) -> str:
+        return d.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    data = query_influx(db_name, f'SELECT MAX("value") FROM "{measurement}" WHERE time >= \'{fmt(start)}\' '
+                                 f'AND time < \'{fmt(end)}\' GROUP BY time(1d), "{device_tag}"')
+    if 'results' not in data:
+        return None
+    out: Dict[str, List[Tuple[date, float]]] = {}
+    for result in data['results']:
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            points = [(date.fromisoformat(t[:10]), v) for t, v in series.get('values', []) if v is not None]
+            if sn and points:
+                out[sn] = points
+    return out

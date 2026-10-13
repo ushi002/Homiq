@@ -22,6 +22,12 @@ def can_access_building(user: User, building: Building, session: Session) -> boo
     return False
 
 
+def can_manage_building(user: User, building: Building) -> bool:
+    """Overviews with every unit's data (consumption overview, energy overview): admins and the
+    building's manager, never owners."""
+    return user.role == "admin" or (user.role == "home_lord" and building.manager_id == user.id)
+
+
 def can_access_unit(user: User, unit: Unit, session: Session) -> bool:
     if user.role == "admin":
         return True

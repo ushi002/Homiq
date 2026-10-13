@@ -1,19 +1,21 @@
 import re
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User
 from ..models.telemetry import Meter
-from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_daily_max, get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
 from ..core.building_consumption import units_consumption
+from ..core import energy
+from ..core.weather import daily_temperatures
 from .deps import get_current_user
-from .access import can_access_building, require
+from .access import can_access_building, can_manage_building, require
 
 router = APIRouter()
 
@@ -226,6 +228,72 @@ def read_building_consumption_monthly(
             if values:
                 totals[mt["type"]]["current" if y == year else "previous"][m - 1] = round(sum(values), 2)
     return {"year": year, "meter_types": meter_types, "months": totals}
+
+@router.get("/{building_id}/energy")
+def read_building_energy(
+    building_id: uuid.UUID,
+    start: date,
+    end: date,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Energy overview of the building (heat) for days start <= day < end, at most a year: the
+    building's daily consumption with the outdoor temperature, the energy signature against the
+    design heat loss, and every unit against its share of the design heat loss with the
+    consumption corrected by its position coefficient. Rules: core/energy.py. Admins and the
+    building's manager only (every unit's data)."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    require(can_manage_building(current_user, building))
+    if not timedelta(0) < end - start <= timedelta(days=366):
+        raise HTTPException(status_code=422, detail="Invalid period")
+
+    units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
+    measurements = [name for name, meta in (parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS).items()
+                    if meta["type"] == "heat"]
+    start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
+    end_dt = datetime(end.year, end.month, end.day, tzinfo=timezone.utc)
+
+    # Daily consumption of each heat meter; a week before the start gives the first day its base
+    per_meter = {}
+    if building.influx_db_name and building.influx_device_tag and meters:
+        serials = {m.serial_number for m in meters}
+        for measurement in measurements:
+            for sn, points in (get_daily_max(building.influx_db_name, measurement, building.influx_device_tag,
+                                             start_dt - timedelta(days=7), end_dt) or {}).items():
+                if sn in serials:
+                    daily = energy.meter_daily(points, start, end)
+                    if daily:
+                        per_meter[sn] = daily
+    temperatures = daily_temperatures(session, building.latitude, building.longitude, start, end) \
+        if building.latitude is not None and building.longitude is not None else {}
+    days = energy.building_daily(per_meter, temperatures, start, end)
+
+    heat_units = []
+    _, (results,) = units_consumption(building, meters, [(start_dt, end_dt)])
+    for u in units:
+        r = results.get(str(u.id), {}).get("heat")
+        heat_units.append({
+            "id": str(u.id), "unit_number": u.unit_number, "floor": u.floor, "area_m2": u.area_m2 or None,
+            "heated_area_m2": u.heated_area_m2, "heat_loss_w": u.heat_loss_w, "position_coef": u.position_coef,
+            "kwh": r.value if r else None, "complete": bool(r and r.complete),
+        })
+    losses = [u.heat_loss_w for u in units if u.heat_loss_w]
+    return {
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "has_location": building.latitude is not None and building.longitude is not None,
+        "last_reading": get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name and measurements else None,
+        "design": {"indoor_c": energy.DESIGN_INDOOR_C, "outdoor_c": energy.DESIGN_OUTDOOR_C,
+                   "heat_loss_kw": round(sum(losses) / 1000, 2) if losses else None,
+                   "kw_per_k": energy.design_kw_per_k(losses), "units_with_loss": len(losses)},
+        "rules": {"high_ratio": energy.HIGH_RATIO, "low_ratio": energy.LOW_RATIO, "heating_below_c": energy.HEATING_BELOW_C},
+        "days": days,
+        "signature": energy.signature(days),
+        "units": energy.compare_units(heat_units),
+    }
 
 @router.get("/{building_id}/readings")
 def read_building_readings(
