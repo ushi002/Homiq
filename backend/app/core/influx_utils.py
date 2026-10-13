@@ -178,59 +178,106 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
         # Query value where sn = serial_number
         # Try all SN tags
         for sn_tag in sn_tags_to_check:
-            q = f'SELECT MAX("value") FROM "{meas}" WHERE "{sn_tag}" = \'{serial_number}\' GROUP BY time(1d) fill(none)'
+            # Plain readings, one per day: the last one of each UTC day with its own time (some meters
+            # send their state more than once a day)
+            q = f'SELECT "value" FROM "{meas}" WHERE "{sn_tag}" = \'{serial_number}\''
             data = query_influx(db_name, q)
             
             if data.get('results') and data['results'][0].get('series'):
-                 # Found data
-                 for result in data['results']:
-                    if 'series' in result:
-                        for series in result['series']:
-                            for value in series['values']:
-                                # value is [time, value]
-                                readings.append((value[0], value[1]))
+                 by_day = {}
+                 for series in data['results'][0]['series']:
+                     for time_str, value in series['values']:
+                         by_day[time_str[:10]] = (time_str, value)
                  # If we found data with this tag, break (assuming SN unique)
-                 return readings # Return immediately as duplicate readings from other tags unlikely/redundant
+                 return [by_day[day] for day in sorted(by_day)]
                             
     return readings
 
-# How far around a period to look for the readings its boundaries are interpolated from
-BEFORE_WINDOW = timedelta(days=366)
+# A period is not cached (app/core/building_consumption.py) until this long after its end: a meter
+# that was silent across the end may still send the reading that closes it
 AFTER_WINDOW = timedelta(days=62)
+# Readings around a period are looked for this close first
+NEAR = timedelta(days=7)
 
-def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Optional[Dict[str, Dict[str, Tuple[float, float]]]]:
+def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime,
+                      serials: Optional[List[str]] = None) -> Optional[Dict[str, Dict[str, Tuple[float, float]]]]:
     """
     Readings around the period [start, end) for every meter of a measurement, keyed by serial
     number: 'before' (last before the start), 'first' and 'last' (inside the period) and 'after'
-    (first at or after the end). Each point is (unix timestamp, value) of a raw reading; plain
+    (first at or after the end). `serials` are the meters expected (also those silent through the
+    whole period, whose consumption is interpolated across it). Each point is (unix timestamp, value) of a raw reading; plain
     FIRST/LAST selectors keep InfluxDB from aggregating the whole period, which a small server
     cannot afford. See app/core/consumption.py for how the points are turned into consumption.
     """
     def fmt(d: datetime) -> str:
         return d.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    def select(fn: str, a: datetime, b: datetime) -> str:
-        return (f'SELECT {fn}("value") FROM "{measurement}" WHERE time >= \'{fmt(a)}\' AND time < \'{fmt(b)}\' '
-                f'GROUP BY "{device_tag}"')
+    def select(fn: str, a: Optional[datetime], b: Optional[datetime]) -> str:
+        where = ' AND '.join(([f"time >= '{fmt(a)}'"] if a else []) + ([f"time < '{fmt(b)}'"] if b else []))
+        return f'SELECT {fn}("value") FROM "{measurement}" WHERE {where} GROUP BY "{device_tag}"'
 
+    def parse(statements, results, points):
+        for (key, _), result in zip(statements, results):
+            for series in result.get('series', []):
+                sn = series.get('tags', {}).get(device_tag)
+                if sn and series.get('values'):
+                    time_str, value = series['values'][0][:2]
+                    ts = datetime.fromisoformat(time_str.replace('Z', '+00:00')).timestamp()
+                    points.setdefault(sn, {})[key] = (ts, value)
+
+    # Meters report daily, so the neighbouring readings are almost always within a week; only meters
+    # without one there are asked again without a time limit (a search back to the oldest data is slow)
     statements = [
-        ('before', select('LAST', start - BEFORE_WINDOW, start)),
+        ('before', select('LAST', start - NEAR, start)),
         ('first', select('FIRST', start, end)),
         ('last', select('LAST', start, end)),
-        ('after', select('FIRST', end, end + AFTER_WINDOW)),
+        ('after', select('FIRST', end, end + NEAR)),
     ]
     data = query_influx(db_name, ';'.join(q for _, q in statements))
     if 'results' not in data:
         return None  # InfluxDB not reachable or the query failed (no data at all is an empty dict)
-
     points: Dict[str, Dict[str, Tuple[float, float]]] = {}
-    for (key, _), result in zip(statements, data.get('results', [])):
-        for series in result.get('series', []):
-            sn = series.get('tags', {}).get(device_tag)
-            if sn and series.get('values'):
+    parse(statements, data['results'], points)
+
+    def unbounded(key: str, fn: str, a: Optional[datetime], b: Optional[datetime], serials) -> bool:
+        if not serials:
+            return True
+        pattern = '|'.join(re.escape(sn) for sn in sorted(serials))
+        q = select(fn, a, b).replace(' GROUP BY', f' AND "{device_tag}" =~ /^({pattern})$/ GROUP BY')
+        data = query_influx(db_name, q)
+        if 'results' not in data:
+            return False
+        parse([(key, q)], data['results'], points)
+        return True
+
+    # 'after' also for the building's meters silent through the whole period, then 'before' for the
+    # meters that have something to interpolate it with (an old meter replaced long ago has not)
+    expected = set(points) | set(serials or [])
+    if not unbounded('after', 'FIRST', end, None, {sn for sn in expected if 'after' not in points.get(sn, {})}):
+        return None
+    if not unbounded('before', 'LAST', None, start, {sn for sn, p in points.items() if 'before' not in p}):
+        return None
+
+    # The unit detail keeps one reading per day, the last one (get_meter_readings): replace 'first'
+    # and 'after' by the last reading of their day, asked once per distinct day
+    days = sorted({datetime.fromtimestamp(p[key][0], timezone.utc).date() for p in points.values()
+                   for key in ('first', 'after') if key in p})
+    if days:
+        statements = [select('LAST', datetime(d.year, d.month, d.day, tzinfo=timezone.utc),
+                             datetime(d.year, d.month, d.day, tzinfo=timezone.utc) + timedelta(days=1)) for d in days]
+        data = query_influx(db_name, ';'.join(statements))
+        if 'results' not in data:
+            return None
+        day_last = {}
+        for d, result in zip(days, data['results']):
+            for series in result.get('series', []):
                 time_str, value = series['values'][0][:2]
-                ts = datetime.fromisoformat(time_str.replace('Z', '+00:00')).timestamp()
-                points.setdefault(sn, {})[key] = (ts, value)
+                day_last[(series.get('tags', {}).get(device_tag), d)] = (
+                    datetime.fromisoformat(time_str.replace('Z', '+00:00')).timestamp(), value)
+        for sn, p in points.items():
+            for key in ('first', 'after'):
+                if key in p:
+                    p[key] = day_last.get((sn, datetime.fromtimestamp(p[key][0], timezone.utc).date()), p[key])
     return points
 
 def get_raw_readings(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, List[Tuple[str, float]]]:

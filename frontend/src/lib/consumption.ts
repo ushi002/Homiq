@@ -96,7 +96,7 @@ export function combinedConsumption(meters: Reading[][], start: number, end: num
 export const periodConsumption = (readings: Reading[], start: number, end: number): PeriodConsumption =>
     combinedConsumption([readings], start, end);
 
-// Period boundaries in UTC, matching the daily readings (stamped at midnight UTC) and the backend
+// Period boundaries in UTC, the same as in the backend (readings keep their own time, one per UTC day)
 export const monthBounds = (year: number, month: number): [number, number] => [Date.UTC(year, month - 1, 1), Date.UTC(year, month, 1)];
 
 export const isoWeekBounds = (year: number, week: number): [number, number] => {
