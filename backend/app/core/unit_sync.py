@@ -1,6 +1,6 @@
 """Units and meters of a building, synchronised from InfluxDB tags."""
 import logging
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 from sqlmodel import Session, select
 from ..models.property import Building, Unit
 from ..models.telemetry import Meter
@@ -9,24 +9,51 @@ from .influx_utils import (get_unique_units, get_unit_meters, get_meter_last_see
                            parse_measurements_config, DEFAULT_MEASUREMENTS)
 
 
+def split_joined(tag: str, tags: Set[str]) -> Optional[List[str]]:
+    """The other tags a tag is made of, joined without a separator ("bj-e38bj-e39" -> ["bj-e38",
+    "bj-e39"]), or None when it is not such a join."""
+    others = sorted(tags - {tag}, key=len, reverse=True)
+
+    def split(rest: str) -> Optional[List[str]]:
+        if not rest:
+            return []
+        for other in others:
+            if rest.startswith(other):
+                tail = split(rest[len(other):])
+                if tail is not None:
+                    return [other] + tail
+        return None
+
+    parts = split(tag)
+    return parts if parts and len(parts) > 1 else None
+
+
 def sync_units_from_influx(building: Building, session: Session) -> dict:
     """
     Add units and meters found in InfluxDB. Nothing is deleted and existing units and meters keep
     their ids (links, owners). After a meter replacement the new meter is added next to the old
     one, which keeps its history.
 
-    A meter reported under several units (e.g. tagged with a wrong unit for a few days after
-    installation) belongs to the unit with its latest reading, i.e. where it is now.
+    Units come from the unit tags of all measurements. A meter reported under several units (e.g.
+    tagged with a wrong unit for a few days after installation) belongs to the unit with its latest
+    reading, i.e. where it is now.
 
-    Joined flats: a unit is named after its flats ("bj-e38bj-e39") in some measurements, while
-    other meters may still be tagged with one of the flats ("bj-e38"). A tag that is not a unit
-    but part of exactly one unit's name belongs to that unit.
+    Joined tag: a tag made of other tags ("bj-e38bj-e39" = "bj-e38" + "bj-e39", flats once tagged
+    together) is not a unit. Its meters go to the first of those units when new; a meter already in
+    one of them stays where it is (it was assigned on purpose, see scripts/split_joined_unit.py).
     """
     units_by_number = {u.unit_number: u for u in session.exec(select(Unit).where(Unit.building_id == building.id)).all()}
     unit_ids = [u.id for u in units_by_number.values()]
     meters_by_serial = {m.serial_number: m for m in session.exec(select(Meter).where(Meter.unit_id.in_(unit_ids))).all()} if unit_ids else {}
+    measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
 
-    influx_units = sorted(get_unique_units(building.influx_db_name, building.influx_unit_tag))
+    if building.influx_unit_tag:
+        all_tags = get_unit_tags(building.influx_db_name, building.influx_unit_tag, measurements)
+    else:
+        all_tags = get_unique_units(building.influx_db_name, building.influx_unit_tag)
+    joined = {tag: parts for tag in all_tags if (parts := split_joined(tag, all_tags))}
+    influx_units = sorted(all_tags - set(joined))
+
     created_units = 0
     for unit_name in influx_units:
         if unit_name not in units_by_number:
@@ -36,19 +63,11 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
             session.refresh(unit)
             units_by_number[unit_name] = unit
             created_units += 1
-
-    measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
-    # InfluxDB tag -> unit: every unit itself, plus tags of single flats of a joined unit
-    unit_of_tag = {name: name for name in influx_units}
-    if building.influx_unit_tag:
-        for tag in get_unit_tags(building.influx_db_name, building.influx_unit_tag, measurements) - set(influx_units):
-            containing = [name for name in influx_units if tag in name]
-            if len(containing) == 1:
-                unit_of_tag[tag] = containing[0]
+    unit_names_by_id = {u.id: name for name, u in units_by_number.items()}
 
     # serial number -> [(InfluxDB tag, meter data)] as reported by InfluxDB
     reported: Dict[str, List[Tuple[str, dict]]] = {}
-    for tag in unit_of_tag:
+    for tag in sorted(all_tags):
         for meter_data in get_unit_meters(building.influx_db_name, tag, building.influx_unit_tag,
                                           building.influx_measurements, building.influx_device_tag):
             reported.setdefault(meter_data['serial_number'], []).append((tag, meter_data))
@@ -57,14 +76,23 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
     moved_meters = 0
     ambiguous = []
     for serial, entries in reported.items():
-        tag, meter_data = entries[0]
-        if len({unit_of_tag[t] for t, _ in entries}) > 1:
-            last_seen = get_meter_last_seen_by_unit(building.influx_db_name, measurements,
-                                                    building.influx_unit_tag, building.influx_device_tag, serial)
-            tag, meter_data = max(entries, key=lambda e: last_seen.get(e[0], ''))
-            ambiguous.append({"serial_number": serial, "units": sorted({unit_of_tag[t] for t, _ in entries}), "assigned_to": unit_of_tag[tag]})
-        unit = units_by_number[unit_of_tag[tag]]
         meter = meters_by_serial.get(serial)
+        direct = [(tag, data) for tag, data in entries if tag not in joined]
+        if direct:
+            unit_name, meter_data = direct[0]
+            if len({tag for tag, _ in direct}) > 1:
+                last_seen = get_meter_last_seen_by_unit(building.influx_db_name, measurements,
+                                                        building.influx_unit_tag, building.influx_device_tag, serial)
+                unit_name, meter_data = max(direct, key=lambda e: last_seen.get(e[0], ''))
+                ambiguous.append({"serial_number": serial, "units": sorted({tag for tag, _ in direct}), "assigned_to": unit_name})
+        else:
+            # Only under joined tags: keep it in one of their units, a new one goes to the first
+            tag, meter_data = entries[0]
+            parts = [part for t, _ in entries for part in joined[t]]
+            if meter and unit_names_by_id.get(meter.unit_id) in parts:
+                continue
+            unit_name = joined[tag][0]
+        unit = units_by_number[unit_name]
         if not meter:
             meter = Meter(serial_number=serial, type=meter_data['type'],
                           unit_of_measure=meter_data['unit_of_measure'], unit_id=unit.id)
@@ -89,6 +117,7 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
         "meters_moved": moved_meters,
         "meters_in_several_units": ambiguous,
         "units_found": len(influx_units),
+        "joined_tags": {tag: parts for tag, parts in sorted(joined.items())},
         "units_fetched": building.units_fetched,
     }
 
