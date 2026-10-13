@@ -253,6 +253,11 @@ def read_building_energy(
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
     measurements = [name for name, meta in (parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS).items()
                     if meta["type"] == "heat"]
+    # The period ends with the last reading at the latest: days without data yet would make every
+    # unit incomplete (the response says which period was used)
+    last_reading = get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name and measurements else None
+    if last_reading:
+        end = max(start + timedelta(days=1), min(end, date.fromisoformat(last_reading[:10])))
     start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)
     end_dt = datetime(end.year, end.month, end.day, tzinfo=timezone.utc)
 
@@ -285,7 +290,7 @@ def read_building_energy(
         "start": start.isoformat(),
         "end": end.isoformat(),
         "has_location": building.latitude is not None and building.longitude is not None,
-        "last_reading": get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name and measurements else None,
+        "last_reading": last_reading,
         "design": {"indoor_c": energy.DESIGN_INDOOR_C, "outdoor_c": energy.DESIGN_OUTDOOR_C,
                    "heat_loss_kw": round(sum(losses) / 1000, 2) if losses else None,
                    "kw_per_k": energy.design_kw_per_k(losses), "units_with_loss": len(losses)},
