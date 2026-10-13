@@ -603,7 +603,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     );
                 })}
                 {metersLoading && (
-                    <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-gray-100 animate-pulse">{t.common.loading}</div>
+                    <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6 space-y-4" aria-busy="true">
+                        <span className="sr-only">{t.common.loading}</span>
+                        <div className="bg-gray-200 rounded animate-pulse h-5 w-48" />
+                        <div className="bg-gray-200 rounded animate-pulse h-40 w-full" />
+                        <div className="bg-gray-200 rounded animate-pulse h-16 w-full" />
+                    </div>
                 )}
                 {!metersLoading && meters.length === 0 && (
                     <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">

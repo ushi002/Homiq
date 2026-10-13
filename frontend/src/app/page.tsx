@@ -1,4 +1,5 @@
 "use client";
+import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
@@ -76,8 +77,7 @@ export default function Dashboard() {
     fetchBuildings();
   }, [token, router, authLoading, user?.role]);
 
-  if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
-  if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
+  if (authLoading || !token || loading) return <PageSkeleton variant={user?.role === 'owner' ? 'list' : 'cards'} rows={user?.role === 'owner' ? 2 : 3} />;
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   if (user?.role === 'owner') {

@@ -1,4 +1,5 @@
 "use client";
+import PageSkeleton from '@/components/PageSkeleton';
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -161,8 +162,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [building]);
 
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
-    if (!building) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token || !building) return <PageSkeleton variant="list" rows={8} />;
 
     const handleAssignManager = async (newManagerId: string) => {
         if (!isAdmin) return;
