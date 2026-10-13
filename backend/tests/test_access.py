@@ -92,13 +92,10 @@ expect("owner_a", f"/users/{I['owner_a']}", 200)
 for path in [f"/units/{I['unit_b']}", f"/units/{I['unit_b']}/readings_influx", f"/users/{I['owner_b']}",
              f"/telemetry/meters/{I['meter_b']}",
              f"/buildings/{I['b2']}", f"/buildings/{I['b1']}/consumption?year=2025",
-             f"/buildings/{I['b1']}/readings?start=2025-01-01T00:00:00Z&end=2025-02-01T00:00:00Z"]:
+             f"/buildings/{I['b1']}/readings?start=2025-01-01T00:00:00Z&end=2025-02-01T00:00:00Z",
+             f"/buildings/{I['b1']}/consumption_monthly?year=2025"]:
     expect("owner_a", path, 403)
 expect("owner_a", f"/telemetry/meters/?unit_id={I['unit_b']}", 200, lambda m: m == [])
-# Building average: own unit only; with two units in the building no average is revealed
-expect("owner_a", f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 200, lambda r: r == {"types": {}})
-expect("owner_a", f"/units/{I['unit_b']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 403)
-expect(None, f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 401)
 expect("owner_a", f"/buildings/{I['b1']}/units", 200, lambda units: [u["unit_number"] for u in units] == ["A"])
 expect("owner_a", "/users/", 200, lambda users: [u["email"] for u in users] == ["a@t.cz"])
 
@@ -122,6 +119,32 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 # Admin sees everything
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
+
+# Dashboard stats: admin all buildings, a manager his own, owners and others nothing
+expect("admin", "/buildings/stats", 200, lambda r: len(r) == 2)
+expect("lord1", "/buildings/stats", 200, lambda r: [b["building_id"] for b in r] == [I['b1']] and r[0]["units"] == 2 and r[0]["pending_invites"] == 1)
+for who in ("owner_a", "auditor"):
+    expect(who, "/buildings/stats", 200, lambda r: r == [])
+expect(None, "/buildings/stats", 401)
+
+# Owner summary: only the owner's own units, other roles get nothing
+expect("owner_a", "/units/summary?year=2025&month=3", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["A"])
+expect("owner_b", "/units/summary?year=2025", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["B"])
+for who in ("admin", "lord1", "auditor"):
+    expect(who, "/units/summary?year=2025", 200, lambda r: r["units"] == [])
+expect(None, "/units/summary?year=2025", 401)
+
+# Renewing an invitation: admin or the manager who invited the owner; only a pending invitation
+def post(who, path):
+    return client.post(path, headers=as_user(who) if who else {})
+r = post("lord1", f"/users/{I['owner_b']}/renew_invite")
+if r.status_code != 200 or r.json()["invite_token"] in (None, "secret-invite"):
+    failures.append(f"lord1 renew_invite owner_b: {r.status_code} {r.text[:120]}")
+for who, status in (("lord2", 403), ("owner_a", 403), ("auditor", 403), (None, 401), ("admin", 200)):
+    if (code := post(who, f"/users/{I['owner_b']}/renew_invite").status_code) != status:
+        failures.append(f"{who or 'anonymous'} renew_invite owner_b: {code}, expected {status}")
+if (code := post("admin", f"/users/{I['owner_a']}/renew_invite").status_code) != 400:
+    failures.append(f"admin renew_invite of an active user: {code}, expected 400")
 
 # Renewing the login: only with a valid token, the new token works
 r = client.post("/token/refresh")

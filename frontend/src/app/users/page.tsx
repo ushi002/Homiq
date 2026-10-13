@@ -1,6 +1,9 @@
 "use client";
+import { CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
+import PageSkeleton from '@/components/PageSkeleton';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -33,14 +36,30 @@ export default function UsersPage() {
     const [newUser, setNewUser] = useState({ email: '', full_name: '', role: '' });
     const { user: currentUser, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
-    const [origin, setOrigin] = useState('');
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    usePageTitle(t.users.title);
     const toast = useToast();
     const apiError = useApiError();
     const confirm = useConfirm();
+    const [search, setSearch] = useState('');
+    const [inviteOpen, setInviteOpen] = useState(false); // narrow screens: the invite form is collapsed
+    const [roleFilter, setRoleFilter] = useState<string>('all'); // a role, 'pending' or 'all'
 
     // Determine allowed role to create based on current user
     const allowedRole = currentUser?.role === 'admin' ? 'home_lord' : 'owner';
+    const newUserRole = newUser.role || allowedRole; // '' = the default for the current user
+    // Only called in the browser (handlers, and the user list, which is loaded there)
+    const inviteLink = (inviteToken: string) => `${window.location.origin}/invite/${inviteToken}`;
+
+    const fetchUsers = () => {
+        authFetch('/users/')
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
+            .then(data => setUsers(data))
+            .catch(err => console.error(err));
+    };
 
     useEffect(() => {
         if (authLoading) return;
@@ -49,34 +68,25 @@ export default function UsersPage() {
             return;
         }
 
-        // Restrict access to Admins only
-        if (currentUser?.role !== 'admin') {
+        // Admins manage everyone, managers the owners they invited (the backend filters the list)
+        if (currentUser?.role !== 'admin' && currentUser?.role !== 'home_lord') {
             router.push('/');
             return;
         }
 
-        setOrigin(window.location.origin);
         fetchUsers();
-        // Set default role
-        setNewUser(prev => ({ ...prev, role: currentUser?.role === 'admin' ? 'home_lord' : 'owner' }));
     }, [currentUser, token, authLoading, router]);
-
-    const fetchUsers = () => {
-        authFetch('/users/')
-            .then(res => res.json())
-            .then(data => setUsers(data))
-            .catch(err => console.error(err));
-    };
 
     const handleCreateUser = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
             const res = await authFetch('/users/', {
                 method: 'POST',
-                body: JSON.stringify(newUser)
+                body: JSON.stringify({ ...newUser, role: newUserRole })
             });
             if (res.ok) {
-                setNewUser({ email: '', full_name: '', role: allowedRole });
+                setNewUser({ email: '', full_name: '', role: '' });
+                setInviteOpen(false);
                 fetchUsers();
             } else {
                 const err = await res.json();
@@ -106,8 +116,27 @@ export default function UsersPage() {
         }
     };
 
+    // New invite link valid for another 48 hours; the old link stops working
+    const renewInvite = async (userId: string) => {
+        try {
+            const res = await authFetch(`/users/${userId}/renew_invite`, { method: 'POST' });
+            if (res.ok) {
+                const updated: User = await res.json();
+                fetchUsers();
+                if (updated.invite_token) copyInviteLink(updated.invite_token);
+                else toast.success(t.users.inviteRenewed);
+            } else {
+                const err = await res.json().catch(() => ({}));
+                toast.error(apiError(t.users.inviteRenewFailed, err.detail));
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error(t.messages.errorGeneric);
+        }
+    };
+
     const copyInviteLink = (token: string) => {
-        const link = `${origin}/invite/${token}`;
+        const link = inviteLink(token);
 
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(link)
@@ -173,12 +202,14 @@ export default function UsersPage() {
             if (res.ok) {
                 fetchUsers();
                 setEditingUser(null);
+                toast.success(t.users.nameSaved);
             } else {
                 const err = await res.json();
                 toast.error(apiError(t.messages.errorUpdateUser, err.detail));
             }
         } catch (err) {
             console.error(err);
+            toast.error(t.messages.errorGeneric);
         }
     };
 
@@ -214,7 +245,7 @@ export default function UsersPage() {
         if (!dateStr) return '';
         // Treat naive date strings as UTC
         const date = !dateStr.endsWith('Z') && !dateStr.includes('+') ? new Date(dateStr + 'Z') : new Date(dateStr);
-        return date.toLocaleString();
+        return date.toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
     };
 
     const isExpired = (dateStr?: string) => {
@@ -224,48 +255,74 @@ export default function UsersPage() {
         return date < new Date();
     };
 
-    if (authLoading || !token || currentUser?.role !== 'admin') {
-        return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token || (currentUser?.role !== 'admin' && currentUser?.role !== 'home_lord')) {
+        return <PageSkeleton variant="list" rows={8} />;
     }
 
+    const isPending = (u: User) => !!u.invite_token && u.status === 'pending';
+    const filters = [
+        { key: 'all', label: t.users.filterAll, count: users.length },
+        // A manager sees only owners: role filters would be pointless
+        ...(currentUser?.role === 'admin' ? [
+            { key: 'admin', label: t.users.roleAdmin, count: users.filter(u => u.role === 'admin').length },
+            { key: 'home_lord', label: t.users.roleHomeLord, count: users.filter(u => u.role === 'home_lord').length },
+            { key: 'owner', label: t.users.roleOwner, count: users.filter(u => u.role === 'owner').length },
+        ] : []),
+        { key: 'pending', label: t.users.pendingInvite, count: users.filter(isPending).length },
+    ];
+    // Search in name, e-mail and assigned buildings/units
+    const query = search.trim().toLocaleLowerCase();
+    const visibleUsers = users.filter(u =>
+        (roleFilter === 'all' || (roleFilter === 'pending' ? isPending(u) : u.role === roleFilter))
+        && (!query || [u.full_name, u.email, ...(u.assignments ?? []).map(a => `${a.name} ${a.detail ?? ''}`)]
+            .some(text => (text ?? '').toLocaleLowerCase().includes(query))));
+
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="mb-6">
                 <h1 className="text-3xl font-bold">{t.users.title}</h1>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* Create User Form */}
-                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 h-fit">
+                {/* Create User Form; on narrow screens behind a button so the list is visible first */}
+                {!inviteOpen && (
+                    <button
+                        onClick={() => setInviteOpen(true)}
+                        className="lg:hidden bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors justify-self-start"
+                    >
+                        + {t.users.inviteNew}
+                    </button>
+                )}
+                <div className={`${CARD} ${inviteOpen ? '' : 'hidden'} lg:block p-4 sm:p-6 h-fit`}>
                     <h2 className="text-lg font-semibold mb-4">{t.users.inviteNew}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.common.email}</label>
+                            <label className={LABEL}>{t.common.email}</label>
                             <input
                                 type="email"
                                 required
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                className={INPUT}
                                 value={newUser.email}
                                 onChange={e => setNewUser({ ...newUser, email: e.target.value })}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.users.fullName}</label>
+                            <label className={LABEL}>{t.users.fullName}</label>
                             <input
                                 type="text"
                                 required
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                className={INPUT}
                                 value={newUser.full_name}
                                 onChange={e => setNewUser({ ...newUser, full_name: e.target.value })}
                             />
                         </div>
                         {/* Password field removed for invite flow */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.users.role}</label>
+                            <label className={LABEL}>{t.users.role}</label>
                             <select
                                 className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 bg-white`}
-                                value={newUser.role}
+                                value={newUserRole}
                                 onChange={e => setNewUser({ ...newUser, role: e.target.value })}
                                 disabled={currentUser?.role !== 'admin'}
                             >
@@ -282,16 +339,41 @@ export default function UsersPage() {
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
                             {t.users.sendInvite}
                         </button>
+                        <button type="button" onClick={() => setInviteOpen(false)} className="lg:hidden w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                            {t.common.cancel}
+                        </button>
                     </form>
                 </div>
 
                 {/* User List */}
-                <div className="lg:col-span-2 bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-                        <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
+                <div className={`lg:col-span-2 ${CARD} overflow-hidden`}>
+                    <div className="px-4 sm:px-6 py-4 border-b border-gray-100 bg-gray-50/50 space-y-3">
+                        <div className="flex flex-wrap justify-between items-center gap-2">
+                            <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
+                            <input
+                                type="search"
+                                aria-label={t.users.searchPlaceholder}
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder={t.users.searchPlaceholder}
+                                className="w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-1.5 text-sm"
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 text-xs">
+                            {filters.map(f => (
+                                <button
+                                    key={f.key}
+                                    onClick={() => setRoleFilter(f.key)}
+                                    aria-pressed={roleFilter === f.key}
+                                    className={`px-2.5 py-1 rounded-full border ${roleFilter === f.key ? 'bg-blue-100 border-blue-200 text-blue-800 font-medium' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
+                                >
+                                    {f.label} ({f.count})
+                                </button>
+                            ))}
+                        </div>
                     </div>
-                    <ul className="divide-y divide-gray-100 max-h-[600px] overflow-y-auto">
-                        {users.map(user => (
+                    <ul className="divide-y divide-gray-100">
+                        {visibleUsers.map(user => (
                             <li key={user.id} className="px-6 py-4 flex flex-col hover:bg-gray-50">
                                 <div className="flex justify-between items-start">
                                     <div className="flex-1">
@@ -301,7 +383,12 @@ export default function UsersPage() {
                                                     type="text"
                                                     value={editName}
                                                     onChange={e => setEditName(e.target.value)}
-                                                    className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+                                                    onKeyDown={e => {
+                                                        if (e.key === 'Enter') saveEdit(user.id);
+                                                        if (e.key === 'Escape') cancelEdit();
+                                                    }}
+                                                    autoFocus
+                                                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full max-w-xs"
                                                 />
                                                 <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{t.common.save}</button>
                                                 <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{t.common.cancel}</button>
@@ -315,14 +402,10 @@ export default function UsersPage() {
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-500">{user.email}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5" title="User created at">
-                                            🕒 {formatDate(user.created_at)}
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {t.users.createdAt}: {formatDate(user.created_at)}
+                                            {user.last_login_at && <> · {t.users.lastLogin}: {formatDate(user.last_login_at)}</>}
                                         </p>
-                                        {user.last_login_at && (
-                                            <p className="text-xs text-gray-400 mt-0.5" title="Last login">
-                                                🔑 {formatDate(user.last_login_at)}
-                                            </p>
-                                        )}
                                     </div>
                                     <div className="flex items-center space-x-3 ml-4">
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
@@ -335,7 +418,7 @@ export default function UsersPage() {
                                         <button
                                             onClick={() => handleDeleteUser(user.id)}
                                             className="text-red-500 hover:text-red-700 text-sm font-medium"
-                                            title="Delete User"
+                                            title={t.common.delete}
                                         >
                                             {t.common.delete}
                                         </button>
@@ -345,7 +428,7 @@ export default function UsersPage() {
                                 {/* Assignments */}
                                 {user.assignments && user.assignments.length > 0 && (
                                     <div className="mt-2 pl-2 border-l-2 border-gray-100">
-                                        <p className="text-xs text-gray-400 mb-1 font-semibold uppercase">{t.users.assignedTo}:</p>
+                                        <p className="text-xs text-gray-500 mb-1 font-semibold uppercase">{t.users.assignedTo}:</p>
                                         <div className="flex flex-wrap gap-2">
                                             {user.assignments.map((assignment, idx) => (
                                                 <div key={idx} className="flex items-center bg-gray-100 rounded-md px-2 py-1 text-xs text-gray-700 border border-gray-200">
@@ -356,7 +439,7 @@ export default function UsersPage() {
                                                     </span>
                                                     <button
                                                         onClick={() => handleUnassign(assignment)}
-                                                        className="text-gray-400 hover:text-red-600 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                                                        className="text-gray-500 hover:text-red-600 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
                                                         title={t.common.unassign}
                                                     >
                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -374,28 +457,36 @@ export default function UsersPage() {
                                             <span className="text-sm font-semibold text-amber-900 border-b border-amber-100 pb-1">{t.users.pendingInvite}</span>
                                             {isExpired(user.invite_expires_at) ? (
                                                 <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-bold rounded-full border border-red-200">
-                                                    EXPIRED
+                                                    {t.users.inviteExpired}
                                                 </span>
                                             ) : (
                                                 <span className="px-2 py-0.5 bg-green-100 text-green-800 text-xs font-bold rounded-full border border-green-200">
-                                                    VALID
+                                                    {t.users.inviteValid}
                                                 </span>
                                             )}
                                         </div>
 
                                         <div className="text-xs space-y-1 text-gray-600 mb-2">
                                             <div className="flex justify-between">
-                                                <span>Created:</span>
-                                                <span className="font-mono">{formatDate(user.created_at)}</span>
+                                                <span>{t.users.inviteCreated}:</span>
+                                                <span className="tabular-nums">{formatDate(user.created_at)}</span>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span>Expires:</span>
-                                                <span className="font-mono">{formatDate(user.invite_expires_at)}</span>
+                                                <span>{t.users.inviteExpires}:</span>
+                                                <span className="tabular-nums">{formatDate(user.invite_expires_at)}</span>
                                             </div>
                                         </div>
 
+                                        {isExpired(user.invite_expires_at) ? (
+                                            <button
+                                                onClick={() => renewInvite(user.id)}
+                                                className="w-full sm:w-auto px-3 py-1.5 rounded-md bg-amber-600 text-white text-sm font-medium hover:bg-amber-700"
+                                            >
+                                                {t.users.renewInvite}
+                                            </button>
+                                        ) : (
                                         <div className="flex items-center space-x-2 bg-gray-50 p-1.5 rounded border border-gray-200">
-                                            <code className="text-xs text-gray-600 break-all flex-1">{`${origin}/invite/${user.invite_token}`}</code>
+                                            <code className="text-xs text-gray-600 break-all flex-1">{inviteLink(user.invite_token)}</code>
                                             <button
                                                 onClick={() => copyInviteLink(user.invite_token!)}
                                                 className="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
@@ -404,12 +495,13 @@ export default function UsersPage() {
                                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
                                             </button>
                                         </div>
+                                        )}
                                     </div>
                                 )}
                             </li>
                         ))}
-                        {users.length === 0 && (
-                            <li className="px-6 py-8 text-center text-gray-400">{t.unit.noData}</li>
+                        {visibleUsers.length === 0 && (
+                            <li className="px-6 py-8 text-center text-gray-500">{users.length === 0 ? t.users.noneYet : t.users.noMatch}</li>
                         )}
                     </ul>
                 </div>

@@ -94,3 +94,4 @@ def combine_meters(start: float, end: float, meters: List[Optional[MeterPeriod]]
     value = _round(sum(m.value for m in known), max(m.decimals for m in known))
     missing = ((covered_from - start) + (end - covered_to)) / DAY
     return PeriodResult(value, _round(missing, 1), _round(period_days, 1))
+

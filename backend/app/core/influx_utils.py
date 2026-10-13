@@ -126,7 +126,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
         # Guess common serial number tag keys
         sn_tags_to_check = [device_tag] if device_tag else []
         
-        found_sn_tag = None
         
         for tag in tags_to_check:
              # We need to find the SN tag.
@@ -138,7 +137,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
                  res = query_influx(db_name, q)
                  if res.get('results') and res['results'][0].get('series'):
                      data = res
-                     found_sn_tag = sn_tag
                      break
              if data: break # Found meters via one of the unit tags
         
@@ -157,19 +155,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
                                 })
                             
     return meters
-
-def parse_series_tags(series_str: str) -> Dict[str, str]:
-    """
-    Parses "measurement,tag1=val1,tag2=val2" into a dict.
-    (Kept for reference or other uses, but used less now)
-    """
-    parts = series_str.split(',')
-    tags = {}
-    for part in parts[1:]: 
-        if '=' in part:
-            k, v = part.split('=', 1)
-            tags[k.strip()] = v.strip()
-    return tags
 
 def get_meter_readings(db_name: str, serial_number: str, measurement: str = None, device_tag: str = None) -> List[Tuple[str, float]]:
     """
@@ -213,7 +198,7 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
 BEFORE_WINDOW = timedelta(days=366)
 AFTER_WINDOW = timedelta(days=62)
 
-def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, Dict[str, Tuple[float, float]]]:
+def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Optional[Dict[str, Dict[str, Tuple[float, float]]]]:
     """
     Readings around the period [start, end) for every meter of a measurement, keyed by serial
     number: 'before' (last before the start), 'first' and 'last' (inside the period) and 'after'
@@ -238,6 +223,8 @@ def get_period_points(db_name: str, measurement: str, device_tag: str, start: da
         ('after', f'SELECT FIRST("d") FROM ({daily(end, end + AFTER_WINDOW)}) GROUP BY "{device_tag}"'),
     ]
     data = query_influx(db_name, ';'.join(q for _, q in statements))
+    if 'results' not in data:
+        return None  # InfluxDB not reachable or the query failed (no data at all is an empty dict)
 
     points: Dict[str, Dict[str, Tuple[float, float]]] = {}
     for (key, _), result in zip(statements, data.get('results', [])):
@@ -280,3 +267,29 @@ def get_meter_last_seen_by_unit(db_name: str, measurements: List[str], unit_tag:
                 if unit and series.get('values'):
                     last_seen[unit] = max(last_seen.get(unit, ''), series['values'][0][0])
     return last_seen
+
+
+def get_last_reading_time(db_name: str, measurements: List[str]) -> Optional[str]:
+    """Time of the newest reading of any meter in the database (one database per building)."""
+    times = []
+    for measurement in measurements:
+        for result in query_influx(db_name, f'SELECT LAST("value") FROM "{measurement}"').get('results', []):
+            for series in result.get('series', []):
+                if series.get('values'):
+                    times.append(series['values'][0][0])
+    return max(times) if times else None
+
+
+def get_meters_last_time(db_name: str, measurements: List[str], device_tag: str, serials: List[str]) -> Optional[str]:
+    """Time of the newest reading of the given meters (serial numbers), or None."""
+    if not serials:
+        return None
+    pattern = "|".join(re.escape(s) for s in serials)
+    times = []
+    for measurement in measurements:
+        q = f'SELECT LAST("value") FROM "{measurement}" WHERE "{device_tag}" =~ /^({pattern})$/'
+        for result in query_influx(db_name, q).get('results', []):
+            for series in result.get('series', []):
+                if series.get('values'):
+                    times.append(series['values'][0][0])
+    return max(times) if times else None

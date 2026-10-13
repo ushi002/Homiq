@@ -1,12 +1,39 @@
 """Consumption of every unit of a building by meter type, for the building overview and the
 building average shown to owners. Rules: app/core/consumption.py."""
+import threading
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple
 from ..models.property import Building
 from ..models.telemetry import Meter
 from .consumption import PeriodResult, combine_meters, meter_period
-from .influx_utils import get_period_points, parse_measurements_config, DEFAULT_MEASUREMENTS
+from .influx_utils import get_period_points, parse_measurements_config, DEFAULT_MEASUREMENTS, AFTER_WINDOW
+
+# InfluxDB answers for settled periods, kept in memory. A period is settled once its end is further
+# back than the window in which the reading closing it is searched for: none of its points can
+# change any more (except for data loaded into InfluxDB retroactively, which a restart clears).
+_CACHE_SIZE = 2000
+_cache: "OrderedDict[tuple, dict]" = OrderedDict()
+_cache_lock = threading.Lock()
+
+
+def _period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> dict:
+    if end + AFTER_WINDOW + timedelta(days=1) > datetime.now(timezone.utc):
+        return get_period_points(db_name, measurement, device_tag, start, end) or {}
+    key = (db_name, measurement, device_tag, start, end)
+    with _cache_lock:
+        if key in _cache:
+            _cache.move_to_end(key)
+            return _cache[key]
+    points = get_period_points(db_name, measurement, device_tag, start, end)
+    if points is None:  # InfluxDB error: answer empty now, ask again next time
+        return {}
+    with _cache_lock:
+        _cache[key] = points
+        if len(_cache) > _CACHE_SIZE:
+            _cache.popitem(last=False)
+    return points
 
 
 def units_consumption(building: Building, meters: List[Meter], periods: List[Tuple[datetime, datetime]]
@@ -34,7 +61,7 @@ def units_consumption(building: Building, meters: List[Meter], periods: List[Tup
     # Influx queries run in parallel, one per measurement and period
     with ThreadPoolExecutor(max_workers=6) as pool:
         points = list(pool.map(
-            lambda job: get_period_points(building.influx_db_name, job[0], building.influx_device_tag, *periods[job[3]]),
+            lambda job: _period_points(building.influx_db_name, job[0], building.influx_device_tag, *periods[job[3]]),
             jobs,
         ))
 

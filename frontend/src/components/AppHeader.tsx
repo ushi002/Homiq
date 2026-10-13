@@ -15,7 +15,7 @@ export default function AppHeader() {
     const links = [
         // Owners see a list of their units on the home page, not buildings
         { href: '/', label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, active: pathname === '/' || pathname.startsWith('/buildings') || pathname.startsWith('/units') },
-        ...(user?.role === 'admin' ? [{ href: '/users', label: t.nav.users, active: pathname.startsWith('/users') }] : []),
+        ...(user?.role === 'admin' || user?.role === 'home_lord' ? [{ href: '/users', label: t.nav.users, active: pathname.startsWith('/users') }] : []),
     ];
     const name = user?.full_name || user?.email || '';
 
@@ -29,6 +29,7 @@ export default function AppHeader() {
                             <Link
                                 key={l.href}
                                 href={l.href}
+                                aria-current={l.active ? 'page' : undefined}
                                 className={`px-1.5 sm:px-3 py-1.5 rounded-md ${l.active ? 'bg-blue-50 text-blue-800 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
                             >
                                 {l.label}

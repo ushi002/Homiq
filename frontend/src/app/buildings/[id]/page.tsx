@@ -1,8 +1,12 @@
 "use client";
-import React, { useEffect, useState, use } from 'react';
+import { BUTTON, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
+import PageSkeleton from '@/components/PageSkeleton';
+import React, { useCallback, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
+import { MeasurementItem, newMeasurementId, parseMeasurements, serializeMeasurements } from '@/lib/measurements';
 import UserSelect from '@/components/UserSelect';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +20,7 @@ interface Unit {
     unit_number: string;
     floor: number;
     area_m2: number;
+    owner?: { full_name?: string; email: string } | null;
 }
 
 interface Building {
@@ -28,12 +33,16 @@ interface Building {
     influx_device_tag?: string;
     influx_measurements?: string;
     units_fetched?: boolean;
+    manager_id?: string | null;
 }
 
 export default function BuildingDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
+    const [building, setBuilding] = useState<Building | null>(null);
     const [units, setUnits] = useState<Unit[]>([]);
+    const [loadError, setLoadError] = useState<'notFound' | 'failed' | null>(null);
+    const [unitSearch, setUnitSearch] = useState('');
+    const [onlyWithoutOwner, setOnlyWithoutOwner] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const isAdmin = user?.role === 'admin';
@@ -43,6 +52,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const toast = useToast();
     const apiError = useApiError();
     const confirm = useConfirm();
+    usePageTitle(building?.name);
 
     useEffect(() => {
         if (authLoading) return;
@@ -53,113 +63,57 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
 
 
 
-    // Measurements UI State
-    interface MeasurementItem {
-        id: string;
-        name: string;
-        uom: string;
-        type: string;
-    }
     const [measurementsList, setMeasurementsList] = useState<MeasurementItem[]>([]);
 
-    // Helper: Parse string "sv_l[m3,Cold Water], ..." to objects
-    const parseMeasurements = (str: string): MeasurementItem[] => {
-        if (!str) return [];
-        const parts = str.split(/,(?![^\[]*\])/); // Split by comma ignoring brackets
-        return parts.map(part => {
-            part = part.trim();
-            if (!part) return null;
-            let name = part;
-            let uom = '';
-            let type = '';
-
-            if (part.includes('[') && part.endsWith(']')) {
-                const [n, content] = part.split('[');
-                name = n.trim();
-                const inner = content.slice(0, -1); // remove closing ]
-                if (inner.includes(',')) {
-                    const [u, t] = inner.split(',', 2);
-                    uom = u.trim();
-                    type = t.trim();
-                } else {
-                    uom = inner.trim();
-                }
-            }
-            return { id: Math.random().toString(36).substr(2, 9), name, uom, type };
-        }).filter(Boolean) as MeasurementItem[];
-    };
-
-    // Helper: Serialize objects back to string
-    const serializeMeasurements = (items: MeasurementItem[]): string => {
-        return items.map(m => {
-            if (!m.name.trim()) return null;
-            const name = m.name.trim();
-            const uom = m.uom.trim();
-            const type = m.type.trim();
-
-            if (uom || type) {
-                // name[uom,type]
-                let content = uom;
-                if (type) {
-                    content = `${uom},${type}`;
-                }
-                return `${name}[${content}]`;
-            }
-            return name;
-        }).filter(Boolean).join(', ');
-    };
-
-    const addMeasurement = () => {
-        setMeasurementsList([...measurementsList, { id: Math.random().toString(36).substr(2, 9), name: '', uom: '', type: '' }]);
-    };
-
-    const removeMeasurement = (index: number) => {
-        const newList = [...measurementsList];
-        newList.splice(index, 1);
-        setMeasurementsList(newList);
-        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
-
-    const updateMeasurement = (index: number, field: keyof MeasurementItem, value: string) => {
-        const newList = [...measurementsList];
-        newList[index] = { ...newList[index], [field]: value };
-        setMeasurementsList(newList);
-        setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
-    };
+    // The building as loaded or saved, and the edit form filled from it
+    const showBuilding = useCallback((data: Building) => {
+        setBuilding(data);
+        setEditForm({
+            name: data.name,
+            address: data.address,
+            description: data.description || '',
+            influx_db_name: data.influx_db_name || '',
+            influx_unit_tag: data.influx_unit_tag || '',
+            influx_device_tag: data.influx_device_tag || '',
+            influx_measurements: data.influx_measurements || ''
+        });
+        setMeasurementsList(parseMeasurements(data.influx_measurements || ''));
+    }, []);
 
     useEffect(() => {
         if (authLoading || !token) return;
 
         // Fetch building
+        // 403/404: the building does not exist or belongs to someone else
+        const failed = (err: Error) => {
+            console.error(err);
+            setLoadError(['403', '404'].includes(err.message) ? 'notFound' : 'failed');
+        };
+        const json = async (res: Response) => {
+            if (!res.ok) throw new Error(String(res.status));
+            return res.json();
+        };
         authFetch(`/buildings/${id}`)
-            .then(res => res.json())
-            .then(data => setBuilding(data))
-            .catch(err => console.error(err));
+            .then(json)
+            .then(showBuilding)
+            .catch(failed);
 
         // Fetch units
         authFetch(`/buildings/${id}/units`)
-            .then(res => res.json())
+            .then(json)
             .then(data => setUnits(data))
-            .catch(err => console.error(err));
-    }, [id, token, authLoading]);
+            .catch(failed);
+    }, [id, token, authLoading, showBuilding]);
 
-    useEffect(() => {
-        if (building) {
-            setEditForm({
-                name: building.name,
-                address: building.address,
-                description: building.description || '',
-                influx_db_name: building.influx_db_name || '',
-                influx_unit_tag: building.influx_unit_tag || '',
-                influx_device_tag: building.influx_device_tag || '',
-                influx_measurements: building.influx_measurements || ''
-            });
-            setMeasurementsList(parseMeasurements(building.influx_measurements || ''));
-        }
-    }, [building]);
-
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
-    if (!building) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (loadError) {
+        return (
+            <main className={PAGE}>
+                <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
+                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{loadError === 'notFound' ? t.building.notFound : t.messages.errorGeneric}</div>
+            </main>
+        );
+    }
+    if (authLoading || !token || !building) return <PageSkeleton variant="list" rows={8} />;
 
     const handleAssignManager = async (newManagerId: string) => {
         if (!isAdmin) return;
@@ -170,7 +124,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             if (res.ok) {
                 // Update local state or reload
                 const updated = await res.json();
-                setBuilding(updated);
+                showBuilding(updated);
                 toast.success(t.messages.successUpdateManager);
             } else {
                 toast.error(t.messages.errorUpdateManager);
@@ -192,7 +146,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
             });
             if (res.ok) {
                 const updated = await res.json();
-                setBuilding(updated);
+                showBuilding(updated);
                 setIsEditing(false);
                 toast.success(t.messages.successUpdateBuilding);
             } else {
@@ -289,61 +243,67 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     };
 
+    const unitsWithoutOwner = units.filter(u => !u.owner).length;
+    const unitQuery = unitSearch.trim().toLocaleLowerCase();
+    const visibleUnits = units.filter(u =>
+        (!onlyWithoutOwner || !u.owner)
+        && (!unitQuery || [u.unit_number, u.owner?.full_name, u.owner?.email].some(x => (x ?? '').toLocaleLowerCase().includes(unitQuery))));
+
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="mb-6">
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }, { label: building.name }]} />
                 <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                     <div className="max-w-2xl w-full">
                         {isEditing ? (
-                            <form onSubmit={handleUpdateBuilding} className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 space-y-4">
+                            <form onSubmit={handleUpdateBuilding} className={`${CARD} p-4 sm:p-6 space-y-4`}>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.name}</label>
+                                    <label className={LABEL}>{t.building.name}</label>
                                     <input
                                         type="text"
                                         value={editForm.name}
                                         onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.address}</label>
+                                    <label className={LABEL}>{t.building.address}</label>
                                     <input
                                         type="text"
                                         value={editForm.address}
                                         onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         required
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxDbName}</label>
+                                    <label className={LABEL}>{t.building.influxDbName}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_db_name}
                                         onChange={e => setEditForm({ ...editForm, influx_db_name: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderDbName}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxUnitTag}</label>
+                                    <label className={LABEL}>{t.building.influxUnitTag}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_unit_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_unit_tag: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderUnitTag}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.influxDeviceTag}</label>
+                                    <label className={LABEL}>{t.building.influxDeviceTag}</label>
                                     <input
                                         type="text"
                                         value={editForm.influx_device_tag}
                                         onChange={e => setEditForm({ ...editForm, influx_device_tag: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         placeholder={t.building.placeholderDeviceTag}
                                     />
                                 </div>
@@ -353,13 +313,13 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         { type: 'water_hot', label: t.building.categoryHotWater, color: 'text-red-600', bg: 'bg-red-50' },
                                         { type: 'heat', label: t.building.categoryHeat, color: 'text-orange-600', bg: 'bg-orange-50' }
                                     ].map(category => (
-                                        <div key={category.type} className="border rounded-md p-4 bg-gray-50/50">
+                                        <div key={category.type} className="border border-gray-200 rounded-md p-4 bg-gray-50/50">
                                             <div className="flex justify-between items-center mb-3">
                                                 <h3 className={`font-semibold text-sm ${category.color}`}>{category.label}</h3>
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        const newId = Math.random().toString(36).substr(2, 9);
+                                                        const newId = newMeasurementId();
                                                         setMeasurementsList([...measurementsList, { id: newId, name: '', uom: '', type: category.type }]);
                                                     }}
                                                     className={`text-xs px-2 py-1 rounded bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 shadow-sm`}
@@ -411,7 +371,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                                 setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
                                                             }}
                                                             className="text-red-500 hover:text-red-700 p-2"
-                                                            title="Remove"
+                                                            title={t.common.delete}
                                                         >
                                                             &times;
                                                         </button>
@@ -424,7 +384,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                     if (category.type === 'heat') return mType.includes('heat') || mType === 'teplo';
                                                     return false;
                                                 }).length === 0 && (
-                                                        <p className="text-xs text-gray-400 italic text-center py-2">
+                                                        <p className="text-xs text-gray-500 italic text-center py-2">
                                                             {t.unit.noData}
                                                         </p>
                                                     )}
@@ -434,16 +394,44 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 </div>
                                 <input type="hidden" name="influx_measurements" value={editForm.influx_measurements} />
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">{t.building.description}</label>
+                                    <label className={LABEL}>{t.building.description}</label>
                                     <textarea
                                         value={editForm.description}
                                         onChange={e => setEditForm({ ...editForm, description: e.target.value })}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"
+                                        className={INPUT}
                                         rows={3}
                                     />
                                 </div>
+                                <div className="border border-red-200 rounded-md p-4">
+                                    <h3 className="font-semibold text-sm text-red-700">{t.building.dangerZone}</h3>
+                                    <p className="text-xs text-gray-500 mt-1 mb-3">{t.building.dangerZoneHint}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteUnits}
+                                            disabled={!building.units_fetched}
+                                            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
+                                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                                : "bg-red-50 text-red-600 hover:bg-red-100"
+                                                }`}
+                                        >
+                                            {t.building.deleteAllUnits}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteBuilding}
+                                            disabled={building.units_fetched}
+                                            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
+                                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                                : "bg-red-600 text-white hover:bg-red-700"
+                                                }`}
+                                        >
+                                            {t.building.deleteBuilding}
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="flex space-x-2">
-                                    <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <button type="submit" className={BUTTON}>
                                         {t.common.save}
                                     </button>
                                     <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
@@ -465,7 +453,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 {(isAdmin || user?.role === 'home_lord') && building.units_fetched && (
                                     <Link
                                         href={`/buildings/${id}/consumption`}
-                                        className="mt-4 mr-4 inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                        className={`mt-4 mr-4 inline-block ${BUTTON} text-sm font-medium`}
                                     >
                                         {t.consumption.open}
                                     </Link>
@@ -484,8 +472,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     </div>
                     {/* Admin Manager Assignment */}
                     {isAdmin && (
-                        <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 lg:max-w-xs lg:w-full">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">{t.building.assignedHomeLord}</label>
+                        <div className={`${CARD} p-4 lg:max-w-xs lg:w-full`}>
+                            <label className={`${LABEL} mb-1`}>{t.building.assignedHomeLord}</label>
                             <UserSelect
                                 value={building.manager_id || ""}
                                 onChange={handleAssignManager}
@@ -510,46 +498,53 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                             >
                                 {building.units_fetched ? t.building.reloadUnits : t.building.fetchUnits}
                             </button>
-                            <button
-                                onClick={handleDeleteUnits}
-                                disabled={!building.units_fetched}
-                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : "bg-red-50 text-red-600 hover:bg-red-100"
-                                    }`}
-                            >
-                                {t.building.deleteAllUnits}
-                            </button>
-                            <button
-                                onClick={handleDeleteBuilding}
-                                disabled={building.units_fetched}
-                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : "bg-red-600 text-white hover:bg-red-700"
-                                    }`}
-                            >
-                                {t.building.deleteBuilding}
-                            </button>
                         </div>
                     )}
                 </div>
-                <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
+                {units.length > 8 && (
+                    <div className="flex flex-wrap items-center gap-3">
+                        <input
+                            type="search"
+                            aria-label={t.building.searchUnits}
+                            value={unitSearch}
+                            onChange={e => setUnitSearch(e.target.value)}
+                            placeholder={t.building.searchUnits}
+                            className="w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-1.5 text-sm bg-white"
+                        />
+                        {user?.role !== 'owner' && unitsWithoutOwner > 0 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" checked={onlyWithoutOwner} onChange={e => setOnlyWithoutOwner(e.target.checked)} />
+                                {t.building.onlyWithoutOwner} ({unitsWithoutOwner})
+                            </label>
+                        )}
+                    </div>
+                )}
+                <div className={`${CARD} overflow-hidden`}>
                     <ul className="divide-y divide-gray-100">
-                        {units.map(unit => (
+                        {visibleUnits.map(unit => (
                             <li key={unit.id} className="hover:bg-gray-50 transition-colors">
-                                <Link href={`/units/${unit.id}`} className="block px-4 sm:px-6 py-4 flex justify-between items-center gap-3">
-                                    <div>
-                                        <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
-                                        <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>
-                                        <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>
-                                    </div>
-                                    <span className="text-blue-500">{t.building.viewDetails} &rarr;</span>
+                                <Link href={`/units/${unit.id}`} className="px-4 sm:px-6 py-2.5 flex items-center gap-3">
+                                    <span className="font-semibold text-gray-800 w-28 sm:w-36 shrink-0 truncate">{unit.unit_number}</span>
+                                    {user?.role !== 'owner' && (
+                                        <span className={`flex-1 min-w-0 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-500 italic'}`} title={unit.owner?.email}>
+                                            {unit.owner ? (unit.owner.full_name || unit.owner.email) : t.building.noOwner}
+                                        </span>
+                                    )}
+                                    {/* Floor and area are not filled in yet for most units: shown only when known */}
+                                    <span className="hidden sm:inline text-sm text-gray-500 shrink-0">
+                                        {unit.floor > 0 && <>{t.building.floor}: {unit.floor}</>}
+                                        {unit.area_m2 > 0 && <span className="ml-4">{unit.area_m2} m²</span>}
+                                    </span>
+                                    <span className="text-blue-500 shrink-0 ml-auto" aria-hidden="true">&rarr;</span>
                                 </Link>
                             </li>
                         ))}
                     </ul>
                     {units.length === 0 && (
-                        <div className="p-6 text-center text-gray-400">{t.building.noUnits}</div>
+                        <div className="p-6 text-center text-gray-500">{t.building.noUnits}</div>
+                    )}
+                    {units.length > 0 && visibleUnits.length === 0 && (
+                        <div className="p-6 text-center text-gray-500">{t.building.noUnitMatch}</div>
                     )}
                 </div>
             </div>

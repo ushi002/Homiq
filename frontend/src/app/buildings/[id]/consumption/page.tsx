@@ -1,11 +1,13 @@
 "use client";
-import React, { useEffect, useState, use } from 'react';
+import { BUTTON_SECONDARY, CARD, EMPTY_STATE, FILTER_LABEL, FILTER_SELECT, PAGE } from '@/lib/ui';
+import React, { useEffect, useEffectEvent, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import YoyChange from '@/components/YoyChange';
+import ConsumptionChart from '@/components/ConsumptionChart';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
 import { useToast } from '@/context/ToastContext';
@@ -25,7 +27,13 @@ interface UnitRow {
     values: Record<string, { current: Cell; previous: Cell }>;
 }
 
+interface MonthlyData {
+    meter_types: { type: string; unit_of_measure: string }[];
+    months: Record<string, { current: (number | null)[]; previous: (number | null)[] }>;
+}
+
 interface ConsumptionData {
+    last_reading?: string | null;
     meter_types: { type: string; unit_of_measure: string }[];
     units: UnitRow[];
 }
@@ -53,7 +61,7 @@ const sumCells = (cells: Cell[]): Cell => {
 
 export default function BuildingConsumption({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { token, isLoading: authLoading } = useAuth();
+    const { token, user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { t, language } = useLanguage();
     const toast = useToast();
@@ -68,10 +76,33 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [building, setBuilding] = useState<{ name: string } | null>(null);
     const [data, setData] = useState<ConsumptionData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(false);
     const [sortKey, setSortKey] = useState<string>('unit'); // 'unit' or a meter type
     const [sortDesc, setSortDesc] = useState(false);
     const [exporting, setExporting] = useState(false);
+    // Whole building by month for the chart; loaded separately, the first load of a year is slow
+    const [monthly, setMonthly] = useState<MonthlyData | null>(null);
+    const [chartType, setChartType] = useState<string | null>(null);
+    // Period from the address (?year=&month=, e.g. a link from the dashboard), read once in
+    // the browser before the first fetch; month=0 or no month = whole year
+    const [paramsRead, setParamsRead] = useState(false);
+    // Until a period is chosen (address, select, chart), open where the data is: without fresh
+    // readings the last closed month would be empty
+    const [autoPeriod, setAutoPeriod] = useState(true);
+    const choosePeriod = (y: number, m: number) => { setAutoPeriod(false); setYear(y); setMonth(m); };
+    useEffect(() => {
+        const q = new URLSearchParams(window.location.search);
+        const y = parseInt(q.get('year') ?? '');
+        if (y >= 2000 && y <= 2100) {
+            setAutoPeriod(false);
+            setYear(y);
+            const m = parseInt(q.get('month') ?? '0');
+            setMonth(m >= 1 && m <= 12 ? m : 0);
+        }
+        setParamsRead(true);
+    }, []);
+
+    const [forbidden, setForbidden] = useState(false);
 
     useEffect(() => {
         if (authLoading) return;
@@ -79,33 +110,62 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             router.push('/login');
             return;
         }
+        // The overview shows other owners' consumption: owners go to the building detail (their units)
+        if (user?.role === 'owner') {
+            router.replace(`/buildings/${id}`);
+            return;
+        }
         authFetch(`/buildings/${id}`)
             .then(res => res.json())
             .then(setBuilding)
             .catch(err => console.error(err));
-    }, [id, token, authLoading]);
+    }, [id, token, authLoading, user?.role, router]);
+
+    const openOnData = useEffectEvent((lastReading?: string | null) => {
+        if (!autoPeriod || !lastReading) return;
+        const last = new Date(lastReading);
+        if (last < new Date(year, month ? month - 1 : 0, 1)) choosePeriod(last.getFullYear(), last.getMonth() + 1);
+        else setAutoPeriod(false);
+    });
 
     useEffect(() => {
-        if (authLoading || !token) return;
+        if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
         // Ignore responses for a period that is no longer selected (fast year + month changes)
         let stale = false;
         setLoading(true);
-        setError('');
+        setError(false);
         authFetch(`/buildings/${id}/consumption?year=${year}${month ? `&month=${month}` : ''}`)
             .then(async res => {
+                if (res.status === 403) {
+                    if (!stale) setForbidden(true);  // e.g. a manager of another building
+                    return;
+                }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                if (!stale) setData(json);
+                if (stale) return;
+                setData(json);
+                openOnData(json.last_reading);
             })
             .catch(err => {
                 console.error(err);
-                if (!stale) setError(t.messages.errorGeneric);
+                if (!stale) setError(true);
             })
             .finally(() => {
                 if (!stale) setLoading(false);
             });
         return () => { stale = true; };
-    }, [id, token, authLoading, year, month]);
+    }, [id, token, authLoading, year, month, user?.role, paramsRead]);
+
+    useEffect(() => {
+        if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
+        let stale = false;
+        setMonthly(null);
+        authFetch(`/buildings/${id}/consumption_monthly?year=${year}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(json => { if (!stale) setMonthly(json); })
+            .catch(err => console.error(err));
+        return () => { stale = true; };
+    }, [id, token, authLoading, year, user?.role, paramsRead]);
 
     const format = (v: number | null) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: 2 });
 
@@ -146,7 +206,8 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
     const sortArrow = (key: string) => sortKey === key ? (sortDesc ? ' ↓' : ' ↑') : '';
 
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token || user?.role === 'owner') return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (forbidden) return <main className={PAGE}><p className="p-8 text-center text-gray-600">{t.consumption.noAccess}</p></main>;
 
     type Pair = { current: Cell; previous: Cell };
     // A percentage needs both periods complete and a non-zero previous value
@@ -209,21 +270,21 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     // columnComparable: when false the header already explains the missing change, so cells stay clean
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
-            <span className="font-mono">{format(c.current.value)}</span>
-            {c.current.value !== null && !c.current.complete && <span className="text-gray-400 cursor-help" title={missingTitle(c.current)}>*</span>}
-            {c.current.value !== null && <span className="text-xs text-gray-400 ml-1">{uom}</span>}
+            <span className="tabular-nums">{format(c.current.value)}</span>
+            {c.current.value !== null && !c.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(c.current)}>*</span>}
+            {c.current.value !== null && <span className="text-xs text-gray-500 ml-1">{uom}</span>}
             {comparable(c) ? (
                 <div className="text-xs">
                     <YoyChange current={c.current.value as number} previous={c.previous.value as number} previousYear={year - 1} compact />
                 </div>
             ) : c.current.value !== null && columnComparable && (
-                <div className="text-xs text-gray-400 cursor-help" title={noComparisonReason(c)}>{t.consumption.noComparison}</div>
+                <div className="text-xs text-gray-500 cursor-help" title={noComparisonReason(c)}>{t.consumption.noComparison}</div>
             )}
         </>
     );
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900">
+        <main className={PAGE}>
             <div className="max-w-7xl mx-auto">
                 <Breadcrumbs items={[
                     { label: t.nav.buildings, href: '/' },
@@ -232,16 +293,16 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 ]} />
                 <h1 className="text-3xl font-bold mb-6">{t.consumption.title}</h1>
 
-                <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center mb-6">
+                <div className={`${CARD} p-4 flex flex-wrap gap-4 items-center mb-6`}>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.unit.year}</label>
-                        <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <label className={FILTER_LABEL}>{t.unit.year}</label>
+                        <select value={year} onChange={e => choosePeriod(parseInt(e.target.value), month)} className={`mt-1 block w-24 ${FILTER_SELECT}`}>
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase">{t.consumption.period}</label>
-                        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className="mt-1 block w-36 rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <label className={FILTER_LABEL}>{t.consumption.period}</label>
+                        <select value={month} onChange={e => choosePeriod(year, parseInt(e.target.value))} className={`mt-1 block w-36 ${FILTER_SELECT}`}>
                             <option value={0}>{t.consumption.wholeYear}</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                 <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(locale, { month: 'long' })}</option>
@@ -251,21 +312,72 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                     <button
                         onClick={exportReadings}
                         disabled={!data || data.meter_types.length === 0 || exporting}
-                        className="sm:ml-auto self-end px-4 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                        className={`sm:ml-auto self-end ${BUTTON_SECONDARY}`}
                     >
                         ⬇ {exporting ? t.csv.preparing : t.csv.downloadReadings}
                     </button>
                 </div>
 
-                {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{error}</div>}
+                {data?.last_reading && (() => {
+                    // When data stopped coming (same texts as the unit detail)
+                    const last = new Date(data.last_reading);
+                    const old = Date.now() - last.getTime() > 7 * 86400000;
+                    return (
+                        <p className={`text-sm -mt-3 mb-4 ${old ? 'text-amber-700 cursor-help' : 'text-gray-500'}`} title={old ? t.unit.lastReadingOld : undefined}>
+                            {t.unit.lastReading}: {last.toLocaleDateString(locale)}
+                        </p>
+                    );
+                })()}
+
+                {/* Whole building by month; a meter type at a time, a click on a month selects it below */}
+                {data && data.meter_types.length > 0 && (() => {
+                    const type = chartType && data.meter_types.some(mt => mt.type === chartType) ? chartType : data.meter_types[0].type;
+                    const uom = data.meter_types.find(mt => mt.type === type)!.unit_of_measure;
+                    // A whole building uses hundreds of thousands of litres: the chart shows m³
+                    const inM3 = uom === 'L';
+                    const toM3 = (values: (number | null)[]) => values.map(v => v === null ? null : v / 1000);
+                    const series = monthly?.months[type];
+                    return (
+                        <div className={`${CARD} p-4 sm:p-6 mb-6`}>
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <h2 className="text-lg font-semibold">{t.consumption.buildingChart}</h2>
+                                <div className="flex flex-wrap gap-1 text-sm">
+                                    {data.meter_types.map(mt => (
+                                        <button
+                                            key={mt.type}
+                                            onClick={() => setChartType(mt.type)}
+                                            className={`px-3 py-1 rounded-md ${mt.type === type ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+                                        >
+                                            {typeLabel(mt.type)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {series ? (
+                                <ConsumptionChart
+                                    monthly={inM3 ? { current: toM3(series.current), previous: toM3(series.previous) } : series}
+                                    year={year}
+                                    unitOfMeasure={inM3 ? 'm³' : uom}
+                                    selectedMonth={month || null}
+                                    onSelectMonth={m => choosePeriod(year, m)}
+                                    format={format}
+                                />
+                            ) : (
+                                <p className="h-40 flex items-center justify-center text-sm text-gray-500" aria-busy="true">{t.consumption.chartLoading}</p>
+                            )}
+                        </div>
+                    );
+                })()}
+
+                {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{t.messages.errorGeneric}</div>}
                 {!data && loading && <div className="p-8 text-center">{t.common.loading}</div>}
 
                 {data && data.meter_types.length === 0 && (
-                    <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">{t.consumption.noMeters}</div>
+                    <div className={EMPTY_STATE}>{t.consumption.noMeters}</div>
                 )}
 
                 {data && data.meter_types.length > 0 && (
-                    <div className={`bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
+                    <div className={`${CARD} overflow-x-auto transition-opacity ${loading ? 'opacity-50' : ''}`}>
                         <table className="w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-200 text-left text-gray-500">
@@ -278,7 +390,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                             <button onClick={() => toggleSort(mt.type)} className="hover:text-gray-900">
                                                 {typeLabel(mt.type)} ({mt.unit_of_measure}){sortArrow(mt.type)}
                                             </button>
-                                            <div className={`text-xs font-normal ${columnNote(mt.type).comparable ? 'text-gray-400' : 'text-amber-700'}`}>{columnNote(mt.type).text}</div>
+                                            <div className={`text-xs font-normal ${columnNote(mt.type).comparable ? 'text-gray-500' : 'text-amber-700'}`}>{columnNote(mt.type).text}</div>
                                         </th>
                                     ))}
                                 </tr>

@@ -40,6 +40,14 @@ def can_access_user(current: User, user: User) -> bool:
     return current.role == "home_lord" and user.created_by_id == current.id
 
 
+def can_manage_user(current: User, user: User) -> bool:
+    """Changing someone else's account (e.g. renewing their invitation): admins anyone, managers only
+    the owners they invited."""
+    if current.role == "admin":
+        return True
+    return current.role == "home_lord" and user.role == "owner" and user.created_by_id == current.id
+
+
 def require(allowed: bool):
     if not allowed:
         raise HTTPException(status_code=403, detail="Not authorized")
