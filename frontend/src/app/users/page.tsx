@@ -388,7 +388,7 @@ export default function UsersPage() {
                                                         if (e.key === 'Escape') cancelEdit();
                                                     }}
                                                     autoFocus
-                                                    className="border rounded px-2 py-1 text-sm w-full max-w-xs"
+                                                    className="border border-gray-300 rounded px-2 py-1 text-sm w-full max-w-xs"
                                                 />
                                                 <button onClick={() => saveEdit(user.id)} className="text-xs bg-blue-600 text-white px-2 py-1 rounded">{t.common.save}</button>
                                                 <button onClick={cancelEdit} className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded">{t.common.cancel}</button>
@@ -469,11 +469,11 @@ export default function UsersPage() {
                                         <div className="text-xs space-y-1 text-gray-600 mb-2">
                                             <div className="flex justify-between">
                                                 <span>{t.users.inviteCreated}:</span>
-                                                <span className="font-mono">{formatDate(user.created_at)}</span>
+                                                <span className="tabular-nums">{formatDate(user.created_at)}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>{t.users.inviteExpires}:</span>
-                                                <span className="font-mono">{formatDate(user.invite_expires_at)}</span>
+                                                <span className="tabular-nums">{formatDate(user.invite_expires_at)}</span>
                                             </div>
                                         </div>
 
@@ -501,7 +501,7 @@ export default function UsersPage() {
                             </li>
                         ))}
                         {visibleUsers.length === 0 && (
-                            <li className="px-6 py-8 text-center text-gray-500">{t.users.noMatch}</li>
+                            <li className="px-6 py-8 text-center text-gray-500">{users.length === 0 ? t.users.noneYet : t.users.noMatch}</li>
                         )}
                     </ul>
                 </div>

@@ -1,5 +1,5 @@
 "use client";
-import { CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
+import { BUTTON, CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
 import React, { useState, useEffect } from 'react';
@@ -211,7 +211,7 @@ const ChangePasswordForm = () => {
             <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 transition-colors disabled:opacity-50"
+                className={`${BUTTON} w-full`}
             >
                 {isLoading ? t.common.loading : t.profile.updatePassword}
             </button>

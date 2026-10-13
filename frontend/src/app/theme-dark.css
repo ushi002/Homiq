@@ -133,3 +133,9 @@
 :root[data-theme="dark"] .text-gray-500 {
   color: oklch(68% 0.022 261);
 }
+
+/* Solid buttons darken on hover in light mode (bg-*-600 -> hover:bg-*-700). In dark mode 700 is a
+   light tint, which would wash out the white text, so the hover goes to the 500 shade instead. */
+:root[data-theme="dark"] .hover\:bg-blue-700:hover { background-color: var(--color-blue-500); }
+:root[data-theme="dark"] .hover\:bg-red-700:hover { background-color: var(--color-red-500); }
+:root[data-theme="dark"] .hover\:bg-amber-700:hover { background-color: var(--color-amber-500); }

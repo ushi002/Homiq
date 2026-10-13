@@ -24,7 +24,6 @@ export interface Translations {
         noBuildings: string;
         managedBy: string;
         manageUsers: string;
-        unitsSynced: string;
         draft: string;
         myUnits: string;
         noUnits: string;
@@ -129,6 +128,7 @@ export interface Translations {
         searchPlaceholder: string;
         filterAll: string;
         noMatch: string;
+        noneYet: string;
         nameSaved: string;
         inviteValid: string;
         inviteExpired: string;

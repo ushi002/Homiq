@@ -313,7 +313,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         { type: 'water_hot', label: t.building.categoryHotWater, color: 'text-red-600', bg: 'bg-red-50' },
                                         { type: 'heat', label: t.building.categoryHeat, color: 'text-orange-600', bg: 'bg-orange-50' }
                                     ].map(category => (
-                                        <div key={category.type} className="border rounded-md p-4 bg-gray-50/50">
+                                        <div key={category.type} className="border border-gray-200 rounded-md p-4 bg-gray-50/50">
                                             <div className="flex justify-between items-center mb-3">
                                                 <h3 className={`font-semibold text-sm ${category.color}`}>{category.label}</h3>
                                                 <button

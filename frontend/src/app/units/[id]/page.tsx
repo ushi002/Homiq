@@ -370,7 +370,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     </div>
                     <div>
                         <span id="view-mode-label" className={FILTER_LABEL}>{t.unit.viewMode}</span>
-                        <div role="group" aria-labelledby="view-mode-label" className="flex mt-1 border rounded-md overflow-hidden">
+                        <div role="group" aria-labelledby="view-mode-label" className="flex mt-1 border border-gray-300 rounded-md overflow-hidden">
                             <button
                                 onClick={() => setViewMode('month')}
                                 aria-pressed={viewMode === 'month'}
@@ -489,7 +489,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 {part.readings.map(reading => (
                                     <div key={reading.time} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
                                         <span className="text-gray-600 text-xs">{formatDate(Date.parse(reading.time))}</span>
-                                        <span className="font-mono font-bold">{reading.value}</span>
+                                        <span className="tabular-nums font-bold">{reading.value}</span>
                                     </div>
                                 ))}
                             </div>
@@ -525,12 +525,12 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     <div className="flex flex-wrap gap-2 text-xs">
                                         <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(yearStart)).replace('{{endDate}}', lastDayLabel(ytdEnd))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {uom}
+                                            <span className="tabular-nums font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {uom}
                                             {currentYearTotal.value !== null && !currentYearTotal.complete && <span className="cursor-help" title={missingTitle(currentYearTotal)}>*</span>}
                                         </span>
                                         <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(Date.UTC(selectedYear - 1, 0, 1))).replace('{{endDate}}', lastDayLabel(prevYtdEnd))}:</span>
-                                            <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {uom}
+                                            <span className="tabular-nums font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {uom}
                                             {prevYearTotal.value !== null && !prevYearTotal.complete && <span className="cursor-help" title={missingTitle(prevYearTotal)}>*</span>}
                                         </span>
                                         {currentYearTotal.complete && prevYearTotal.complete && (
@@ -560,13 +560,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         <h4 className="font-semibold text-sm text-blue-800">{periodLabel} {selectedYear}</h4>
                                         <p className="text-xs text-gray-600 mt-1">
                                             {t.unit.lastYear} ({language === 'cs' ? periodLabel.toLocaleLowerCase('cs-CZ') : periodLabel} {selectedYear - 1}):{' '}
-                                            <span className="font-mono font-medium">{prevConsumption.value === null ? '–' : `${formatConsumption(prevConsumption.value)} ${uom}`}</span>
+                                            <span className="tabular-nums font-medium">{prevConsumption.value === null ? '–' : `${formatConsumption(prevConsumption.value)} ${uom}`}</span>
                                             {prevConsumption.value !== null && !prevConsumption.complete && <span className="cursor-help" title={missingTitle(prevConsumption)}>*</span>}
                                         </p>
                                     </div>
                                     <div className="sm:text-right">
                                         <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
-                                        <p className="text-lg font-bold font-mono text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
+                                        <p className="text-lg font-bold tabular-nums text-blue-900 leading-none">{formatConsumption(currentConsumption.value ?? 0)} <span className="text-xs font-sans font-normal">{uom}</span></p>
                                         <p className="text-xs mt-1">
                                             {currentConsumption.complete && prevConsumption.complete
                                                 ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
