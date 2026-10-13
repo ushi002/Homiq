@@ -30,6 +30,12 @@ export interface Translations {
         noUnits: string;
         totalFor: string;
         summaryFailed: string;
+        withOwner: string;
+        pendingInvites: string;
+        unusualUnits: string;
+        unitsOne: string;
+        unitsFew: string;
+        unitsMany: string;
     };
     building: {
         name: string;

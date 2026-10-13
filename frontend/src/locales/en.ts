@@ -32,6 +32,12 @@ export const en: Translations = {
         noUnits: 'No unit has been assigned to you yet.',
         totalFor: 'Total for {{period}}',
         summaryFailed: 'Failed to load the consumption summary.',
+        withOwner: 'With owner',
+        pendingInvites: 'invites: {{count}}',
+        unusualUnits: 'Unusual consumption ({{month}}): {{units}}',
+        unitsOne: '{{count}} unit',
+        unitsFew: '{{count}} units',
+        unitsMany: '{{count}} units',
     },
     building: {
         name: 'Name',
