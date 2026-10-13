@@ -17,8 +17,5 @@ class Meter(MeterBase, table=True):
     # Relationships
     unit: Optional[Unit] = Relationship()
 
-class MeterCreate(MeterBase):
-    pass
-
 class MeterRead(MeterBase):
     id: uuid.UUID
