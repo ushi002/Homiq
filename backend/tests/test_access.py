@@ -124,6 +124,13 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
 
+# Owner summary: only the owner's own units, other roles get nothing
+expect("owner_a", "/units/summary?year=2025&month=3", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["A"])
+expect("owner_b", "/units/summary?year=2025", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["B"])
+for who in ("admin", "lord1", "auditor"):
+    expect(who, "/units/summary?year=2025", 200, lambda r: r["units"] == [])
+expect(None, "/units/summary?year=2025", 401)
+
 # Renewing an invitation: admin or the manager who invited the owner; only a pending invitation
 def post(who, path):
     return client.post(path, headers=as_user(who) if who else {})

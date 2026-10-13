@@ -1,11 +1,13 @@
+import re
 import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..core.anomaly import typical, unusual
+from ..core.consumption import PeriodResult, combine_meters
 from ..core.building_consumption import units_consumption
 from ..core.influx_utils import get_meter_readings, parse_measurements_config
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
@@ -54,6 +56,73 @@ def read_units(
         return []
         
     return session.exec(statement.offset(offset).limit(limit)).all()
+
+@router.get("/summary")
+def read_owner_summary(
+    year: int = Query(ge=2000, le=2100),
+    month: Optional[int] = Query(default=None, ge=1, le=12),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Consumption of all units of the logged-in owner (possibly in several buildings) for a month
+    (or the whole year without month) and the same period a year earlier, per unit and in total.
+    Same rules as the building overview. Other roles get an empty list (they use the overview).
+    Totals add up only the same meter type and unit of measure (litres and m3 are not mixed)."""
+    empty = {"year": year, "month": month, "meter_types": [], "units": [], "totals": {}}
+    if current_user.role != "owner":
+        return empty
+
+    def bounds(y: int):
+        start = datetime(y, month or 1, 1, tzinfo=timezone.utc)
+        end = datetime(y + (not month or month == 12), (month % 12 + 1) if month else 1, 1, tzinfo=timezone.utc)
+        return start, end
+
+    def cell(r: Optional[PeriodResult], y: int) -> dict:
+        r = r or combine_meters(*(b.timestamp() for b in bounds(y)), [])
+        return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
+
+    natural = lambda text: [int(p) if p.isdigit() else p for p in re.split(r"(\d+)", text)]
+    units = session.exec(select(Unit).where(Unit.owner_id == current_user.id)).all()
+    buildings = sorted((session.get(Building, b) for b in {u.building_id for u in units}), key=lambda b: natural(b.name))
+    result_units, meter_types, totals = [], [], {}
+    for building in buildings:
+        building_id = building.id
+        own = sorted((u for u in units if u.building_id == building_id), key=lambda u: natural(u.unit_number))
+        # All meters of the building: the median for the unusual-consumption flag needs every unit
+        all_units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+        meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in all_units]))).all()
+        types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
+        uom = {mt["type"]: mt["unit_of_measure"] for mt in types}
+        medians = {t: typical(by_type.get(t) for by_type in current.values()) for t in uom}
+        own_types = {t for u in own for t in current.get(str(u.id), {}) | previous.get(str(u.id), {})}
+        for mt in types:
+            if mt["type"] in own_types and mt not in meter_types:
+                meter_types.append(mt)
+        for u in own:
+            values = {}
+            for t in sorted(set(current.get(str(u.id), {})) | set(previous.get(str(u.id), {}))):
+                median = medians.get(t)
+                values[t] = {"unit_of_measure": uom.get(t),
+                             "current": cell(current.get(str(u.id), {}).get(t), year),
+                             "previous": cell(previous.get(str(u.id), {}).get(t), year - 1),
+                             "unusual": unusual(current.get(str(u.id), {}).get(t), previous.get(str(u.id), {}).get(t),
+                                                median[0] if median else None)}
+                total = totals.setdefault(f"{t}|{uom.get(t)}", {"type": t, "unit_of_measure": uom.get(t), "current": [], "previous": []})
+                total["current"].append(values[t]["current"])
+                total["previous"].append(values[t]["previous"])
+            result_units.append({"id": str(u.id), "unit_number": u.unit_number, "building_id": str(building_id),
+                                 "building_name": building.name, "values": values})
+
+    def add_up(cells: List[dict]) -> dict:
+        known = [c["value"] for c in cells if c["value"] is not None]
+        return {"value": round(sum(known), 3) if known else None,
+                "complete": bool(cells) and all(c["complete"] for c in cells)}
+
+    return {
+        "year": year, "month": month, "meter_types": meter_types, "units": result_units,
+        "totals": {k: {"type": v["type"], "unit_of_measure": v["unit_of_measure"],
+                       "current": add_up(v["current"]), "previous": add_up(v["previous"])} for k, v in totals.items()},
+    }
 
 @router.get("/{unit_id}", response_model=UnitRead)
 def read_unit(
