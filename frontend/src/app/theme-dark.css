@@ -123,3 +123,19 @@
 :root[data-theme="dark"] :is(.text-yellow-500, .text-yellow-600) {
   color: var(--color-yellow-400);
 }
+
+/* Secondary text: gray 400/500 inverted would be too dark on the dark cards (about 2:1), lifted
+   to at least 4.5:1. Only text: the grey chart bars (bg-gray-400) keep the palette value. */
+:root[data-theme="dark"] .text-gray-500 {
+  color: oklch(62% 0.022 261);
+}
+
+:root[data-theme="dark"] .text-gray-500 {
+  color: oklch(68% 0.022 261);
+}
+
+/* Solid buttons darken on hover in light mode (bg-*-600 -> hover:bg-*-700). In dark mode 700 is a
+   light tint, which would wash out the white text, so the hover goes to the 500 shade instead. */
+:root[data-theme="dark"] .hover\:bg-blue-700:hover { background-color: var(--color-blue-500); }
+:root[data-theme="dark"] .hover\:bg-red-700:hover { background-color: var(--color-red-500); }
+:root[data-theme="dark"] .hover\:bg-amber-700:hover { background-color: var(--color-amber-500); }

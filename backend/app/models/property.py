@@ -103,9 +103,6 @@ class Unit(UnitBase, table=True):
     building: Optional[Building] = Relationship(back_populates="units")
     owner: Optional[User] = Relationship(back_populates="units")
 
-class UnitCreate(UnitBase):
-    pass
-
 class UnitRead(UnitBase):
     id: uuid.UUID
     owner: Optional[UserPublic] = None

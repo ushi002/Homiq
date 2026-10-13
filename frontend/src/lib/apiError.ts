@@ -1,4 +1,5 @@
 "use client";
+import { useCallback } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
 
 // Backend errors come as English `detail` strings (or a list for invalid input, HTTP 422).
@@ -6,11 +7,11 @@ import { useLanguage } from '@/context/LanguageContext';
 // shown as is only in English, so a Czech message never ends with an English sentence.
 export function useApiErrorReason() {
     const { t, language } = useLanguage();
-    return (detail: unknown): string | null => {
+    return useCallback((detail: unknown): string | null => {
         if (Array.isArray(detail)) return t.apiErrors.invalidInput;
         if (typeof detail !== 'string' || !detail) return null;
         return t.apiErrors[detail] ?? (language === 'en' ? detail : null);
-    };
+    }, [t, language]);
 }
 
 // "Prefix: reason", or just the prefix when the reason cannot be shown

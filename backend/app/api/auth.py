@@ -1,6 +1,6 @@
 from datetime import timedelta, datetime
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 from ..core.database import get_session
@@ -8,20 +8,27 @@ from ..core.security import verify_password, create_access_token, ACCESS_TOKEN_E
 from ..models.property import User
 from ..schemas.auth import Token, InviteAcceptRequest
 from .deps import get_current_user
+from ..core import login_limit
 
 router = APIRouter()
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
+    request: Request,
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Annotated[Session, Depends(get_session)]
 ):
+    # Behind Traefik the client's address is in X-Real-Ip (set by Traefik, not by the client)
+    ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "")
+    if login_limit.is_locked(form_data.username, ip):
+        raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Too many login attempts")
+
     # Find user by email (username field in form_data)
     statement = select(User).where(User.email == form_data.username)
     user = session.exec(statement).first()
-    
 
     if not user or not verify_password(form_data.password, user.password_hash):
+        login_limit.record_failure(form_data.username, ip)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
@@ -32,6 +39,8 @@ async def login_for_access_token(
     access_token = create_access_token(
         data={"sub": str(user.id), "role": user.role}, expires_delta=access_token_expires
     )
+
+    login_limit.record_success(form_data.username)
 
     # Update last login time
     user.last_login_at = datetime.utcnow()

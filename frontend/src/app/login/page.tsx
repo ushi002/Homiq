@@ -38,19 +38,19 @@ export default function LoginPage() {
             // Alternatively, backend returns it in `data` if we added it there.
             // Since backend returns `full_name`, let's assume valid email is in `email` state.
             login(data.access_token, data.user_id, data.role, data.full_name, email);
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            setError(err.message || t.login.error);
+            setError((err instanceof Error && err.message) || t.login.error);
         }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-lg border border-gray-100">
+            <div className="max-w-md w-full space-y-8 bg-white p-6 sm:p-10 mx-4 rounded-xl shadow-lg border border-gray-100">
                 <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                    <h1 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                         {t.login.title}
-                    </h2>
+                    </h1>
                     <p className="mt-2 text-center text-sm text-gray-600">
                         {t.login.subtitle}
                     </p>
@@ -65,6 +65,7 @@ export default function LoginPage() {
                         <div>
                             <input
                                 type="email"
+                                autoComplete="email"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                                 placeholder={t.common.email}
@@ -75,6 +76,7 @@ export default function LoginPage() {
                         <div>
                             <input
                                 type="password"
+                                autoComplete="current-password"
                                 required
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                                 placeholder={t.common.password}

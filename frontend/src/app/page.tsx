@@ -1,4 +1,8 @@
 "use client";
+import { BUTTON, CARD } from '@/lib/ui';
+import OwnerSummary from '@/components/OwnerSummary';
+import PageSkeleton from '@/components/PageSkeleton';
+import { usePageTitle } from '@/lib/pageTitle';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +20,15 @@ interface Building {
   manager?: { full_name: string; email: string };
 }
 
+// Numbers of a building card (GET /buildings/stats)
+interface BuildingStats {
+  building_id: string;
+  units: number;
+  units_with_owner: number;
+  pending_invites: number;
+  last_reading: string | null;
+}
+
 interface OwnedUnit {
   id: string;
   unit_number: string;
@@ -27,9 +40,11 @@ export default function Dashboard() {
   const router = useRouter();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [ownedUnits, setOwnedUnits] = useState<OwnedUnit[]>([]);
+  const [stats, setStats] = useState<Record<string, BuildingStats>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { t } = useLanguage();
+  const [error, setError] = useState(false);
+  const { t, language } = useLanguage();
+  usePageTitle(user?.role === 'owner' ? t.dashboard.myUnits : t.dashboard.title);
 
   useEffect(() => {
     if (authLoading) return;
@@ -60,84 +75,88 @@ export default function Dashboard() {
           const data = await res.json();
           setBuildings(data);
         } else {
-          setError(t.login.error); // fallback generic error, or we could add specific one
+          setError(true);
           if (res.status === 401) logout();
         }
       } catch (error) {
         console.error("Failed to fetch buildings", error);
-        setError(t.login.error);
+        setError(true);
       } finally {
         if (!redirecting) setLoading(false);
       }
     };
 
     fetchBuildings();
-  }, [token, router, authLoading, user?.role]);
 
-  if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
-  if (loading) return <div className="p-8 text-center">{t.common.loading}</div>;
-  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
+    // Numbers on the building cards: loaded separately (InfluxDB), the cards show without them first
+    if (user?.role === 'admin' || user?.role === 'home_lord') {
+      authFetch('/buildings/stats')
+        .then(res => res.ok ? res.json() : [])
+        .then((list: BuildingStats[]) => setStats(Object.fromEntries(list.map(s => [s.building_id, s]))))
+        .catch(err => console.error(err));
+    }
+  }, [token, router, authLoading, user?.role, logout]);
+
+  if (authLoading || !token || loading) return <PageSkeleton variant={user?.role === 'owner' ? 'list' : 'cards'} rows={user?.role === 'owner' ? 2 : 3} />;
+  if (error) return <div className="p-8 text-center text-red-600">{t.login.error}</div>;
 
   if (user?.role === 'owner') {
-    // Owner's units grouped by building (an owner can have units in several buildings)
-    const groups = buildings
-      .map(b => ({
-        building: b,
-        units: ownedUnits
-          .filter(u => u.building_id === b.id)
-          .sort((a, c) => a.unit_number.localeCompare(c.unit_number, undefined, { numeric: true })),
-      }))
-      .filter(g => g.units.length > 0)
-      .sort((a, c) => a.building.name.localeCompare(c.building.name));
+    // Plain unit list for when the consumption summary cannot be loaded
+    const fallbackUnits = ownedUnits
+      .map(u => ({ ...u, building_name: buildings.find(b => b.id === u.building_id)?.name ?? '' }))
+      .sort((a, c) => a.building_name.localeCompare(c.building_name) || a.unit_number.localeCompare(c.unit_number, undefined, { numeric: true }));
 
     return (
       <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard.myUnits}</h1>
-          {groups.map(({ building, units }) => (
-            <section key={building.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">{building.name}</h2>
-              <p className="text-sm text-gray-500">{building.address}</p>
-              <ul className="mt-3 divide-y divide-gray-100">
-                {units.map(u => (
-                  <li key={u.id}>
-                    <Link href={`/units/${u.id}`} className="flex justify-between items-center py-3 px-2 -mx-2 rounded-md hover:bg-gray-50">
-                      <span className="font-medium text-blue-700">{t.nav.unit} {u.unit_number}</span>
-                      <span className="text-gray-400" aria-hidden="true">→</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          {groups.length === 0 && (
-            <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
-              {t.dashboard.noUnits}
-            </div>
-          )}
+          <OwnerSummary fallbackUnits={fallbackUnits} />
         </div>
       </main>
     );
   }
 
+  const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
+  // Units, owners, pending invites and latest reading of a building
+  const renderStats = (s: BuildingStats) => {
+    const stale = s.last_reading !== null && Date.now() - Date.parse(s.last_reading) > 7 * 86400000;
+    return (
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-4">
+        <div>
+          <dt className="text-xs text-gray-500">{t.building.units}</dt>
+          <dd className="font-medium text-gray-800">{s.units}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-gray-500">{t.dashboard.withOwner}</dt>
+          <dd className="font-medium text-gray-800">
+            {s.units_with_owner} / {s.units}
+            {s.pending_invites > 0 && <span className="ml-1 text-xs font-normal text-amber-700">({t.dashboard.pendingInvites.replace('{{count}}', String(s.pending_invites))})</span>}
+          </dd>
+        </div>
+        {s.last_reading && (
+          <div className="col-span-2">
+            <dt className="sr-only">{t.unit.lastReading}</dt>
+            <dd className={`text-xs ${stale ? 'text-amber-700 font-medium' : 'text-gray-500'}`} title={stale ? t.unit.lastReadingOld : undefined}>
+              {t.unit.lastReading}: {new Date(s.last_reading).toLocaleDateString(locale)}
+            </dd>
+          </div>
+        )}
+      </dl>
+    );
+  };
+
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">{t.dashboard.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard.title}</h1>
 
         {user?.role === 'admin' && (
-          <div className="mb-8 flex gap-4">
+          <div className="mb-6 flex gap-4">
             <Link
               href="/buildings/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className={BUTTON}
             >
               + {t.dashboard.addBuilding}
-            </Link>
-            <Link
-              href="/users"
-              className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              {t.dashboard.manageUsers}
             </Link>
           </div>
         )}
@@ -147,23 +166,25 @@ export default function Dashboard() {
             <Link
               href={`/buildings/${building.id}`}
               key={building.id}
-              className="block bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border border-gray-100"
+              className={`${CARD} block hover:shadow-md transition-shadow p-4 sm:p-6`}
             >
               <h2 className="text-xl font-semibold text-gray-800 mb-2">{building.name}</h2>
               <p className="text-gray-500 mb-4">{building.address}</p>
               {building.description && (
-                <p className="text-sm text-gray-400 line-clamp-2 mb-4">
+                <p className="text-sm text-gray-500 line-clamp-2 mb-4">
                   {building.description}
                 </p>
               )}
+              {stats[building.id] && renderStats(stats[building.id])}
               <div className="flex justify-between items-center">
-                {user?.role === 'admin' && (
-                  <span className={`px-2 py-1 rounded-full text-xs ${building.units_fetched ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {building.units_fetched ? t.dashboard.unitsSynced : t.dashboard.draft}
+                {/* Only a building whose units were not loaded yet is marked; the numbers above say the rest */}
+                {user?.role === 'admin' && !building.units_fetched && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                    {t.dashboard.draft}
                   </span>
                 )}
                 {building.manager && (
-                  <span className="text-xs text-gray-400" title={building.manager.email}>
+                  <span className="text-xs text-gray-500" title={building.manager.email}>
                     {t.dashboard.managedBy}: {building.manager.full_name || t.users.roleHomeLord}
                   </span>
                 )}

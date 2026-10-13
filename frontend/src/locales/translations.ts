@@ -24,10 +24,13 @@ export interface Translations {
         noBuildings: string;
         managedBy: string;
         manageUsers: string;
-        unitsSynced: string;
         draft: string;
         myUnits: string;
         noUnits: string;
+        totalFor: string;
+        summaryFailed: string;
+        withOwner: string;
+        pendingInvites: string;
     };
     building: {
         name: string;
@@ -59,6 +62,13 @@ export interface Translations {
         categoryColdWater: string;
         categoryHotWater: string;
         categoryHeat: string;
+        noOwner: string;
+        dangerZone: string;
+        dangerZoneHint: string;
+        searchUnits: string;
+        onlyWithoutOwner: string;
+        noUnitMatch: string;
+        notFound: string;
     };
     unit: {
         assignOwner: string;
@@ -89,11 +99,14 @@ export interface Translations {
         meterReplaced: string;
         lastYear: string;
         showReadings: string;
-        typicalUnit: string;
-        typicalHint: string;
-        moreThan: string;
-        lessThan: string;
-        aboutSame: string;
+        notFound: string;
+        readingsFailed: string;
+        loadingReadings: string;
+        prevPeriod: string;
+        nextPeriod: string;
+        changeOwner: string;
+        lastReading: string;
+        lastReadingOld: string;
     };
     users: {
         title: string;
@@ -112,6 +125,20 @@ export interface Translations {
         adminInfo: string;
         homeLordInfo: string;
         assignedTo: string;
+        searchPlaceholder: string;
+        filterAll: string;
+        noMatch: string;
+        noneYet: string;
+        nameSaved: string;
+        inviteValid: string;
+        inviteExpired: string;
+        inviteCreated: string;
+        inviteExpires: string;
+        createdAt: string;
+        lastLogin: string;
+        renewInvite: string;
+        inviteRenewed: string;
+        inviteRenewFailed: string;
     };
     profile: {
         title: string;
@@ -198,6 +225,9 @@ export interface Translations {
         users: string;
         profile: string;
         unit: string;
+        breadcrumbs: string;
+        switchToCs: string;
+        switchToEn: string;
     };
     consumption: {
         title: string;
@@ -216,5 +246,8 @@ export interface Translations {
         incompleteNote: string;
         noMeters: string;
         categoryElectricity: string;
+        buildingChart: string;
+        chartLoading: string;
+        noAccess: string;
     };
 }

@@ -9,7 +9,8 @@ interface Reading {
 }
 
 interface ConsumptionChartProps {
-    meters: Reading[][]; // readings of each meter (old and new after a replacement), sorted by time
+    meters?: Reading[][]; // readings of each meter (old and new after a replacement), sorted by time
+    monthly?: { current: (number | null)[]; previous: (number | null)[] }; // or ready monthly values (building overview)
     year: number;
     unitOfMeasure: string;
     selectedMonth: number | null; // 1-12, highlighted column
@@ -31,13 +32,13 @@ const niceScale = (max: number) => {
     return { step, top: Math.ceil(max / step) * step };
 };
 
-export default function ConsumptionChart({ meters, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
+export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
     const { t, language } = useLanguage();
     const [hovered, setHovered] = useState<number | null>(null);
     const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
 
-    const current = monthlyConsumption(meters, year);
-    const previous = monthlyConsumption(meters, year - 1);
+    const current = monthly?.current ?? monthlyConsumption(meters ?? [], year);
+    const previous = monthly?.previous ?? monthlyConsumption(meters ?? [], year - 1);
     const max = Math.max(0, ...current.map(v => v ?? 0), ...previous.map(v => v ?? 0));
 
     const monthName = (m: number, style: 'long' | 'short') => new Date(2000, m).toLocaleString(locale, { month: style });
@@ -45,7 +46,7 @@ export default function ConsumptionChart({ meters, year, unitOfMeasure, selected
 
     if (max <= 0) {
         return (
-            <div className="mb-6 p-4 text-center text-xs text-gray-400 italic border border-dashed border-gray-200 rounded-lg">
+            <div className="mb-6 p-4 text-center text-xs text-gray-500 italic border border-dashed border-gray-200 rounded-lg">
                 {t.unit.monthlyConsumption}: {t.unit.noData}
             </div>
         );
@@ -95,7 +96,7 @@ export default function ConsumptionChart({ meters, year, unitOfMeasure, selected
                                 onFocus={() => setHovered(m)}
                                 onBlur={() => setHovered(null)}
                                 aria-label={`${monthName(m, 'long')}: ${year} ${formatValue(cur)}, ${year - 1} ${formatValue(previous[m])}`}
-                                className={`flex-1 min-w-0 h-full flex items-end justify-center gap-[2px] rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selectedMonth === m + 1 ? 'bg-blue-50' : hovered === m ? 'bg-gray-50' : ''}`}
+                                className={`flex-1 min-w-0 h-full flex items-end justify-center gap-[2px] rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selectedMonth === m + 1 ? 'bg-blue-50' : hovered === m ? 'bg-gray-500/10' : ''}`}
                             >
                                 <span className="w-[35%] max-w-3 bg-gray-400 rounded-t" style={{ height: height(previous[m]) }} />
                                 <span className="w-[35%] max-w-3 bg-blue-600 rounded-t" style={{ height: height(cur) }} />
@@ -126,7 +127,7 @@ export default function ConsumptionChart({ meters, year, unitOfMeasure, selected
                             {[{ y: year, v: current[hovered], key: 'bg-blue-600' }, { y: year - 1, v: previous[hovered], key: 'bg-gray-400' }].map(row => (
                                 <p key={row.y} className="flex items-center gap-2">
                                     <span className={`w-3 h-0.5 ${row.key}`} />
-                                    <span className="font-bold font-mono text-gray-900">{formatValue(row.v)}</span>
+                                    <span className="font-bold tabular-nums text-gray-900">{formatValue(row.v)}</span>
                                     <span className="text-gray-500">{row.y}</span>
                                 </p>
                             ))}
@@ -136,7 +137,7 @@ export default function ConsumptionChart({ meters, year, unitOfMeasure, selected
             </div>
 
             <div className="flex flex-wrap justify-between items-baseline gap-2 mt-2">
-                <p className="text-[11px] text-gray-400">{t.unit.chartHint}</p>
+                <p className="text-[11px] text-gray-500">{t.unit.chartHint}</p>
                 <details className="text-xs text-gray-600">
                     <summary className="cursor-pointer text-blue-600 hover:underline">{t.unit.showTable}</summary>
                     <table className="mt-2 tabular-nums">
@@ -151,8 +152,8 @@ export default function ConsumptionChart({ meters, year, unitOfMeasure, selected
                             {current.map((cur, m) => (
                                 <tr key={m} className="border-t border-gray-100">
                                     <td className="pr-6 py-0.5">{monthName(m, 'long')}</td>
-                                    <td className="text-right pr-6 font-mono">{formatValue(cur)}</td>
-                                    <td className="text-right font-mono">{formatValue(previous[m])}</td>
+                                    <td className="text-right pr-6">{formatValue(cur)}</td>
+                                    <td className="text-right">{formatValue(previous[m])}</td>
                                 </tr>
                             ))}
                         </tbody>

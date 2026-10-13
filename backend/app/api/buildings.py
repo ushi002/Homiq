@@ -6,9 +6,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
-from ..models.telemetry import Meter, MeterCreate
-from ..core.influx_utils import get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User
+from ..models.telemetry import Meter
+from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
 from ..core.building_consumption import units_consumption
@@ -63,6 +63,39 @@ def read_buildings(
         return session.exec(statement).all()
     
     return []
+
+@router.get("/stats")
+def read_buildings_stats(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Numbers for the building cards on the admin's and manager's dashboard: units, units with an
+    owner, owners who have not accepted the invitation and the newest reading. Owners get an empty
+    list (their dashboard has its own summary)."""
+    if current_user.role == "admin":
+        buildings = session.exec(select(Building)).all()
+    elif current_user.role == "home_lord":
+        buildings = session.exec(select(Building).where(Building.manager_id == current_user.id)).all()
+    else:
+        return []
+
+    stats = []
+    for building in buildings:
+        units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
+        owners = [u.owner for u in units if u.owner]
+        entry = {
+            "building_id": str(building.id),
+            "units": len(units),
+            "units_with_owner": len(owners),
+            "pending_invites": len({o.id for o in owners if o.status == "pending"}),
+            "last_reading": None,
+        }
+        if building.influx_db_name and building.influx_device_tag and units:
+            measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
+            last = get_last_reading_time(building.influx_db_name, measurements)
+            entry["last_reading"] = last
+        stats.append(entry)
+    return stats
 
 @router.get("/{building_id}", response_model=BuildingRead)
 def read_building(
@@ -130,9 +163,15 @@ def read_building_consumption(
     def cell(r):
         return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
 
+    def current_cell(unit_id, t):
+        return cell(current.get(unit_id, {}).get(t) or _no_data(bounds(year)))
+
+    measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
     return {
         "year": year,
         "month": month,
+        # newest reading in the building, so the page can say when data stopped coming
+        "last_reading": get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name else None,
         "meter_types": meter_types,
         "units": [
             {
@@ -140,7 +179,7 @@ def read_building_consumption(
                 "unit_number": u.unit_number,
                 "owner": (u.owner.full_name or u.owner.email) if u.owner else None,
                 "values": {
-                    t: {"current": cell(current.get(str(u.id), {}).get(t) or _no_data(bounds(year))),
+                    t: {"current": current_cell(str(u.id), t),
                         "previous": cell(previous.get(str(u.id), {}).get(t) or _no_data(bounds(year - 1)))}
                     for t in sorted(set(current.get(str(u.id), {})) | set(previous.get(str(u.id), {})))
                 },
@@ -153,6 +192,40 @@ def read_building_consumption(
 def _no_data(period):
     start, end = period
     return combine_meters(start.timestamp(), end.timestamp(), [])
+
+@router.get("/{building_id}/consumption_monthly")
+def read_building_consumption_monthly(
+    building_id: uuid.UUID,
+    year: int = Query(ge=2000, le=2100),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Consumption of the whole building by month (sum over its units) for the year and the year
+    before, by meter type, for the chart in the building overview. Months not started yet are
+    null. Access as the building overview (admins and the building's manager)."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    if current_user.role != "admin" and not (current_user.role == "home_lord" and building.manager_id == current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all() if units else []
+
+    now = datetime.now(timezone.utc)
+    months = [(y, m) for y in (year, year - 1) for m in range(1, 13)]
+    started = [(y, m) for y, m in months if datetime(y, m, 1, tzinfo=timezone.utc) <= now]
+    periods = [(datetime(y, m, 1, tzinfo=timezone.utc),
+                datetime(y + (m == 12), m % 12 + 1, 1, tzinfo=timezone.utc)) for y, m in started]
+    meter_types, results = units_consumption(building, meters, periods)
+
+    totals = {mt["type"]: {"current": [None] * 12, "previous": [None] * 12} for mt in meter_types}
+    for (y, m), by_unit in zip(started, results):
+        for mt in meter_types:
+            values = [r.value for by_type in by_unit.values() if (r := by_type.get(mt["type"])) and r.value is not None]
+            if values:
+                totals[mt["type"]]["current" if y == year else "previous"][m - 1] = round(sum(values), 2)
+    return {"year": year, "meter_types": meter_types, "months": totals}
 
 @router.get("/{building_id}/readings")
 def read_building_readings(
