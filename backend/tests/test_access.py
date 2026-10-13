@@ -124,6 +124,18 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
 
+# Renewing an invitation: admin or the manager who invited the owner; only a pending invitation
+def post(who, path):
+    return client.post(path, headers=as_user(who) if who else {})
+r = post("lord1", f"/users/{I['owner_b']}/renew_invite")
+if r.status_code != 200 or r.json()["invite_token"] in (None, "secret-invite"):
+    failures.append(f"lord1 renew_invite owner_b: {r.status_code} {r.text[:120]}")
+for who, status in (("lord2", 403), ("owner_a", 403), ("auditor", 403), (None, 401), ("admin", 200)):
+    if (code := post(who, f"/users/{I['owner_b']}/renew_invite").status_code) != status:
+        failures.append(f"{who or 'anonymous'} renew_invite owner_b: {code}, expected {status}")
+if (code := post("admin", f"/users/{I['owner_a']}/renew_invite").status_code) != 400:
+    failures.append(f"admin renew_invite of an active user: {code}, expected 400")
+
 # Renewing the login: only with a valid token, the new token works
 r = client.post("/token/refresh")
 if r.status_code != 401:
