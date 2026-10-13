@@ -215,6 +215,15 @@ export interface Translations {
         reading: string;
         unitOfMeasure: string;
     };
+    version: {
+        unknown: string;
+        dev: string;
+        about: string;
+        web: string;
+        server: string;
+        built: string;
+        mismatch: string;
+    };
     theme: {
         auto: string;
         light: string;

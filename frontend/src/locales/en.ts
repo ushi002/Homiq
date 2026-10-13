@@ -222,6 +222,15 @@ export const en: Translations = {
         reading: 'Meter reading',
         unitOfMeasure: 'Unit of measure',
     },
+    version: {
+        unknown: 'unknown version',
+        dev: 'development',
+        about: 'About',
+        web: 'Web',
+        server: 'Server',
+        built: 'built',
+        mismatch: 'The web and the server have different versions. Reload the page; if that does not help, the server update did not complete.',
+    },
     theme: {
         auto: 'Appearance: system (click for dark)',
         dark: 'Appearance: dark (click for light)',

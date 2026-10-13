@@ -1,6 +1,6 @@
 import { setStored } from './stored';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // A session lasts 8 hours (backend). While the user is active the token is renewed once less than
 // half of it is left, so only someone idle for 8 hours has to log in again.

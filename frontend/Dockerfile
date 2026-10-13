@@ -11,6 +11,10 @@ COPY . .
 # Default to localhost, but allow override
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+# Version from git (version-env.sh), empty = unknown
+ARG NEXT_PUBLIC_APP_DATE=
+ARG NEXT_PUBLIC_APP_COMMIT=
+ENV NEXT_PUBLIC_APP_DATE=${NEXT_PUBLIC_APP_DATE} NEXT_PUBLIC_APP_COMMIT=${NEXT_PUBLIC_APP_COMMIT}
 RUN npm run build
 
 # Production Stage
