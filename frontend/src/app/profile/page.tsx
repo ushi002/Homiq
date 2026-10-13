@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { useApiErrorReason } from '@/lib/apiError';
 import { authFetch } from '@/lib/api';
+import { WEB_VERSION, VersionInfo, formatVersion, useServerVersion } from '@/lib/version';
 
 export default function ProfilePage() {
     const { user, login, token, isLoading: authLoading } = useAuth(); // Need login to update local state
@@ -127,6 +128,8 @@ export default function ProfilePage() {
                     <h2 className="text-lg font-semibold mb-4 text-gray-800">{t.profile.changePassword}</h2>
                     <ChangePasswordForm />
                 </div>
+
+                <AboutSection />
             </div>
         </main>
     );
@@ -216,5 +219,40 @@ const ChangePasswordForm = () => {
                 {isLoading ? t.common.loading : t.profile.updatePassword}
             </button>
         </form>
+    );
+}
+
+// Versions of the web and the server; they differ when the browser runs an older web (reload) or
+// the update did not rebuild both parts
+function AboutSection() {
+    const { t, language } = useLanguage();
+    const server = useServerVersion();
+    const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
+    const built = (v: VersionInfo | null) =>
+        v?.built ? `${t.version.built} ${new Date(v.built).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' })}` : '';
+    const row = (label: string, v: VersionInfo | null) => (
+        <div className="flex flex-wrap justify-between gap-x-4 py-2">
+            <dt className="text-gray-500">{label}</dt>
+            <dd className="text-right tabular-nums">
+                {formatVersion(v) ?? t.version.unknown}
+                {built(v) && <span className="block text-xs text-gray-500">{built(v)}</span>}
+            </dd>
+        </div>
+    );
+    const mismatch = server && formatVersion(server) && formatVersion(WEB_VERSION) && server.commit !== WEB_VERSION.commit;
+    return (
+        <div className={`${CARD} p-4 sm:p-6 mt-6`}>
+            <h2 className="text-lg font-semibold mb-2 text-gray-800">
+                {t.version.about}
+                {server?.env === 'dev' && (
+                    <span className="ml-2 align-middle px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 text-xs font-medium">{t.version.dev}</span>
+                )}
+            </h2>
+            <dl className="text-sm divide-y divide-gray-100">
+                {row(t.version.web, WEB_VERSION)}
+                {row(t.version.server, server)}
+            </dl>
+            {mismatch && <p className="mt-3 text-sm text-amber-700">{t.version.mismatch}</p>}
+        </div>
     );
 }

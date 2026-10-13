@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import AppHeader from "@/components/AppHeader";
 import ThemeToggle from "@/components/ThemeToggle";
+import VersionInfo from "@/components/VersionInfo";
 
 export default function GlobalLayoutClient({
     children,
@@ -25,6 +26,11 @@ export default function GlobalLayoutClient({
                 <AppHeader />
             )}
             {children}
+            {!isOverlayPage && (
+                <footer className="pb-6 text-center">
+                    <VersionInfo />
+                </footer>
+            )}
         </>
     );
 }

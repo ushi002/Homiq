@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.routing import Match
+from .core.version import version_info
 from .core.database import create_db_and_tables
 from .api import buildings, units, users, telemetry, auth
 from .core.unit_sync import sync_all_buildings
@@ -80,4 +81,5 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    # Public: the login page shows the version, and `curl .../api/health` tells what runs
+    return {"status": "ok", "version": version_info()}
