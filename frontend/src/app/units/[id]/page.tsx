@@ -177,19 +177,6 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedWeek, setSelectedWeek] = useState(getWeekNumber(new Date()));
 
-    // Typical unit of the building (median) for the selected month/week, by meter type
-    const [typical, setTypical] = useState<Record<string, { median: number; units: number }>>({});
-    useEffect(() => {
-        if (authLoading || !token) return;
-        const [start, end] = viewMode === 'month' ? monthBounds(selectedYear, selectedMonth) : isoWeekBounds(selectedYear, selectedWeek);
-        let stale = false;  // a newer period was selected meanwhile
-        setTypical({});
-        authFetch(`/units/${id}/building_average?start=${new Date(start).toISOString()}&end=${new Date(end).toISOString()}`)
-            .then(res => res.ok ? res.json() : { types: {} })
-            .then(data => { if (!stale) setTypical(data.types ?? {}); })
-            .catch(err => console.error(err));
-        return () => { stale = true; };
-    }, [id, token, authLoading, selectedYear, viewMode, selectedMonth, selectedWeek]);
 
 
     const getPeriodReadings = (readings: Reading[], year: number, mode: 'month' | 'week', period: number) => {
@@ -567,20 +554,6 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             <span className="font-mono font-medium">{prevConsumption.value === null ? '–' : `${formatConsumption(prevConsumption.value)} ${uom}`}</span>
                                             {prevConsumption.value !== null && !prevConsumption.complete && <span className="cursor-help" title={missingTitle(prevConsumption)}>*</span>}
                                         </p>
-                                        {typical[group[0].type] && currentConsumption.complete && (() => {
-                                            const { median, units } = typical[group[0].type];
-                                            const diff = ((currentConsumption.value as number) - median) / median * 100;
-                                            const pct = (Math.abs(diff) / 100).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { style: 'percent', maximumFractionDigits: Math.abs(diff) < 10 ? 1 : 0 });
-                                            return (
-                                                <p className="text-xs text-gray-600 mt-1">
-                                                    <span className="cursor-help underline decoration-dotted" title={t.unit.typicalHint.replace('{{units}}', String(units))}>{t.unit.typicalUnit}</span>:{' '}
-                                                    <span className="font-mono font-medium">{formatConsumption(median)} {uom}</span>{' · '}
-                                                    {Math.abs(diff) < 1
-                                                        ? <span className="text-gray-500">{t.unit.aboutSame}</span>
-                                                        : <span className={`font-medium ${diff > 0 ? 'text-red-700' : 'text-green-700'}`}>{(diff > 0 ? t.unit.moreThan : t.unit.lessThan).replace('{{pct}}', pct)}</span>}
-                                                </p>
-                                            );
-                                        })()}
                                     </div>
                                     <div className="sm:text-right">
                                         <p className="text-xs text-blue-600 uppercase font-bold">{t.unit.consumption}</p>
