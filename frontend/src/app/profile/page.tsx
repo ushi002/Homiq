@@ -1,4 +1,5 @@
 "use client";
+import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -27,7 +28,7 @@ export default function ProfilePage() {
         }
     }, [user, token, router, authLoading]);
 
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token) return <PageSkeleton variant="form" rows={3} />;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -1,4 +1,5 @@
 "use client";
+import PageSkeleton from '@/components/PageSkeleton';
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePageTitle } from '@/lib/pageTitle';
@@ -231,7 +232,7 @@ export default function UsersPage() {
     };
 
     if (authLoading || !token || currentUser?.role !== 'admin') {
-        return <div className="p-8 text-center">{t.common.loading}</div>;
+        return <PageSkeleton variant="list" rows={8} />;
     }
 
     const isPending = (u: User) => !!u.invite_token && u.status === 'pending';
