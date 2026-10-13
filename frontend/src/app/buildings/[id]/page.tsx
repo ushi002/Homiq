@@ -2,6 +2,7 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
 import UserSelect from '@/components/UserSelect';
 import Breadcrumbs from '@/components/Breadcrumbs';
@@ -16,6 +17,7 @@ interface Unit {
     unit_number: string;
     floor: number;
     area_m2: number;
+    owner?: { full_name?: string; email: string } | null;
 }
 
 interface Building {
@@ -43,6 +45,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const toast = useToast();
     const apiError = useApiError();
     const confirm = useConfirm();
+    usePageTitle(building?.name);
 
     useEffect(() => {
         if (authLoading) return;
@@ -411,7 +414,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                                 setEditForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
                                                             }}
                                                             className="text-red-500 hover:text-red-700 p-2"
-                                                            title="Remove"
+                                                            title={t.common.delete}
                                                         >
                                                             &times;
                                                         </button>
@@ -538,12 +541,18 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         {units.map(unit => (
                             <li key={unit.id} className="hover:bg-gray-50 transition-colors">
                                 <Link href={`/units/${unit.id}`} className="block px-4 sm:px-6 py-4 flex justify-between items-center gap-3">
-                                    <div>
+                                    <div className="min-w-0">
                                         <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
-                                        <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>
-                                        <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>
+                                        {/* Floor and area are not filled in yet for most units: shown only when known */}
+                                        {unit.floor > 0 && <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>}
+                                        {unit.area_m2 > 0 && <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>}
+                                        {user?.role !== 'owner' && (
+                                            <span className={`block sm:inline sm:ml-4 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-400 italic'}`} title={unit.owner?.email}>
+                                                {unit.owner ? (unit.owner.full_name || unit.owner.email) : t.building.noOwner}
+                                            </span>
+                                        )}
                                     </div>
-                                    <span className="text-blue-500">{t.building.viewDetails} &rarr;</span>
+                                    <span className="text-blue-500 shrink-0"><span className="hidden sm:inline">{t.building.viewDetails} </span>&rarr;</span>
                                 </Link>
                             </li>
                         ))}

@@ -32,6 +32,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     const t = language === 'cs' ? cs : en;
 
+    // Screen readers and the browser's translate offer follow the chosen language
+    useEffect(() => {
+        document.documentElement.lang = language;
+    }, [language]);
+
     return (
         <LanguageContext.Provider value={{ language, setLanguage: changeLanguage, t }}>
             {children}
