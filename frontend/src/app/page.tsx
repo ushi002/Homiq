@@ -1,4 +1,5 @@
 "use client";
+import OwnerSummary from '@/components/OwnerSummary';
 import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
 import React, { useEffect, useState } from 'react';
@@ -81,42 +82,16 @@ export default function Dashboard() {
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   if (user?.role === 'owner') {
-    // Owner's units grouped by building (an owner can have units in several buildings)
-    const groups = buildings
-      .map(b => ({
-        building: b,
-        units: ownedUnits
-          .filter(u => u.building_id === b.id)
-          .sort((a, c) => a.unit_number.localeCompare(c.unit_number, undefined, { numeric: true })),
-      }))
-      .filter(g => g.units.length > 0)
-      .sort((a, c) => a.building.name.localeCompare(c.building.name));
+    // Plain unit list for when the consumption summary cannot be loaded
+    const fallbackUnits = ownedUnits
+      .map(u => ({ ...u, building_name: buildings.find(b => b.id === u.building_id)?.name ?? '' }))
+      .sort((a, c) => a.building_name.localeCompare(c.building_name) || a.unit_number.localeCompare(c.unit_number, undefined, { numeric: true }));
 
     return (
       <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard.myUnits}</h1>
-          {groups.map(({ building, units }) => (
-            <section key={building.id} className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 p-4 sm:p-6 mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">{building.name}</h2>
-              <p className="text-sm text-gray-500">{building.address}</p>
-              <ul className="mt-3 divide-y divide-gray-100">
-                {units.map(u => (
-                  <li key={u.id}>
-                    <Link href={`/units/${u.id}`} className="flex justify-between items-center py-3 px-2 -mx-2 rounded-md hover:bg-gray-50">
-                      <span className="font-medium text-blue-700">{t.nav.unit} {u.unit_number}</span>
-                      <span className="text-gray-400" aria-hidden="true">→</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-          {groups.length === 0 && (
-            <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-dashed border-gray-300">
-              {t.dashboard.noUnits}
-            </div>
-          )}
+          <OwnerSummary fallbackUnits={fallbackUnits} />
         </div>
       </main>
     );

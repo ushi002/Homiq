@@ -30,6 +30,8 @@ export const cs: Translations = {
         draft: 'Koncept',
         myUnits: 'Moje jednotky',
         noUnits: 'Zatím vám nebyla přiřazena žádná jednotka.',
+        totalFor: 'Celkem za {{period}}',
+        summaryFailed: 'Souhrn spotřeby se nepodařilo načíst.',
     },
     building: {
         name: 'Název',

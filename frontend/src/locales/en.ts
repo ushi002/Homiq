@@ -30,6 +30,8 @@ export const en: Translations = {
         draft: 'Draft',
         myUnits: 'My units',
         noUnits: 'No unit has been assigned to you yet.',
+        totalFor: 'Total for {{period}}',
+        summaryFailed: 'Failed to load the consumption summary.',
     },
     building: {
         name: 'Name',
