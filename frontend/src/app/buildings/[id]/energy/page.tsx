@@ -10,6 +10,7 @@ import { usePageTitle } from '@/lib/pageTitle';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import EnergyChart, { EnergyDay } from '@/components/EnergyChart';
 import SignatureChart, { Signature } from '@/components/SignatureChart';
+import EnergyYears from '@/components/EnergyYears';
 
 interface EnergyUnit {
     id: string;
@@ -335,13 +336,11 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                         </div>
                     </div>
 
-                    {/* Place for the boiler room gas invoices (not implemented yet) */}
-                    <div className={`${CARD} p-4 sm:p-6`}>
-                        <h2 className="text-lg font-semibold mb-1">{t.energy.invoicesTitle}</h2>
-                        <p className="text-sm text-gray-500">{t.energy.invoicesSoon}</p>
-                    </div>
                 </div>
             )}
+
+            {/* Yearly bills of the building (heat from the boiler room, water) */}
+            {data && <EnergyYears buildingId={id} />}
         </main>
     );
 }
