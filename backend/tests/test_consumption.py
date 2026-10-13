@@ -75,4 +75,17 @@ assert period([m], *JAN).value == 2.5
 m = meter_period(*JAN, (ts(2024, 12, 31), 0), (ts(2025, 1, 2), 1), (ts(2025, 1, 31), 3), None)
 assert period([m], *JAN).value == 3, period([m], *JAN)  # 3 - 0.5 = 2.5 -> 3
 
+# Unusually high consumption (core/anomaly.py)
+from app.core.anomaly import typical, unusual
+from app.core.consumption import PeriodResult
+ok = lambda v: PeriodResult(v, 0, 31)
+assert typical([ok(1), ok(2), ok(3), ok(4)]) is None                       # fewer than 5 units
+assert typical([ok(1), ok(2), ok(3), ok(4), ok(100), ok(0), None]) == (3, 5)  # zero and missing ignored
+assert unusual(ok(30), ok(10), 10) == {"median_factor": 3.0, "previous_factor": 3.0}
+assert unusual(ok(30), ok(20), 10) is None                                   # only 1.5x last year
+assert unusual(ok(25), ok(5), 10) is None                                    # only 2.5x median
+assert unusual(ok(40), None, 10) is None                                     # no last year: needs 5x
+assert unusual(ok(50), None, 10) == {"median_factor": 5.0, "previous_factor": None}
+assert unusual(PeriodResult(90, 20, 31), ok(10), 10) is None                 # incomplete period
+
 print("SUCCESS: Consumption rules verified!")
