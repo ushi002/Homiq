@@ -244,6 +244,15 @@ export const cs: Translations = {
         reading: 'Stav měřiče',
         unitOfMeasure: 'Měrná jednotka',
     },
+    version: {
+        unknown: 'neznámá verze',
+        dev: 'vývoj',
+        about: 'O aplikaci',
+        web: 'Web',
+        server: 'Server',
+        built: 'sestaveno',
+        mismatch: 'Web a server mají různou verzi. Obnovte stránku; pokud to nepomůže, aktualizace serveru neproběhla celá.',
+    },
     theme: {
         auto: 'Vzhled: podle systému (klikněte pro tmavý)',
         dark: 'Vzhled: tmavý (klikněte pro světlý)',

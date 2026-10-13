@@ -79,6 +79,9 @@ def no_invite_token(unit):
 
 
 I = ids
+# Health with the version is public (login page)
+expect(None, "/health", 200, lambda r: r["status"] == "ok" and set(r["version"]) == {"date", "commit", "built", "env"})
+
 # Without login nothing is readable
 for path in [f"/units/{I['unit_b']}", f"/users/{I['owner_b']}", f"/telemetry/meters/{I['meter_b']}",
              f"/units/{I['unit_b']}/readings_influx", f"/buildings/{I['b1']}"]:

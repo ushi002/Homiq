@@ -1,6 +1,11 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      # Version shown in the app, from git: run `. ./version-env.sh` before building
+      args:
+        APP_DATE: ${APP_DATE:-}
+        APP_COMMIT: ${APP_COMMIT:-}
     # ports:
     #   - "8000:8000" # Exposed via Nginx
     volumes:
@@ -13,6 +18,7 @@ services:
       - SQL_ECHO=${SQL_ECHO:-0}
       - UNIT_SYNC=${UNIT_SYNC:-1}
       - UNIT_SYNC_HOUR_UTC=${UNIT_SYNC_HOUR_UTC:-2}
+      - APP_ENV=${APP_ENV:-}  # dev = development instance, labelled in the app
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: always
@@ -22,6 +28,8 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_URL: ${PUBLIC_URL:?PUBLIC_URL must be set in .env}/api
+        NEXT_PUBLIC_APP_DATE: ${APP_DATE:-}
+        NEXT_PUBLIC_APP_COMMIT: ${APP_COMMIT:-}
     # ports:
     #   - "3000:3000" # Exposed via Nginx
     environment:
