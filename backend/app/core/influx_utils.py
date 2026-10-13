@@ -213,7 +213,7 @@ def get_meter_readings(db_name: str, serial_number: str, measurement: str = None
 BEFORE_WINDOW = timedelta(days=366)
 AFTER_WINDOW = timedelta(days=62)
 
-def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Dict[str, Dict[str, Tuple[float, float]]]:
+def get_period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> Optional[Dict[str, Dict[str, Tuple[float, float]]]]:
     """
     Readings around the period [start, end) for every meter of a measurement, keyed by serial
     number: 'before' (last before the start), 'first' and 'last' (inside the period) and 'after'
@@ -238,6 +238,8 @@ def get_period_points(db_name: str, measurement: str, device_tag: str, start: da
         ('after', f'SELECT FIRST("d") FROM ({daily(end, end + AFTER_WINDOW)}) GROUP BY "{device_tag}"'),
     ]
     data = query_influx(db_name, ';'.join(q for _, q in statements))
+    if 'results' not in data:
+        return None  # InfluxDB not reachable or the query failed (no data at all is an empty dict)
 
     points: Dict[str, Dict[str, Tuple[float, float]]] = {}
     for (key, _), result in zip(statements, data.get('results', [])):

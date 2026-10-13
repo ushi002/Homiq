@@ -20,18 +20,19 @@ _cache_lock = threading.Lock()
 
 def _period_points(db_name: str, measurement: str, device_tag: str, start: datetime, end: datetime) -> dict:
     if end + AFTER_WINDOW + timedelta(days=1) > datetime.now(timezone.utc):
-        return get_period_points(db_name, measurement, device_tag, start, end)
+        return get_period_points(db_name, measurement, device_tag, start, end) or {}
     key = (db_name, measurement, device_tag, start, end)
     with _cache_lock:
         if key in _cache:
             _cache.move_to_end(key)
             return _cache[key]
     points = get_period_points(db_name, measurement, device_tag, start, end)
-    if points:  # an empty answer may be an InfluxDB error, do not keep it
-        with _cache_lock:
-            _cache[key] = points
-            if len(_cache) > _CACHE_SIZE:
-                _cache.popitem(last=False)
+    if points is None:  # InfluxDB error: answer empty now, ask again next time
+        return {}
+    with _cache_lock:
+        _cache[key] = points
+        if len(_cache) > _CACHE_SIZE:
+            _cache.popitem(last=False)
     return points
 
 
