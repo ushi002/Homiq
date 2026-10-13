@@ -37,6 +37,8 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { id } = use(params);
     const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
     const [units, setUnits] = useState<Unit[]>([]);
+    const [unitSearch, setUnitSearch] = useState('');
+    const [onlyWithoutOwner, setOnlyWithoutOwner] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const isAdmin = user?.role === 'admin';
@@ -292,6 +294,12 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     };
 
+    const unitsWithoutOwner = units.filter(u => !u.owner).length;
+    const unitQuery = unitSearch.trim().toLocaleLowerCase();
+    const visibleUnits = units.filter(u =>
+        (!onlyWithoutOwner || !u.owner)
+        && (!unitQuery || [u.unit_number, u.owner?.full_name, u.owner?.email].some(x => (x ?? '').toLocaleLowerCase().includes(unitQuery))));
+
     return (
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6">
@@ -544,29 +552,49 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         </div>
                     )}
                 </div>
+                {units.length > 8 && (
+                    <div className="flex flex-wrap items-center gap-3">
+                        <input
+                            type="search"
+                            value={unitSearch}
+                            onChange={e => setUnitSearch(e.target.value)}
+                            placeholder={t.building.searchUnits}
+                            className="w-full sm:w-64 rounded-md border-gray-300 shadow-sm border p-1.5 text-sm bg-white"
+                        />
+                        {user?.role !== 'owner' && unitsWithoutOwner > 0 && (
+                            <label className="flex items-center gap-2 text-sm text-gray-600">
+                                <input type="checkbox" checked={onlyWithoutOwner} onChange={e => setOnlyWithoutOwner(e.target.checked)} />
+                                {t.building.onlyWithoutOwner} ({unitsWithoutOwner})
+                            </label>
+                        )}
+                    </div>
+                )}
                 <div className="bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 overflow-hidden">
                     <ul className="divide-y divide-gray-100">
-                        {units.map(unit => (
+                        {visibleUnits.map(unit => (
                             <li key={unit.id} className="hover:bg-gray-50 transition-colors">
-                                <Link href={`/units/${unit.id}`} className="block px-4 sm:px-6 py-4 flex justify-between items-center gap-3">
-                                    <div className="min-w-0">
-                                        <span className="font-bold text-gray-800 text-lg">{unit.unit_number}</span>
-                                        {/* Floor and area are not filled in yet for most units: shown only when known */}
-                                        {unit.floor > 0 && <span className="text-gray-500 ml-4">{t.building.floor}: {unit.floor}</span>}
-                                        {unit.area_m2 > 0 && <span className="text-gray-500 ml-4">{unit.area_m2} m²</span>}
-                                        {user?.role !== 'owner' && (
-                                            <span className={`block sm:inline sm:ml-4 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-400 italic'}`} title={unit.owner?.email}>
-                                                {unit.owner ? (unit.owner.full_name || unit.owner.email) : t.building.noOwner}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <span className="text-blue-500 shrink-0"><span className="hidden sm:inline">{t.building.viewDetails} </span>&rarr;</span>
+                                <Link href={`/units/${unit.id}`} className="px-4 sm:px-6 py-2.5 flex items-center gap-3">
+                                    <span className="font-semibold text-gray-800 w-28 sm:w-36 shrink-0 truncate">{unit.unit_number}</span>
+                                    {user?.role !== 'owner' && (
+                                        <span className={`flex-1 min-w-0 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-400 italic'}`} title={unit.owner?.email}>
+                                            {unit.owner ? (unit.owner.full_name || unit.owner.email) : t.building.noOwner}
+                                        </span>
+                                    )}
+                                    {/* Floor and area are not filled in yet for most units: shown only when known */}
+                                    <span className="hidden sm:inline text-sm text-gray-500 shrink-0">
+                                        {unit.floor > 0 && <>{t.building.floor}: {unit.floor}</>}
+                                        {unit.area_m2 > 0 && <span className="ml-4">{unit.area_m2} m²</span>}
+                                    </span>
+                                    <span className="text-blue-500 shrink-0 ml-auto" aria-hidden="true">&rarr;</span>
                                 </Link>
                             </li>
                         ))}
                     </ul>
                     {units.length === 0 && (
                         <div className="p-6 text-center text-gray-400">{t.building.noUnits}</div>
+                    )}
+                    {units.length > 0 && visibleUnits.length === 0 && (
+                        <div className="p-6 text-center text-gray-400">{t.building.noUnitMatch}</div>
                     )}
                 </div>
             </div>

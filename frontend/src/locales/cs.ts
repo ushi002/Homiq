@@ -64,6 +64,9 @@ export const cs: Translations = {
         noOwner: 'bez vlastníka',
         dangerZone: 'Nebezpečná zóna',
         dangerZoneHint: 'Smazání nelze vrátit. Budovu lze smazat až po smazání jejích jednotek.',
+        searchUnits: 'Hledat jednotku nebo vlastníka…',
+        onlyWithoutOwner: 'Jen bez vlastníka',
+        noUnitMatch: 'Žádná jednotka neodpovídá.',
     },
     unit: {
         assignOwner: 'Přiřadit vlastníka e-mailem',
@@ -133,6 +136,8 @@ export const cs: Translations = {
         inviteExpired: 'Vypršela',
         inviteCreated: 'Vytvořena',
         inviteExpires: 'Platí do',
+        createdAt: 'Vytvořen',
+        lastLogin: 'Naposledy přihlášen',
     },
     profile: {
         title: 'Můj profil',

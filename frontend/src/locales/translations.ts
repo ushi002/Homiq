@@ -62,6 +62,9 @@ export interface Translations {
         noOwner: string;
         dangerZone: string;
         dangerZoneHint: string;
+        searchUnits: string;
+        onlyWithoutOwner: string;
+        noUnitMatch: string;
     };
     unit: {
         assignOwner: string;
@@ -131,6 +134,8 @@ export interface Translations {
         inviteExpired: string;
         inviteCreated: string;
         inviteExpires: string;
+        createdAt: string;
+        lastLogin: string;
     };
     profile: {
         title: string;
