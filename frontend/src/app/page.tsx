@@ -148,10 +148,10 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">{t.dashboard.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{t.dashboard.title}</h1>
 
         {user?.role === 'admin' && (
-          <div className="mb-8 flex gap-4">
+          <div className="mb-6 flex gap-4">
             <Link
               href="/buildings/new"
               className={BUTTON}
@@ -177,9 +177,10 @@ export default function Dashboard() {
               )}
               {stats[building.id] && renderStats(stats[building.id])}
               <div className="flex justify-between items-center">
-                {user?.role === 'admin' && (
-                  <span className={`px-2 py-1 rounded-full text-xs ${building.units_fetched ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                    {building.units_fetched ? t.dashboard.unitsSynced : t.dashboard.draft}
+                {/* Only a building whose units were not loaded yet is marked; the numbers above say the rest */}
+                {user?.role === 'admin' && !building.units_fetched && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                    {t.dashboard.draft}
                   </span>
                 )}
                 {building.manager && (

@@ -178,12 +178,12 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                             return (
                                 <div key={key} className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
                                     <p className="text-xs font-bold text-blue-700 uppercase">{typeLabel(type)}</p>
-                                    <p className="text-xl font-bold font-mono text-blue-900 mt-1">
+                                    <p className="text-xl font-bold tabular-nums text-blue-900 mt-1">
                                         {format(pair.current.value)} <span className="text-xs font-sans font-normal">{uom}</span>
                                         {pair.current.value !== null && !pair.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(pair.current)}>*</span>}
                                     </p>
                                     <p className="text-xs text-gray-600 mt-1">
-                                        {t.unit.lastYear}: <span className="font-mono">{pair.previous.value === null ? '–' : `${format(pair.previous.value)} ${uom}`}</span>
+                                        {t.unit.lastYear}: <span className="tabular-nums">{pair.previous.value === null ? '–' : `${format(pair.previous.value)} ${uom}`}</span>
                                         {pair.previous.value !== null && !pair.previous.complete && <span className="cursor-help" title={missingTitle(pair.previous)}>*</span>}
                                     </p>
                                     <p className="text-xs mt-0.5">
@@ -207,16 +207,18 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                             return (
                                 <li key={u.id}>
                                     <Link href={`/units/${u.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 px-2 -mx-2 rounded-md hover:bg-gray-50">
-                                        <span className="font-medium text-blue-700 w-full sm:w-32 shrink-0">{t.nav.unit} {u.unit_number}</span>
+                                        <span className="font-medium text-blue-700 flex-1 sm:flex-none sm:w-32 shrink-0">{t.nav.unit} {u.unit_number}</span>
+                                        <span className="sm:hidden text-gray-500" aria-hidden="true">→</span>
+                                        {values.length > 0 && <span className="basis-full sm:hidden" />}
                                         {values.map(([type, v]) => (
                                             <span key={type} className="text-sm text-gray-600 whitespace-nowrap">
                                                 <span className="text-gray-500">{typeLabel(type)}:</span>{' '}
-                                                <span className="font-mono">{format(v.current.value)}</span> {v.current.value !== null && <span className="text-xs text-gray-500">{v.unit_of_measure}</span>}
+                                                <span className="tabular-nums">{format(v.current.value)}</span> {v.current.value !== null && <span className="text-xs text-gray-500">{v.unit_of_measure}</span>}
                                                 {v.current.value !== null && !v.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(v.current)}>*</span>}
                                                 {comparable(v) && <> <YoyChange current={v.current.value as number} previous={v.previous.value as number} previousYear={year - 1} compact className="text-xs" /></>}
                                             </span>
                                         ))}
-                                        <span className="ml-auto text-gray-500" aria-hidden="true">→</span>
+                                        <span className="hidden sm:inline ml-auto text-gray-500" aria-hidden="true">→</span>
                                     </Link>
                                 </li>
                             );
