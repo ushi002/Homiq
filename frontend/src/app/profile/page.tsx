@@ -1,4 +1,5 @@
 "use client";
+import { usePageTitle } from '@/lib/pageTitle';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -9,6 +10,7 @@ import { authFetch } from '@/lib/api';
 export default function ProfilePage() {
     const { user, login, token, isLoading: authLoading } = useAuth(); // Need login to update local state
     const { t } = useLanguage();
+    usePageTitle(t.profile.title);
     const router = useRouter();
     const [fullName, setFullName] = useState('');
     const [isLoading, setIsLoading] = useState(false);

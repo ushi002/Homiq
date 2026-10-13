@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -34,7 +35,8 @@ export default function UsersPage() {
     const { user: currentUser, token, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const [origin, setOrigin] = useState('');
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    usePageTitle(t.users.title);
     const toast = useToast();
     const apiError = useApiError();
     const confirm = useConfirm();
@@ -214,7 +216,7 @@ export default function UsersPage() {
         if (!dateStr) return '';
         // Treat naive date strings as UTC
         const date = !dateStr.endsWith('Z') && !dateStr.includes('+') ? new Date(dateStr + 'Z') : new Date(dateStr);
-        return date.toLocaleString();
+        return date.toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' });
     };
 
     const isExpired = (dateStr?: string) => {

@@ -59,6 +59,7 @@ export interface Translations {
         categoryColdWater: string;
         categoryHotWater: string;
         categoryHeat: string;
+        noOwner: string;
     };
     unit: {
         assignOwner: string;
@@ -94,6 +95,11 @@ export interface Translations {
         moreThan: string;
         lessThan: string;
         aboutSame: string;
+        notFound: string;
+        readingsFailed: string;
+        loadingReadings: string;
+        prevPeriod: string;
+        nextPeriod: string;
     };
     users: {
         title: string;

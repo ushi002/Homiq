@@ -1,4 +1,5 @@
 "use client";
+import { usePageTitle } from '@/lib/pageTitle';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
@@ -30,6 +31,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { t } = useLanguage();
+  usePageTitle(user?.role === 'owner' ? t.dashboard.myUnits : t.dashboard.title);
 
   useEffect(() => {
     if (authLoading) return;
@@ -132,12 +134,6 @@ export default function Dashboard() {
               className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               + {t.dashboard.addBuilding}
-            </Link>
-            <Link
-              href="/users"
-              className="bg-white text-gray-700 border border-gray-300 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              {t.dashboard.manageUsers}
             </Link>
           </div>
         )}

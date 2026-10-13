@@ -7,6 +7,7 @@ import Breadcrumbs from '@/components/Breadcrumbs';
 import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
 import YoyChange from '@/components/YoyChange';
 import { combinedConsumption, monthBounds, isoWeekBounds } from '@/lib/consumption';
+import { usePageTitle } from '@/lib/pageTitle';
 import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -52,11 +53,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [buildingName, setBuildingName] = useState<string | null>(null);
     const [ownerId, setOwnerId] = useState<string>("");
+    const [metersLoading, setMetersLoading] = useState(true);
+    const [readingsLoading, setReadingsLoading] = useState(true);
+    const [unitError, setUnitError] = useState('');
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
     const { t, language } = useLanguage();
     const toast = useToast();
     const apiError = useApiError();
+    usePageTitle(unit?.unit_number ? `${t.nav.unit} ${unit.unit_number}` : null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -66,7 +71,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         }
         // 1. Fetch unit info
         authFetch(`/units/${id}`)
-            .then(res => res.json())
+            .then(async res => {
+                if (!res.ok) throw new Error(String(res.status));
+                return res.json();
+            })
             .then(data => {
                 setUnit(data);
                 setOwnerId(data.owner_id || "");
@@ -75,18 +83,22 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     .then(res => res.ok ? res.json() : null)
                     .then(b => setBuildingName(b?.name ?? null));
             })
-            .catch(err => console.error(err));
+            .catch(err => {
+                console.error(err);
+                // 403/404: the unit does not exist or belongs to someone else
+                setUnitError(['403', '404'].includes(err.message) ? t.unit.notFound : t.messages.errorGeneric);
+            });
 
-        // 2. Sync and Fetch
-        // 2. Fetch Meters and Readings (Optimized)
+        // 2. Meters (fast, from SQL), then their readings (slower, from InfluxDB)
         const fetchMeters = async () => {
-            // 1. Get Meters List (Fast, SQL)
             try {
                 const res = await authFetch(`/telemetry/meters/?unit_id=${id}`);
+                if (!res.ok) throw new Error(String(res.status));
                 const unitMeters: any[] = await res.json();
 
                 // Set meters immediately with empty readings to show structure
                 setMeters(unitMeters.map(m => ({ ...m, recent_readings: [] })));
+                setMetersLoading(false);
 
                 // 2. Fetch Readings from Influx (Direct, One Call)
                 try {
@@ -102,10 +114,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     setMeters(metersWithReadings);
                 } catch (readErr) {
                     console.error("Failed to load readings", readErr);
+                    toast.error(t.unit.readingsFailed);
+                } finally {
+                    setReadingsLoading(false);
                 }
 
             } catch (err) {
                 console.error(err);
+                setMetersLoading(false);
+                setReadingsLoading(false);
             }
         };
 
@@ -220,6 +237,40 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     // ISO years have 52 or 53 weeks; 28 December always falls in the last one
     const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
 
+    // Previous/next month or week, crossing into the neighbouring year within the offered years
+    const shiftPeriod = (delta: number) => {
+        const periods = viewMode === 'month' ? 12 : weeksInSelectedYear;
+        const current = viewMode === 'month' ? selectedMonth : selectedWeek;
+        let year = selectedYear;
+        let period = current + delta;
+        if (period < 1) {
+            year -= 1;
+            period = viewMode === 'month' ? 12 : getWeekNumber(new Date(year, 11, 28));
+        } else if (period > periods) {
+            year += 1;
+            period = 1;
+        }
+        if (!availableYears.includes(year)) return;
+        setSelectedYear(year);
+        if (viewMode === 'month') setSelectedMonth(period); else setSelectedWeek(period);
+    };
+    const now = new Date();
+    const atLatestPeriod = selectedYear === currentYear && (viewMode === 'month'
+        ? selectedMonth >= now.getMonth() + 1
+        : getISOWeekYear(now) === currentYear && selectedWeek >= getWeekNumber(now));
+    const atOldestPeriod = selectedYear === availableYears[availableYears.length - 1]
+        && (viewMode === 'month' ? selectedMonth : selectedWeek) === 1;
+    const arrowClass = "px-2 py-1 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40";
+
+    if (unitError) {
+        return (
+            <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+                <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
+                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{unitError}</div>
+            </main>
+        );
+    }
+
     return (
         <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
             <div className="mb-6 flex flex-col lg:flex-row lg:justify-between lg:items-start gap-6">
@@ -311,11 +362,13 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <label className="block text-xs font-bold text-gray-500 uppercase">
                             {viewMode === 'month' ? t.unit.selectMonth : t.unit.selectWeek}
                         </label>
+                        <div className="mt-1 flex items-center gap-1">
+                        <button type="button" onClick={() => shiftPeriod(-1)} disabled={atOldestPeriod} className={arrowClass} aria-label={t.unit.prevPeriod} title={t.unit.prevPeriod}>‹</button>
                         {viewMode === 'month' ? (
                             <select
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                                className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                                className="block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                             >
                                 {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                     <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(language === 'cs' ? 'cs-CZ' : 'en-US', { month: 'long' })}</option>
@@ -325,13 +378,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             <select
                                 value={selectedWeek}
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
-                                className="mt-1 block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
+                                className="block w-32 rounded-md border-gray-300 shadow-sm border p-1 text-sm"
                             >
                                 {Array.from({ length: weeksInSelectedYear }, (_, i) => i + 1).map(w => (
                                     <option key={w} value={w}>{t.unit.week} {w}</option>
                                 ))}
                             </select>
                         )}
+                        <button type="button" onClick={() => shiftPeriod(1)} disabled={atLatestPeriod} className={arrowClass} aria-label={t.unit.nextPeriod} title={t.unit.nextPeriod}>›</button>
+                        </div>
                     </div>
                     <button
                         onClick={exportReadings}
@@ -397,7 +452,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                 {parts.length > 1 && <p className="text-[11px] font-mono text-gray-500 pt-1">{part.serial}</p>}
                                 {part.readings.map(reading => (
                                     <div key={reading.time} className="flex justify-between text-sm py-1 border-b border-blue-100 last:border-0">
-                                        <span className="text-gray-600 text-xs">{new Date(reading.time).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}</span>
+                                        <span className="text-gray-600 text-xs">{formatDate(Date.parse(reading.time))}</span>
                                         <span className="font-mono font-bold">{reading.value}</span>
                                     </div>
                                 ))}
@@ -429,6 +484,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     </div>
                                     {shown.length > 1 && <p className="text-xs text-gray-500 mb-2">{t.unit.meterReplaced}</p>}
 
+                                    {readingsLoading && <p className="text-xs text-gray-400 mb-2 animate-pulse">{t.unit.loadingReadings}</p>}
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
                                         <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
@@ -513,7 +569,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         </div>
                     );
                 })}
-                {meters.length === 0 && (
+                {metersLoading && (
+                    <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-gray-100 animate-pulse">{t.common.loading}</div>
+                )}
+                {!metersLoading && meters.length === 0 && (
                     <div className="p-8 bg-white rounded-xl text-center text-gray-400 border border-dashed border-gray-200">
                         {t.unit.noMeters}
                     </div>
