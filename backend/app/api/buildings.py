@@ -11,6 +11,7 @@ from ..models.telemetry import Meter, MeterCreate
 from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
+from ..core.anomaly import typical, unusual
 from ..core.building_consumption import units_consumption
 from .deps import get_current_user
 from .access import can_access_building, require
@@ -127,8 +128,18 @@ def read_building_consumption(
 
     meter_types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
 
-    def cell(r):
-        return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
+    def cell(r, unusual_flag=None):
+        c = {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
+        if unusual_flag:
+            c["unusual"] = unusual_flag
+        return c
+
+    medians = {mt["type"]: typical(by_type.get(mt["type"]) for by_type in current.values()) for mt in meter_types}
+
+    def current_cell(unit_id, t):
+        r = current.get(unit_id, {}).get(t) or _no_data(bounds(year))
+        median = medians.get(t)
+        return cell(r, unusual(r, previous.get(unit_id, {}).get(t), median[0] if median else None))
 
     measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
     return {
@@ -143,7 +154,7 @@ def read_building_consumption(
                 "unit_number": u.unit_number,
                 "owner": (u.owner.full_name or u.owner.email) if u.owner else None,
                 "values": {
-                    t: {"current": cell(current.get(str(u.id), {}).get(t) or _no_data(bounds(year))),
+                    t: {"current": current_cell(str(u.id), t),
                         "previous": cell(previous.get(str(u.id), {}).get(t) or _no_data(bounds(year - 1)))}
                     for t in sorted(set(current.get(str(u.id), {})) | set(previous.get(str(u.id), {})))
                 },
