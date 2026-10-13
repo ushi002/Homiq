@@ -211,6 +211,7 @@ export const en: Translations = {
     apiErrors: {
         'Could not validate credentials': 'your session has expired, please log in again',
         'Invalid user ID in token': 'your session has expired, please log in again',
+        'Too many login attempts': 'Too many failed login attempts. Try again in 15 minutes.',
         'Invite already accepted': 'the invitation has already been accepted',
         'invalidInput': 'invalid form data',
     },
