@@ -105,6 +105,8 @@ export const cs: Translations = {
         prevPeriod: 'Předchozí',
         nextPeriod: 'Další',
         changeOwner: 'Změnit',
+        lastReading: 'Poslední odečet',
+        lastReadingOld: 'Z měřičů déle než týden nepřišla data.',
     },
     users: {
         title: 'Správa uživatelů',

@@ -103,6 +103,8 @@ export interface Translations {
         prevPeriod: string;
         nextPeriod: string;
         changeOwner: string;
+        lastReading: string;
+        lastReadingOld: string;
     };
     users: {
         title: string;

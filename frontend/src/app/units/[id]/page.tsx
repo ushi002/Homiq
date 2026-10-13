@@ -111,6 +111,22 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     }));
 
                     setMeters(metersWithReadings);
+
+                    // Open on the latest month/week with data: without fresh readings the current
+                    // month would be empty
+                    const latest = Math.max(...metersWithReadings.flatMap(m => m.recent_readings.map((r: Reading) => Date.parse(r.time))));
+                    if (Number.isFinite(latest)) {
+                        const d = new Date(latest);
+                        const now = new Date();
+                        if (d.getFullYear() !== now.getFullYear() || d.getMonth() !== now.getMonth()) {
+                            setSelectedYear(d.getFullYear());
+                            setSelectedMonth(d.getMonth() + 1);
+                        }
+                        if (getISOWeekYear(d) !== getISOWeekYear(now) || getWeekNumber(d) !== getWeekNumber(now)) {
+                            // The week selector is per year: keep the week within the year shown
+                            setSelectedWeek(getISOWeekYear(d) === d.getFullYear() ? getWeekNumber(d) : (d.getMonth() === 0 ? 1 : getWeekNumber(new Date(d.getFullYear(), 11, 28))));
+                        }
+                    }
                 } catch (readErr) {
                     console.error("Failed to load readings", readErr);
                     toast.error(t.unit.readingsFailed);
@@ -235,6 +251,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const availableYears = Array.from({ length: currentYear - oldestReadingYear + 1 }, (_, i) => currentYear - i);
     // ISO years have 52 or 53 weeks; 28 December always falls in the last one
     const weeksInSelectedYear = getWeekNumber(new Date(selectedYear, 11, 28));
+
+    // Latest reading of any meter of the unit; highlighted when the data stopped arriving
+    const readingTimes = meters.flatMap(m => m.recent_readings.map(r => Date.parse(r.time)));
+    const lastReading = readingTimes.length ? Math.max(...readingTimes) : null;
+    const staleReadings = lastReading !== null && Date.now() - lastReading > 7 * 86400000;
 
     // Previous/next month or week, crossing into the neighbouring year within the offered years
     const shiftPeriod = (delta: number) => {
@@ -396,6 +417,11 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         <button type="button" onClick={() => shiftPeriod(1)} disabled={atLatestPeriod} className={arrowClass} aria-label={t.unit.nextPeriod} title={t.unit.nextPeriod}>›</button>
                         </div>
                     </div>
+                    {lastReading !== null && (
+                        <p className={`self-end text-xs ${staleReadings ? 'text-amber-700 font-medium' : 'text-gray-500'}`} title={staleReadings ? t.unit.lastReadingOld : undefined}>
+                            {t.unit.lastReading}: {new Date(lastReading).toLocaleDateString(language === 'cs' ? 'cs-CZ' : 'en-US')}
+                        </p>
+                    )}
                     <button
                         onClick={exportReadings}
                         disabled={!meters.some(m => m.recent_readings.some(r => r.time.startsWith(String(selectedYear))))}
