@@ -117,3 +117,34 @@ class Unit(UnitBase, table=True):
 class UnitRead(UnitBase):
     id: uuid.UUID
     owner: Optional[UserPublic] = None
+
+
+class BuildingEnergyYear(SQLModel, table=True):
+    """A building's yearly energy bill (calendar year) from the heating cost allocation: heat for
+    heating and for hot water from the building's boiler room, water billed by the supplier and
+    measured on the flats' meters (scripts/import_energy_years.py). est_* = an estimate of the
+    right values when the bill is evidently wrong, note = remarks on the source."""
+    __tablename__ = "building_energy_years"
+    building_id: uuid.UUID = Field(foreign_key="buildings.id", primary_key=True)
+    year: int = Field(primary_key=True)
+    heating_gj: Optional[float] = None
+    heating_cost: Optional[float] = None
+    heating_price: Optional[float] = None  # CZK/GJ as billed
+    base_share_pct: Optional[float] = None  # share of heating costs split by area
+    heating_units: Optional[float] = None  # sum of the heat meters' readings x coefficients
+    hot_water_gj: Optional[float] = None
+    hot_water_cost: Optional[float] = None
+    hot_water_price: Optional[float] = None
+    cold_water_billed_m3: Optional[float] = None
+    cold_water_metered_m3: Optional[float] = None
+    hot_water_billed_m3: Optional[float] = None
+    hot_water_metered_m3: Optional[float] = None
+    water_price: Optional[float] = None
+    heated_area_m2: Optional[float] = None
+    hot_water_area_m2: Optional[float] = None
+    persons: Optional[float] = None
+    degree_days_billing: Optional[float] = None
+    est_heating_gj: Optional[float] = None
+    est_hot_water_gj: Optional[float] = None
+    est_price: Optional[float] = None
+    note: Optional[str] = None

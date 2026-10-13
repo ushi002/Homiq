@@ -139,6 +139,8 @@ for who in ("lord2", "owner_a", "auditor"):
     expect(who, f"/buildings/{I['b1']}{E}", 403)
 expect(None, f"/buildings/{I['b1']}{E}", 401)
 expect("admin", f"/buildings/{I['b1']}/energy?start=2025-01-01&end=2026-06-01", 422)  # more than a year
+for who, status in (("admin", 200), ("lord1", 200), ("lord2", 403), ("owner_a", 403), ("auditor", 403), (None, 401)):
+    expect(who, f"/buildings/{I['b1']}/energy_years", status)
 
 # Owner summary: only the owner's own units, other roles get nothing
 expect("owner_a", "/units/summary?year=2025&month=3", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["A"])

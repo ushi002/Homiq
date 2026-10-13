@@ -27,7 +27,7 @@ jobs:
       - name: Tests
         working-directory: ${{ runner.temp }}
         run: |
-          for t in test_consumption test_energy test_unit_sync test_access test_login_limit test_invite_flow; do
+          for t in test_consumption test_energy test_energy_years test_unit_sync test_access test_login_limit test_invite_flow; do
             echo "::group::$t"
             python "$GITHUB_WORKSPACE/backend/tests/$t.py"
             echo "::endgroup::"

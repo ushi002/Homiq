@@ -6,13 +6,13 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User
+from ..models.property import Building, BuildingCreate, BuildingEnergyYear, BuildingRead, BuildingUpdate, Unit, UnitRead, User
 from ..models.telemetry import Meter
 from ..core.influx_utils import get_daily_max, get_last_by_serial, get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
 from ..core.building_consumption import units_consumption
-from ..core import energy
+from ..core import energy, energy_years
 from ..core.weather import daily_temperatures
 from .deps import get_current_user
 from .access import can_access_building, can_manage_building, require
@@ -314,6 +314,71 @@ def read_building_energy(
         "days": days,
         "signature": energy.signature(days),
         "units": energy.compare_units(heat_units),
+    }
+
+@router.get("/{building_id}/energy_years")
+def read_building_energy_years(
+    building_id: uuid.UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Yearly energy balance from the heating bills (core/energy_years.py), with own heating
+    degree days from the outdoor temperature and, for years with heat meter data, the meters'
+    kWh x position coefficient against the bill's units. Admins and the building's manager only."""
+    building = session.get(Building, building_id)
+    if not building:
+        raise HTTPException(status_code=404, detail="Building not found")
+    require(can_manage_building(current_user, building))
+    rows = session.exec(select(BuildingEnergyYear).where(BuildingEnergyYear.building_id == building_id)
+                        .order_by(BuildingEnergyYear.year)).all()
+    if not rows:
+        return {"years": [], "meter_checks": [], "constants": {}}
+
+    temperatures = {}
+    if building.latitude is not None and building.longitude is not None:
+        temperatures = daily_temperatures(session, building.latitude, building.longitude,
+                                          date(rows[0].year, 1, 1), date(rows[-1].year + 1, 1, 1))
+    years = []
+    for row in rows:
+        dd = energy_years.degree_days(temperatures, row.year)
+        years.append(energy_years.year_summary(row.model_dump(), dd))
+
+    # Heat meters against the bill's units, for the part of each year with meter data
+    units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
+    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
+    coefs = {str(u.id): u.position_coef for u in units if u.position_coef}
+    measurements = [name for name, meta in (parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS).items()
+                    if meta["type"] == "heat"]
+    checks = []
+    if building.influx_db_name and building.influx_device_tag and meters and coefs:
+        serials = {m.serial_number for m in meters}
+        for row, summary in zip(rows, years):
+            start, end = date(row.year, 1, 1), date(row.year + 1, 1, 1)
+            per_meter = {}
+            for measurement in measurements:
+                for sn, points in (get_daily_max(building.influx_db_name, measurement, building.influx_device_tag,
+                                                 datetime(row.year, 1, 1, tzinfo=timezone.utc) - timedelta(days=7),
+                                                 datetime(row.year + 1, 1, 1, tzinfo=timezone.utc)) or {}).items():
+                    if sn in serials and (daily := energy.meter_daily(points, start, end)):
+                        per_meter[sn] = daily
+            covered = [d["date"] for d in energy.building_daily(per_meter, {}, start, end) if d["complete"]]
+            if not covered:
+                continue
+            first, last = date.fromisoformat(covered[0]), date.fromisoformat(covered[-1])
+            _, (results,) = units_consumption(building, meters, [
+                (datetime(first.year, first.month, first.day, tzinfo=timezone.utc),
+                 datetime(last.year, last.month, last.day, tzinfo=timezone.utc) + timedelta(days=1))])
+            measured = sum(r["heat"].value * coefs[uid] for uid, r in results.items()
+                           if uid in coefs and r.get("heat") and r["heat"].value is not None)
+            dd_period = sum(energy_years.DD_INDOOR_C - t for d, t in temperatures.items()
+                            if first <= d <= last and t < energy_years.DD_LIMIT_C) or None
+            checks.append({"year": row.year, "from": first.isoformat(), "to": last.isoformat(),
+                           **energy_years.meter_check(measured, row.heating_units, dd_period, summary["degree_days"])})
+    return {
+        "years": years,
+        "meter_checks": checks,
+        "constants": {"dd_indoor_c": energy_years.DD_INDOOR_C, "dd_limit_c": energy_years.DD_LIMIT_C,
+                      "hot_water_theory_kwh_m3": energy_years.HOT_WATER_THEORY_KWH_M3},
     }
 
 @router.get("/{building_id}/readings")
