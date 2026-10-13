@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..core.consumption import PeriodResult, combine_meters, typical
+from ..core.consumption import PeriodResult, combine_meters
 from ..core.building_consumption import units_consumption
 from ..core.influx_utils import get_meter_readings, get_meters_last_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
@@ -282,41 +282,4 @@ def read_unit_readings_influx(
         results[str(meter.id)] = readings
         
     return results
-
-
-@router.get("/{unit_id}/building_average")
-def read_building_average(
-    unit_id: uuid.UUID,
-    start: datetime,
-    end: datetime,
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    """Typical consumption of a unit in the unit's building in [start, end), by meter type, for
-    comparison on the unit detail: the median, because a few large consumers (a leak, non-residential
-    units) pull the mean up by 10-40 % and most owners would always look "below average". Only the
-    median and the number of units are returned (rules in core/consumption.py, typical)."""
-    unit = session.get(Unit, unit_id)
-    if not unit:
-        raise HTTPException(status_code=404, detail="Unit not found")
-    require(can_access_unit(current_user, unit, session))
-    if start.tzinfo is None:
-        start = start.replace(tzinfo=timezone.utc)
-    if end.tzinfo is None:
-        end = end.replace(tzinfo=timezone.utc)
-    if not timedelta(0) < end - start <= timedelta(days=367):
-        raise HTTPException(status_code=422, detail="Invalid period")
-
-    building = session.get(Building, unit.building_id)
-    units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
-    meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
-    meter_types, (period,) = units_consumption(building, meters, [(start, end)])
-
-    types = {}
-    for mt in meter_types:
-        t = mt["type"]
-        median = typical(by_type.get(t) for by_type in period.values())
-        if median:
-            types[t] = {"median": round(median[0], 2), "units": median[1]}
-    return {"types": types}
 

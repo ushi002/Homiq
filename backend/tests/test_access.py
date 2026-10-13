@@ -96,10 +96,6 @@ for path in [f"/units/{I['unit_b']}", f"/units/{I['unit_b']}/readings_influx", f
              f"/buildings/{I['b1']}/consumption_monthly?year=2025"]:
     expect("owner_a", path, 403)
 expect("owner_a", f"/telemetry/meters/?unit_id={I['unit_b']}", 200, lambda m: m == [])
-# Building average: own unit only; with two units in the building no average is revealed
-expect("owner_a", f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 200, lambda r: r == {"types": {}})
-expect("owner_a", f"/units/{I['unit_b']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 403)
-expect(None, f"/units/{I['unit_a']}/building_average?start=2025-03-01T00:00:00Z&end=2025-04-01T00:00:00Z", 401)
 expect("owner_a", f"/buildings/{I['b1']}/units", 200, lambda units: [u["unit_number"] for u in units] == ["A"])
 expect("owner_a", "/users/", 200, lambda users: [u["email"] for u in users] == ["a@t.cz"])
 

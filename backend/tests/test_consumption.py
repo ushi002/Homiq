@@ -75,10 +75,4 @@ assert period([m], *JAN).value == 2.5
 m = meter_period(*JAN, (ts(2024, 12, 31), 0), (ts(2025, 1, 2), 1), (ts(2025, 1, 31), 3), None)
 assert period([m], *JAN).value == 3, period([m], *JAN)  # 3 - 0.5 = 2.5 -> 3
 
-# Typical unit of a building (building_average)
-from app.core.consumption import typical, PeriodResult
-ok = lambda v: PeriodResult(v, 0, 31)
-assert typical([ok(1), ok(2), ok(3), ok(4)]) is None                       # fewer than 5 units
-assert typical([ok(1), ok(2), ok(3), ok(4), ok(100), ok(0), None]) == (3, 5)  # zero and missing ignored
-
 print("SUCCESS: Consumption rules verified!")
