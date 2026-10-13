@@ -34,12 +34,18 @@ def degree_days(temperatures: Dict[date, float], year: int) -> Optional[dict]:
 
 
 def year_summary(row: dict, dd: Optional[dict]) -> dict:
-    """Derived figures of one year. row: the BuildingEnergyYear fields. An unreliable year keeps
+    """Derived figures of one year. row: the BuildingEnergyYear fields. Corrected heat (corrected_*)
+    replaces the bill's in every figure, with a warning showing the bill's. An unreliable year keeps
     only the billed figures, nothing derived (it is left out of comparisons)."""
     warnings = []
     heating_gj, hot_gj = row.get("heating_gj"), row.get("hot_water_gj")
     unreliable = bool(row.get("unreliable"))
-    if not unreliable:
+    corrected = row.get("corrected_heating_gj") is not None or row.get("corrected_hot_water_gj") is not None
+    if corrected:
+        warnings.append({"code": "corrected", "billed_heating_gj": heating_gj, "billed_hot_water_gj": hot_gj})
+        heating_gj = row.get("corrected_heating_gj") if row.get("corrected_heating_gj") is not None else heating_gj
+        hot_gj = row.get("corrected_hot_water_gj") if row.get("corrected_hot_water_gj") is not None else hot_gj
+    if not unreliable and not corrected:  # a correction explains the billed prices
         prices = [p for p in (row.get("heating_price"), row.get("hot_water_price")) if p]
         if len(prices) == 2 and abs(prices[0] - prices[1]) > PRICE_MISMATCH * max(prices):
             warnings.append({"code": "price_mismatch", "heating": prices[0], "hot_water": prices[1]})
@@ -66,6 +72,7 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
     return {
         "year": row["year"],
         "unreliable": unreliable,
+        "corrected": corrected,
         "heating_gj": heating_gj,
         "hot_water_gj": hot_gj,
         "heating_cost": row.get("heating_cost"),

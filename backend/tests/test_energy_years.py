@@ -21,7 +21,7 @@ assert s["price_per_gj"] == 500.0 and s["total_cost"] == 500000.0 and s["hot_wat
 assert s["heating_kwh_per_dd"] == round(600 * KWH_PER_GJ / 2000, 1)
 assert s["hot_water_kwh_per_m3"] == round(400 * KWH_PER_GJ / 1000, 1)  # 111.1 kWh/m3
 assert s["cold_water_diff"] == 0.1 and s["hot_water_diff"] == -0.25
-assert s["warnings"] == [] and s["unreliable"] is False
+assert s["warnings"] == [] and s["unreliable"] is False and s["corrected"] is False
 
 # Degree days in the bill far from ours: a warning, ours are used
 s = year_summary({**row, "degree_days_billing": 3000.0}, {"value": 2000, "days": 365, "complete": True})
@@ -39,6 +39,12 @@ s = year_summary({**bad, "unreliable": True, "degree_days_billing": 9999.0}, {"v
 assert s["unreliable"] and s["warnings"] == [] and s["heating_gj"] == 500.0 and s["total_cost"] == 500000.0
 assert all(s[k] is None for k in ("price_per_gj", "heating_kwh_per_dd", "heating_kwh_per_m2", "hot_water_kwh_per_m3",
                                   "cold_water_diff", "hot_water_diff", "hot_water_share")), s
+
+# Corrected heat: used in every figure, the bill's kept in a warning, no price warning
+s = year_summary({**bad, "corrected_heating_gj": 600.0, "corrected_hot_water_gj": 400.0}, {"value": 2000, "days": 365, "complete": True})
+assert s["corrected"] and s["heating_gj"] == 600.0 and s["hot_water_gj"] == 400.0 and s["price_per_gj"] == 500.0, s
+assert s["warnings"] == [{"code": "corrected", "billed_heating_gj": 500.0, "billed_hot_water_gj": 500.0}], s["warnings"]
+assert s["hot_water_share"] == 0.4 and s["heating_kwh_per_dd"] == round(600 * KWH_PER_GJ / 2000, 1)
 
 # The bills split the heat by a fixed share: energy per m3 of hot water is removed
 years = [year_summary({**row, "year": y}, None) for y in (2022, 2023, 2024)]

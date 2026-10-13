@@ -319,6 +319,9 @@ export const cs: Translations = {
         loading: 'Načítám… (první načtení může trvat několik sekund)',
     },
     energyYears: {
+        warnCorrected: 'Rok {{year}}: množství tepla ve vyúčtování je zjevně chybné (vytápění {{heating}} GJ, ohřev TV {{hotWater}} GJ).',
+        correctedBySplit: 'Opraveno podle pevného poměru {{ratio}}, náklady v Kč platí podle vyúčtování.',
+        correctedNote: 'opravené množství tepla',
         warnPrice: 'Rok {{year}}: vytápění a ohřev TV mají ve vyúčtování různou cenu ({{heating}} a {{hotWater}} Kč/GJ).',
         warnSplit: 'Rok {{year}}: podíl ohřevu TV na teple z kotelny je {{share}} %, v ostatních letech {{usual}} %.',
         splitFixed: 'Vyúčtování dělí teplo z kotelny pevně {{heating}} % vytápění / {{hotWater}} % ohřev TV, teplo na teplou vodu se neměří. Spotřebu energie na m³ teplé vody ani ztráty jejího ohřevu (cirkulace) z něj proto určit nejde.',

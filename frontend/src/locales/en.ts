@@ -297,6 +297,9 @@ export const en: Translations = {
         loading: 'Loading… (the first load may take a few seconds)',
     },
     energyYears: {
+        warnCorrected: 'Year {{year}}: the heat in the bill is evidently wrong (heating {{heating}} GJ, hot water {{hotWater}} GJ).',
+        correctedBySplit: 'Corrected by the fixed split {{ratio}}; the costs in CZK are as billed.',
+        correctedNote: 'corrected heat',
         warnPrice: 'Year {{year}}: heating and hot water have a different price in the bill ({{heating}} and {{hotWater}} CZK/GJ).',
         warnSplit: "Year {{year}}: hot water takes {{share}} % of the boiler room's heat, in the other years {{usual}} %.",
         splitFixed: "The bill splits the boiler room's heat by a fixed {{heating}} % heating / {{hotWater}} % hot water; the heat for hot water is not measured. Energy per m³ of hot water and the losses of heating it (circulation) therefore cannot be told from it.",

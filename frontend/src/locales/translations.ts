@@ -290,6 +290,9 @@ export interface Translations {
         loading: string;
     };
     energyYears: {
+        warnCorrected: string;
+        correctedBySplit: string;
+        correctedNote: string;
         warnPrice: string;
         warnSplit: string;
         splitFixed: string;
