@@ -64,6 +64,9 @@ export const en: Translations = {
         noOwner: 'no owner',
         dangerZone: 'Danger zone',
         dangerZoneHint: 'Deleting cannot be undone. A building can be deleted only after its units are deleted.',
+        searchUnits: 'Search unit or owner…',
+        onlyWithoutOwner: 'Only without owner',
+        noUnitMatch: 'No unit matches.',
     },
     unit: {
         assignOwner: 'Assign Owner by Email',
@@ -133,6 +136,8 @@ export const en: Translations = {
         inviteExpired: 'Expired',
         inviteCreated: 'Created',
         inviteExpires: 'Expires',
+        createdAt: 'Created',
+        lastLogin: 'Last login',
     },
     profile: {
         title: 'Your Profile',

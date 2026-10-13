@@ -42,6 +42,7 @@ export default function UsersPage() {
     const apiError = useApiError();
     const confirm = useConfirm();
     const [search, setSearch] = useState('');
+    const [inviteOpen, setInviteOpen] = useState(false); // narrow screens: the invite form is collapsed
     const [roleFilter, setRoleFilter] = useState<string>('all'); // a role, 'pending' or 'all'
 
     // Determine allowed role to create based on current user
@@ -82,6 +83,7 @@ export default function UsersPage() {
             });
             if (res.ok) {
                 setNewUser({ email: '', full_name: '', role: allowedRole });
+                setInviteOpen(false);
                 fetchUsers();
             } else {
                 const err = await res.json();
@@ -258,8 +260,16 @@ export default function UsersPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* Create User Form */}
-                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 h-fit">
+                {/* Create User Form; on narrow screens behind a button so the list is visible first */}
+                {!inviteOpen && (
+                    <button
+                        onClick={() => setInviteOpen(true)}
+                        className="lg:hidden bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors justify-self-start"
+                    >
+                        + {t.users.inviteNew}
+                    </button>
+                )}
+                <div className={`${inviteOpen ? '' : 'hidden'} lg:block bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 h-fit`}>
                     <h2 className="text-lg font-semibold mb-4">{t.users.inviteNew}</h2>
                     <form onSubmit={handleCreateUser} className="space-y-4">
                         <div>
@@ -303,6 +313,9 @@ export default function UsersPage() {
                         </div>
                         <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">
                             {t.users.sendInvite}
+                        </button>
+                        <button type="button" onClick={() => setInviteOpen(false)} className="lg:hidden w-full bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors">
+                            {t.common.cancel}
                         </button>
                     </form>
                 </div>
@@ -362,14 +375,10 @@ export default function UsersPage() {
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-500">{user.email}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5" title="User created at">
-                                            🕒 {formatDate(user.created_at)}
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {t.users.createdAt}: {formatDate(user.created_at)}
+                                            {user.last_login_at && <> · {t.users.lastLogin}: {formatDate(user.last_login_at)}</>}
                                         </p>
-                                        {user.last_login_at && (
-                                            <p className="text-xs text-gray-400 mt-0.5" title="Last login">
-                                                🔑 {formatDate(user.last_login_at)}
-                                            </p>
-                                        )}
                                     </div>
                                     <div className="flex items-center space-x-3 ml-4">
                                         <span className={`px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
