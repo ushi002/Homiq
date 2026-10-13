@@ -12,7 +12,7 @@ JSON: {"roky": [{"rok": 2024,
   "teple_voda_ohrev": {"teplo_GJ", "naklady_Kc", "cena_Kc_GJ"},
   "voda": {"sv_fakturovano_m3", "sv_namereno_m3", "tv_fakturovano_m3", "tv_namereno_m3", "cena_Kc_m3"},
   "zapocitatelna_plocha_vytapeni_m2", "plocha_tv_m2", "prumerny_pocet_osob", "denostupne",
-  "upozorneni" (optional note), "odhad_opravy": {"vytapeni_teplo_GJ", "tv_teplo_GJ", "cena_Kc_GJ"} (optional)}]}
+  "upozorneni" (optional note), "nespolehlivy" (optional, true = left out of comparisons)}]}
 """
 import argparse
 import json
@@ -29,7 +29,7 @@ import app.models.telemetry  # noqa: F401  (registers the tables)
 
 
 def to_row(building_id, y: dict) -> BuildingEnergyYear:
-    heating, hot, water, est = y.get("vytapeni", {}), y.get("teple_voda_ohrev", {}), y.get("voda", {}), y.get("odhad_opravy", {})
+    heating, hot, water = y.get("vytapeni", {}), y.get("teple_voda_ohrev", {}), y.get("voda", {})
     return BuildingEnergyYear(
         building_id=building_id, year=int(y["rok"]),
         heating_gj=heating.get("teplo_GJ"), heating_cost=heating.get("naklady_Kc"), heating_price=heating.get("cena_Kc_GJ"),
@@ -40,8 +40,7 @@ def to_row(building_id, y: dict) -> BuildingEnergyYear:
         water_price=water.get("cena_Kc_m3"),
         heated_area_m2=y.get("zapocitatelna_plocha_vytapeni_m2"), hot_water_area_m2=y.get("plocha_tv_m2"),
         persons=y.get("prumerny_pocet_osob"), degree_days_billing=y.get("denostupne"),
-        est_heating_gj=est.get("vytapeni_teplo_GJ"), est_hot_water_gj=est.get("tv_teplo_GJ"), est_price=est.get("cena_Kc_GJ"),
-        note=y.get("upozorneni"),
+        unreliable=bool(y.get("nespolehlivy")), note=y.get("upozorneni"),
     )
 
 
@@ -67,7 +66,7 @@ def main():
             existing = session.get(BuildingEnergyYear, (building.id, row.year))
             print(f"{row.year}: heating {row.heating_gj} GJ, hot water {row.hot_water_gj} GJ, "
                   f"{(row.heating_cost or 0) + (row.hot_water_cost or 0):.0f} CZK"
-                  + (", estimate of a correction" if row.est_heating_gj is not None else "")
+                  + (", unreliable" if row.unreliable else "")
                   + (" (replaces the stored year)" if existing else ""))
             session.merge(row)
         if args.apply:

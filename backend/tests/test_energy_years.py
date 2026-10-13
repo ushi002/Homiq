@@ -22,7 +22,7 @@ assert s["heating_kwh_per_dd"] == round(600 * KWH_PER_GJ / 2000, 1)
 assert s["hot_water_kwh_per_m3"] == round(400 * KWH_PER_GJ / 1000, 1)  # 111.1 kWh/m3
 assert s["hot_water_losses"] == round(1 - HOT_WATER_THEORY_KWH_M3 / (400 * KWH_PER_GJ / 1000), 3)
 assert s["cold_water_diff"] == 0.1 and s["hot_water_diff"] == -0.25
-assert s["warnings"] == [] and s["estimated"] is False
+assert s["warnings"] == [] and s["unreliable"] is False
 
 # Degree days in the bill far from ours: a warning, ours are used
 s = year_summary({**row, "degree_days_billing": 3000.0}, {"value": 2000, "days": 365, "complete": True})
@@ -31,12 +31,15 @@ assert s["warnings"] == [{"code": "degree_days", "billing": 3000.0, "own": 2000}
 s = year_summary(row, {"value": 900, "days": 150, "complete": False})
 assert s["degree_days"] is None and s["heating_kwh_per_dd"] is None
 
-# An evidently wrong bill (same GJ for both, different prices) with an estimate: warnings, figures from the estimate
-bad = {**row, "heating_gj": 500.0, "hot_water_gj": 500.0, "heating_price": 600.0, "hot_water_price": 400.0,
-       "est_heating_gj": 600.0, "est_hot_water_gj": 400.0, "est_price": 500.0}
+# An evidently wrong bill (same GJ for both, different prices): warnings
+bad = {**row, "heating_gj": 500.0, "hot_water_gj": 500.0, "heating_price": 600.0, "hot_water_price": 400.0}
 s = year_summary(bad, None)
 assert [w["code"] for w in s["warnings"]] == ["same_gj", "price_mismatch"], s["warnings"]
-assert s["estimated"] and s["heating_gj"] == 600.0 and s["hot_water_gj"] == 400.0 and s["price_per_gj"] == 500.0
+# An unreliable year: billed figures only, nothing derived, no warnings
+s = year_summary({**bad, "unreliable": True, "degree_days_billing": 9999.0}, {"value": 2000, "days": 365, "complete": True})
+assert s["unreliable"] and s["warnings"] == [] and s["heating_gj"] == 500.0 and s["total_cost"] == 500000.0
+assert all(s[k] is None for k in ("price_per_gj", "heating_kwh_per_dd", "heating_kwh_per_m2", "hot_water_kwh_per_m3",
+                                  "hot_water_losses", "cold_water_diff", "hot_water_diff", "hot_water_share")), s
 
 # Heat meters against the bill: part of the year extrapolated by the degree days
 c = meter_check(20000.0, 70000.0, 1000.0, 3500.0)

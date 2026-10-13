@@ -310,7 +310,8 @@ export interface Translations {
         hotDiff: string;
         lossesTip: string;
         diffHint: string;
-        estimated: string;
+        unreliable: string;
+        unreliableLabel: string;
         warnSameGj: string;
         warnDegreeDays: string;
         noteFromSource: string;

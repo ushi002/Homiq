@@ -122,8 +122,9 @@ class UnitRead(UnitBase):
 class BuildingEnergyYear(SQLModel, table=True):
     """A building's yearly energy bill (calendar year) from the heating cost allocation: heat for
     heating and for hot water from the building's boiler room, water billed by the supplier and
-    measured on the flats' meters (scripts/import_energy_years.py). est_* = an estimate of the
-    right values when the bill is evidently wrong, note = remarks on the source."""
+    measured on the flats' meters (scripts/import_energy_years.py). unreliable = shown but left
+    out of comparisons (e.g. a year with a change of the building manager), note = remarks on the
+    source."""
     __tablename__ = "building_energy_years"
     building_id: uuid.UUID = Field(foreign_key="buildings.id", primary_key=True)
     year: int = Field(primary_key=True)
@@ -144,7 +145,5 @@ class BuildingEnergyYear(SQLModel, table=True):
     hot_water_area_m2: Optional[float] = None
     persons: Optional[float] = None
     degree_days_billing: Optional[float] = None
-    est_heating_gj: Optional[float] = None
-    est_hot_water_gj: Optional[float] = None
-    est_price: Optional[float] = None
+    unreliable: bool = Field(default=False)
     note: Optional[str] = None

@@ -30,28 +30,25 @@ def degree_days(temperatures: Dict[date, float], year: int) -> Optional[dict]:
 
 
 def year_summary(row: dict, dd: Optional[dict]) -> dict:
-    """Derived figures of one year. row: the BuildingEnergyYear fields. When the bill is evidently
-    wrong and an estimate is stored (est_*), the figures are computed from the estimate."""
+    """Derived figures of one year. row: the BuildingEnergyYear fields. An unreliable year keeps
+    only the billed figures, nothing derived (it is left out of comparisons)."""
     warnings = []
     heating_gj, hot_gj = row.get("heating_gj"), row.get("hot_water_gj")
-    estimated = row.get("est_heating_gj") is not None or row.get("est_hot_water_gj") is not None
-    if heating_gj is not None and hot_gj is not None and heating_gj == hot_gj:
-        warnings.append({"code": "same_gj"})
-    prices = [p for p in (row.get("heating_price"), row.get("hot_water_price")) if p]
-    if len(prices) == 2 and abs(prices[0] - prices[1]) > PRICE_MISMATCH * max(prices):
-        warnings.append({"code": "price_mismatch", "heating": prices[0], "hot_water": prices[1]})
-    if estimated:
-        heating_gj = row.get("est_heating_gj", heating_gj) or heating_gj
-        hot_gj = row.get("est_hot_water_gj", hot_gj) or hot_gj
+    unreliable = bool(row.get("unreliable"))
+    if not unreliable:
+        if heating_gj is not None and hot_gj is not None and heating_gj == hot_gj:
+            warnings.append({"code": "same_gj"})
+        prices = [p for p in (row.get("heating_price"), row.get("hot_water_price")) if p]
+        if len(prices) == 2 and abs(prices[0] - prices[1]) > PRICE_MISMATCH * max(prices):
+            warnings.append({"code": "price_mismatch", "heating": prices[0], "hot_water": prices[1]})
     costs = [c for c in (row.get("heating_cost"), row.get("hot_water_cost")) if c is not None]
     total_cost = sum(costs) if costs else None
     total_gj = (heating_gj or 0) + (hot_gj or 0) or None
-    price = row.get("est_price") if estimated and row.get("est_price") else (
-        round(total_cost / total_gj, 2) if total_cost and total_gj else None)
+    price = round(total_cost / total_gj, 2) if total_cost and total_gj else None
 
     own_dd = dd["value"] if dd and dd["complete"] else None
     billing_dd = row.get("degree_days_billing")
-    if own_dd and billing_dd and abs(billing_dd - own_dd) > DEGREE_DAYS_MISMATCH * own_dd:
+    if own_dd and billing_dd and not unreliable and abs(billing_dd - own_dd) > DEGREE_DAYS_MISMATCH * own_dd:
         warnings.append({"code": "degree_days", "billing": billing_dd, "own": own_dd})
 
     heating_kwh = heating_gj * KWH_PER_GJ if heating_gj else None
@@ -60,18 +57,20 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
     hot_kwh_m3 = hot_kwh / hot_m3 if hot_kwh and hot_m3 else None
 
     def diff(billed, metered):
-        return round((billed - metered) / billed, 3) if billed and metered is not None else None
+        return round((billed - metered) / billed, 3) if billed and metered is not None and not unreliable else None
 
+    if unreliable:  # nothing derived from it
+        price = heating_kwh = hot_kwh_m3 = None
     return {
         "year": row["year"],
-        "estimated": estimated,
+        "unreliable": unreliable,
         "heating_gj": heating_gj,
         "hot_water_gj": hot_gj,
         "heating_cost": row.get("heating_cost"),
         "hot_water_cost": row.get("hot_water_cost"),
         "total_cost": round(total_cost, 2) if total_cost is not None else None,
         "price_per_gj": price,
-        "hot_water_share": round(hot_gj / total_gj, 3) if hot_gj and total_gj else None,
+        "hot_water_share": round(hot_gj / total_gj, 3) if hot_gj and total_gj and not unreliable else None,
         "degree_days": own_dd,
         "degree_days_days": dd["days"] if dd else 0,
         "degree_days_billing": billing_dd,

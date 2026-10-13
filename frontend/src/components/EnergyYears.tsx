@@ -14,7 +14,7 @@ interface YearWarning {
 
 interface EnergyYear {
     year: number;
-    estimated: boolean;
+    unreliable: boolean; // shown, but left out of comparisons
     heating_gj: number | null;
     hot_water_gj: number | null;
     total_cost: number | null;
@@ -82,7 +82,6 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
     const pct = (v: number | null) => v === null ? '–' : `${(v * 100).toLocaleString(locale, { maximumFractionDigits: 0 })} %`;
     const signedPct = (v: number | null) => v === null ? '–' : `${v > 0 ? '+' : ''}${pct(v)}`;
     const date = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' });
-    const star = (y: EnergyYear) => y.estimated ? <span className="text-amber-700" title={t.energyYears.estimated}>*</span> : null;
 
     const warnings = data.years.flatMap(y => {
         const out: string[] = [];
@@ -131,18 +130,20 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {data.years.map(y => (
-                            <tr key={y.year}>
-                                <td className="px-3 py-2 font-medium">{y.year}</td>
-                                <td className={TD}>{fmt(y.heating_gj, 1)}{star(y)}</td>
-                                <td className={TD}>{fmt(y.hot_water_gj, 1)}{star(y)}</td>
+                            <tr key={y.year} className={y.unreliable ? 'text-gray-400' : ''}>
+                                <td className="px-3 py-2 font-medium" title={y.unreliable ? t.energyYears.unreliable : undefined}>
+                                    {y.year}{y.unreliable && <span className="block text-xs font-normal">{t.energyYears.unreliableLabel}</span>}
+                                </td>
+                                <td className={TD}>{fmt(y.heating_gj, 1)}</td>
+                                <td className={TD}>{fmt(y.hot_water_gj, 1)}</td>
                                 <td className={TD}>{fmt(y.total_cost)}</td>
-                                <td className={TD}>{fmt(y.price_per_gj)}{star(y)}</td>
+                                <td className={TD}>{fmt(y.price_per_gj)}</td>
                                 <td className={TD}>
                                     {fmt(y.degree_days)}
                                     {y.degree_days_billing !== null && <span className="text-xs text-gray-500"> ({fmt(y.degree_days_billing)})</span>}
                                 </td>
-                                <td className={TD}>{fmt(y.heating_kwh_per_dd, 1)}{star(y)}</td>
-                                <td className={TD}>{fmt(y.heating_kwh_per_m2)}{star(y)}</td>
+                                <td className={TD}>{fmt(y.heating_kwh_per_dd, 1)}</td>
+                                <td className={TD}>{fmt(y.heating_kwh_per_m2)}</td>
                             </tr>
                         ))}
                     </tbody>
@@ -150,7 +151,7 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
             </div>
             <p className="px-4 sm:px-6 pt-2 text-xs text-gray-500">
                 {t.energyYears.degreeDaysHint}
-                {data.years.some(y => y.estimated) && <> <span className="text-amber-700">*</span> {t.energyYears.estimated}.</>}
+                {data.years.some(y => y.unreliable) && <> <span className="text-gray-400">{t.energyYears.unreliableLabel}</span> = {t.energyYears.unreliable}.</>}
             </p>
 
             <h3 className="px-4 sm:px-6 mt-5 text-sm font-semibold text-gray-700">{t.energyYears.waterTitle}</h3>
@@ -168,11 +169,13 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                         {data.years.map(y => (
-                            <tr key={y.year}>
-                                <td className="px-3 py-2 font-medium">{y.year}</td>
+                            <tr key={y.year} className={y.unreliable ? 'text-gray-400' : ''}>
+                                <td className="px-3 py-2 font-medium" title={y.unreliable ? t.energyYears.unreliable : undefined}>
+                                    {y.year}{y.unreliable && <span className="block text-xs font-normal">{t.energyYears.unreliableLabel}</span>}
+                                </td>
                                 <td className={TD}>{fmt(y.hot_water_metered_m3)}</td>
-                                <td className={TD}>{fmt(y.hot_water_kwh_per_m3)}{star(y)}</td>
-                                <td className={TD}>{pct(y.hot_water_losses)}{star(y)}</td>
+                                <td className={TD}>{fmt(y.hot_water_kwh_per_m3)}</td>
+                                <td className={TD}>{pct(y.hot_water_losses)}</td>
                                 <td className={TD}>{signedPct(y.cold_water_diff)}</td>
                                 <td className={TD}>{signedPct(y.hot_water_diff)}</td>
                             </tr>
