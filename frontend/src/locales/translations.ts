@@ -32,10 +32,6 @@ export interface Translations {
         summaryFailed: string;
         withOwner: string;
         pendingInvites: string;
-        unusualUnits: string;
-        unitsOne: string;
-        unitsFew: string;
-        unitsMany: string;
     };
     building: {
         name: string;
