@@ -6,7 +6,6 @@ from app.main import app
 from app.core.database import get_session
 from app.models.property import User
 from app.core.security import get_password_hash
-from app.api.deps import get_current_user
 
 # Setup test DB
 import os
@@ -14,8 +13,7 @@ if os.path.exists("test.db"):
     os.remove("test.db")
 engine = create_engine("sqlite:///test.db", connect_args={"check_same_thread": False})
 
-# Ensure models are imported
-from app.models.property import User, Building, Unit
+import app.models.property  # noqa: F401  (registers the tables)
 
 print("Tables in metadata:", SQLModel.metadata.tables.keys())
 SQLModel.metadata.create_all(engine)
@@ -47,7 +45,7 @@ def setup_admin():
 
 def test_invite_flow_script():
     print("Setting up Admin...")
-    admin = setup_admin()
+    setup_admin()
     
     # 1. Login as Admin to get token
     print("Logging in as Admin...")

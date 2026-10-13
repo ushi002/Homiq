@@ -76,7 +76,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [building, setBuilding] = useState<{ name: string } | null>(null);
     const [data, setData] = useState<ConsumptionData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [error, setError] = useState(false);
     const [sortKey, setSortKey] = useState<string>('unit'); // 'unit' or a meter type
     const [sortDesc, setSortDesc] = useState(false);
     const [exporting, setExporting] = useState(false);
@@ -114,14 +114,14 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             .then(res => res.json())
             .then(setBuilding)
             .catch(err => console.error(err));
-    }, [id, token, authLoading, user?.role]);
+    }, [id, token, authLoading, user?.role, router]);
 
     useEffect(() => {
         if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
         // Ignore responses for a period that is no longer selected (fast year + month changes)
         let stale = false;
         setLoading(true);
-        setError('');
+        setError(false);
         authFetch(`/buildings/${id}/consumption?year=${year}${month ? `&month=${month}` : ''}`)
             .then(async res => {
                 if (res.status === 403) {
@@ -134,7 +134,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             })
             .catch(err => {
                 console.error(err);
-                if (!stale) setError(t.messages.errorGeneric);
+                if (!stale) setError(true);
             })
             .finally(() => {
                 if (!stale) setLoading(false);
@@ -351,7 +351,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                     );
                 })()}
 
-                {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{error}</div>}
+                {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{t.messages.errorGeneric}</div>}
                 {!data && loading && <div className="p-8 text-center">{t.common.loading}</div>}
 
                 {data && data.meter_types.length === 0 && (

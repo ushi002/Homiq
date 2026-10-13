@@ -1,8 +1,7 @@
 "use client";
 import { BUTTON_SECONDARY, CARD, EMPTY_STATE, FILTER_LABEL, FILTER_SELECT, LABEL, PAGE } from '@/lib/ui';
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useEffectEvent, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
-import UserSelect from '@/components/UserSelect';
 import ConsumptionChart from '@/components/ConsumptionChart';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
@@ -29,6 +28,13 @@ interface Reading {
     is_manual: boolean;
 }
 
+interface Unit {
+    id: string;
+    unit_number: string;
+    building_id: string;
+    owner?: { full_name?: string; email: string } | null;
+}
+
 interface MeterWithReadings extends Meter {
     recent_readings: Reading[];
 }
@@ -51,11 +57,11 @@ const getISOWeekYear = (d: Date) => {
 export default function UnitDetail({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
-    const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
+    const [unit, setUnit] = useState<Unit | null>(null);
     const [buildingName, setBuildingName] = useState<string | null>(null);
     const [metersLoading, setMetersLoading] = useState(true);
     const [readingsLoading, setReadingsLoading] = useState(true);
-    const [unitError, setUnitError] = useState('');
+    const [unitError, setUnitError] = useState<'notFound' | 'failed' | null>(null);
     const [ownerFormOpen, setOwnerFormOpen] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
@@ -63,6 +69,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const toast = useToast();
     const apiError = useApiError();
     usePageTitle(unit?.unit_number ? `${t.nav.unit} ${unit.unit_number}` : null);
+
+    // In the current language, without reloading the unit when the language changes
+    const readingsFailed = useEffectEvent(() => toast.error(t.unit.readingsFailed));
 
     useEffect(() => {
         if (authLoading) return;
@@ -86,7 +95,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             .catch(err => {
                 console.error(err);
                 // 403/404: the unit does not exist or belongs to someone else
-                setUnitError(['403', '404'].includes(err.message) ? t.unit.notFound : t.messages.errorGeneric);
+                setUnitError(['403', '404'].includes(err.message) ? 'notFound' : 'failed');
             });
 
         // 2. Meters (fast, from SQL), then their readings (slower, from InfluxDB)
@@ -94,7 +103,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             try {
                 const res = await authFetch(`/telemetry/meters/?unit_id=${id}`);
                 if (!res.ok) throw new Error(String(res.status));
-                const unitMeters: any[] = await res.json();
+                const unitMeters: Meter[] = await res.json();
 
                 // Set meters immediately with empty readings to show structure
                 setMeters(unitMeters.map(m => ({ ...m, recent_readings: [] })));
@@ -130,7 +139,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     }
                 } catch (readErr) {
                     console.error("Failed to load readings", readErr);
-                    toast.error(t.unit.readingsFailed);
+                    readingsFailed();
                 } finally {
                     setReadingsLoading(false);
                 }
@@ -143,7 +152,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         };
 
         fetchMeters();
-    }, [id, token, authLoading]);
+    }, [id, token, authLoading, router]);
 
 
     const handleAssignOwner = async (email: string) => {
@@ -274,7 +283,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
         return (
             <main className={PAGE}>
                 <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
-                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{unitError}</div>
+                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{unitError === 'notFound' ? t.unit.notFound : t.messages.errorGeneric}</div>
             </main>
         );
     }

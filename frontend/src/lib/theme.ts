@@ -1,16 +1,14 @@
 // Light / dark appearance. "auto" follows the system setting. The choice is stored per browser;
 // <html data-theme> is what the CSS reads (app/theme-dark.css).
+import { getStored, setStored, useStored } from './stored';
+
 export type Theme = 'auto' | 'light' | 'dark';
 const KEY = 'homiq_theme';
 
-export const getTheme = (): Theme => {
-    try {
-        const t = localStorage.getItem(KEY);
-        return t === 'light' || t === 'dark' ? t : 'auto';
-    } catch {
-        return 'auto';
-    }
-};
+const parse = (t: string | null | undefined): Theme => t === 'light' || t === 'dark' ? t : 'auto';
+export const getTheme = (): Theme => parse(getStored(KEY));
+// The chosen theme, 'auto' until the browser storage has been read
+export const useTheme = (): Theme => parse(useStored(KEY));
 
 export const applyTheme = (theme: Theme = getTheme()) => {
     const dark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -18,12 +16,7 @@ export const applyTheme = (theme: Theme = getTheme()) => {
 };
 
 export const setTheme = (theme: Theme) => {
-    try {
-        if (theme === 'auto') localStorage.removeItem(KEY);
-        else localStorage.setItem(KEY, theme);
-    } catch {
-        // storage unavailable: the choice lasts until reload
-    }
+    setStored(KEY, theme === 'auto' ? null : theme);
     applyTheme(theme);
 };
 

@@ -126,7 +126,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
         # Guess common serial number tag keys
         sn_tags_to_check = [device_tag] if device_tag else []
         
-        found_sn_tag = None
         
         for tag in tags_to_check:
              # We need to find the SN tag.
@@ -138,7 +137,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
                  res = query_influx(db_name, q)
                  if res.get('results') and res['results'][0].get('series'):
                      data = res
-                     found_sn_tag = sn_tag
                      break
              if data: break # Found meters via one of the unit tags
         
@@ -157,19 +155,6 @@ def get_unit_meters(db_name: str, unit_name: str, unit_tag: str = None, measurem
                                 })
                             
     return meters
-
-def parse_series_tags(series_str: str) -> Dict[str, str]:
-    """
-    Parses "measurement,tag1=val1,tag2=val2" into a dict.
-    (Kept for reference or other uses, but used less now)
-    """
-    parts = series_str.split(',')
-    tags = {}
-    for part in parts[1:]: 
-        if '=' in part:
-            k, v = part.split('=', 1)
-            tags[k.strip()] = v.strip()
-    return tags
 
 def get_meter_readings(db_name: str, serial_number: str, measurement: str = None, device_tag: str = None) -> List[Tuple[str, float]]:
     """

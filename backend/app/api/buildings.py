@@ -6,8 +6,8 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
-from ..models.telemetry import Meter, MeterCreate
+from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User
+from ..models.telemetry import Meter
 from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx

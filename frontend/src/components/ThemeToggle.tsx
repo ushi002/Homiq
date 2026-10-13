@@ -1,17 +1,16 @@
 "use client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useLanguage } from '@/context/LanguageContext';
-import { Theme, getTheme, setTheme, applyTheme } from '@/lib/theme';
+import { Theme, getTheme, setTheme, applyTheme, useTheme } from '@/lib/theme';
 
 const NEXT: Record<Theme, Theme> = { auto: 'dark', dark: 'light', light: 'auto' };
 
 // Cycles automatic (system) -> dark -> light
 export default function ThemeToggle() {
     const { t } = useLanguage();
-    const [theme, setState] = useState<Theme>('auto');
+    const theme = useTheme();
 
     useEffect(() => {
-        setState(getTheme());
         // In automatic mode follow a change of the system setting
         const media = window.matchMedia('(prefers-color-scheme: dark)');
         const onChange = () => { if (getTheme() === 'auto') applyTheme('auto'); };
@@ -22,7 +21,7 @@ export default function ThemeToggle() {
     const label = theme === 'auto' ? t.theme.auto : theme === 'dark' ? t.theme.dark : t.theme.light;
     return (
         <button
-            onClick={() => { const next = NEXT[theme]; setTheme(next); setState(next); }}
+            onClick={() => setTheme(NEXT[theme])}
             title={label}
             aria-label={label}
             className="p-1 sm:p-1.5 rounded-md text-gray-500 hover:text-gray-800 hover:bg-gray-100"

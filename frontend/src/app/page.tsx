@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [ownedUnits, setOwnedUnits] = useState<OwnedUnit[]>([]);
   const [stats, setStats] = useState<Record<string, BuildingStats>>({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(false);
   const { t, language } = useLanguage();
   usePageTitle(user?.role === 'owner' ? t.dashboard.myUnits : t.dashboard.title);
 
@@ -75,12 +75,12 @@ export default function Dashboard() {
           const data = await res.json();
           setBuildings(data);
         } else {
-          setError(t.login.error); // fallback generic error, or we could add specific one
+          setError(true);
           if (res.status === 401) logout();
         }
       } catch (error) {
         console.error("Failed to fetch buildings", error);
-        setError(t.login.error);
+        setError(true);
       } finally {
         if (!redirecting) setLoading(false);
       }
@@ -95,10 +95,10 @@ export default function Dashboard() {
         .then((list: BuildingStats[]) => setStats(Object.fromEntries(list.map(s => [s.building_id, s]))))
         .catch(err => console.error(err));
     }
-  }, [token, router, authLoading, user?.role]);
+  }, [token, router, authLoading, user?.role, logout]);
 
   if (authLoading || !token || loading) return <PageSkeleton variant={user?.role === 'owner' ? 'list' : 'cards'} rows={user?.role === 'owner' ? 2 : 3} />;
-  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
+  if (error) return <div className="p-8 text-center text-red-600">{t.login.error}</div>;
 
   if (user?.role === 'owner') {
     // Plain unit list for when the consumption summary cannot be loaded

@@ -1,3 +1,5 @@
+import { setStored } from './stored';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 // A session lasts 8 hours (backend). While the user is active the token is renewed once less than
@@ -20,7 +22,7 @@ async function renewIfNeeded(token: string) {
     // Several requests at once share one renewal
     renewing ??= fetch(`${API_URL}/token/refresh`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
         .then(async res => {
-            if (res.ok) localStorage.setItem('token', (await res.json()).access_token);
+            if (res.ok) setStored('token', (await res.json()).access_token);
         })
         .catch(() => { /* keep the current token, it is still valid */ })
         .finally(() => { renewing = null; });
@@ -42,8 +44,8 @@ export async function authFetch(url: string, options: RequestInit = {}) {
 
     if (res.status === 401) {
         // Session expired: clear it (same keys as AuthContext) and go to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        setStored('token', null);
+        setStored('user', null);
         window.location.href = '/login';
         throw new Error("Unauthorized");
     }
