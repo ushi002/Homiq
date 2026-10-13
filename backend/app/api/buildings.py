@@ -232,12 +232,13 @@ def read_building_consumption_monthly(
 @router.get("/{building_id}/energy")
 def read_building_energy(
     building_id: uuid.UUID,
-    start: date,
-    end: date,
+    start: Optional[date] = None,
+    end: Optional[date] = None,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user)
 ):
-    """Energy overview of the building (heat) for days start <= day < end, at most a year: the
+    """Energy overview of the building (heat) for days start <= day < end, at most a year (without
+    them: the heating season up to the last reading, from 1 September): the
     building's daily consumption with the outdoor temperature, the energy signature against the
     design heat loss, and every unit against its share of the design heat loss with the
     consumption corrected by its position coefficient. Rules: core/energy.py. Admins and the
@@ -246,8 +247,6 @@ def read_building_energy(
     if not building:
         raise HTTPException(status_code=404, detail="Building not found")
     require(can_manage_building(current_user, building))
-    if not timedelta(0) < end - start <= timedelta(days=366):
-        raise HTTPException(status_code=422, detail="Invalid period")
 
     units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
@@ -256,6 +255,12 @@ def read_building_energy(
     # The period ends with the last reading at the latest: days without data yet would make every
     # unit incomplete (the response says which period was used)
     last_reading = get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name and measurements else None
+    if start is None or end is None:
+        end = date.fromisoformat(last_reading[:10]) if last_reading else date.today()
+        last_day = end - timedelta(days=1)
+        start = date(last_day.year if last_day.month >= 9 else last_day.year - 1, 9, 1)
+    if not timedelta(0) < end - start <= timedelta(days=366):
+        raise HTTPException(status_code=422, detail="Invalid period")
     if last_reading:
         end = max(start + timedelta(days=1), min(end, date.fromisoformat(last_reading[:10])))
     start_dt = datetime(start.year, start.month, start.day, tzinfo=timezone.utc)

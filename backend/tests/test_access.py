@@ -134,6 +134,7 @@ expect(None, "/buildings/stats", 401)
 E = "/energy?start=2025-09-01&end=2026-03-01"
 expect("admin", f"/buildings/{I['b1']}{E}", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["A", "B"] and r["signature"] is None)
 expect("lord1", f"/buildings/{I['b1']}{E}", 200)
+expect("lord1", f"/buildings/{I['b1']}/energy", 200, lambda r: r["start"].endswith("-09-01"))  # default: the heating season
 for who in ("lord2", "owner_a", "auditor"):
     expect(who, f"/buildings/{I['b1']}{E}", 403)
 expect(None, f"/buildings/{I['b1']}{E}", 401)
