@@ -13,7 +13,7 @@ if os.path.exists("test.db"):
     os.remove("test.db")
 engine = create_engine("sqlite:///test.db", connect_args={"check_same_thread": False})
 
-import app.models.property  # noqa: F401  (registers the tables)
+from app.models.property import Building, Unit  # noqa: F401  (registers the tables)
 
 print("Tables in metadata:", SQLModel.metadata.tables.keys())
 SQLModel.metadata.create_all(engine)
