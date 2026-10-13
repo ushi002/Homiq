@@ -136,6 +136,7 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
     }
 
     const fmt = (v: number | null, digits = 0) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: digits, minimumFractionDigits: 0 });
+    const fixed2 = (v: number) => v.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const ratioText = (r: number) => r < 0.01 ? `<${(0.01).toLocaleString(locale)}×` : `${r.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`;
     const shortDate = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' });
     const noDataText = (u: EnergyUnit) => !u.has_meter ? t.energy.noMeter
@@ -225,10 +226,10 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                             <p className="text-sm text-gray-500">{t.energy.signature}</p>
                             {data.signature ? (
                                 <>
-                                    <p className="text-2xl font-bold tabular-nums">{fmt(data.signature.kw_per_k, 2)} <span className="text-base font-normal text-gray-500">kW/K {t.energy.measured}</span></p>
+                                    <p className="text-2xl font-bold tabular-nums">{fixed2(data.signature.kw_per_k)} <span className="text-base font-normal text-gray-500">kW/K {t.energy.measured}</span></p>
                                     {data.design.kw_per_k !== null && (
                                         <p className="text-sm tabular-nums text-gray-600">
-                                            {fmt(data.design.kw_per_k, 2)} kW/K {t.energy.calculated}
+                                            {fixed2(data.design.kw_per_k)} kW/K {t.energy.calculated}
                                             {data.design.units_with_loss < data.design.units_with_loss_total && (
                                                 <span className="block text-xs text-gray-500">
                                                     {t.energy.designUnits.replace('{{n}}', String(data.design.units_with_loss)).replace('{{total}}', String(data.design.units_with_loss_total))}
