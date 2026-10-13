@@ -20,6 +20,16 @@ interface Building {
   manager?: { full_name: string; email: string };
 }
 
+// Numbers of a building card (GET /buildings/stats)
+interface BuildingStats {
+  building_id: string;
+  units: number;
+  units_with_owner: number;
+  pending_invites: number;
+  last_reading: string | null;
+  unusual: { month: string; units: number } | null; // last month with data, "YYYY-MM"
+}
+
 interface OwnedUnit {
   id: string;
   unit_number: string;
@@ -31,9 +41,10 @@ export default function Dashboard() {
   const router = useRouter();
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [ownedUnits, setOwnedUnits] = useState<OwnedUnit[]>([]);
+  const [stats, setStats] = useState<Record<string, BuildingStats>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   usePageTitle(user?.role === 'owner' ? t.dashboard.myUnits : t.dashboard.title);
 
   useEffect(() => {
@@ -77,6 +88,14 @@ export default function Dashboard() {
     };
 
     fetchBuildings();
+
+    // Numbers on the building cards: loaded separately (InfluxDB), the cards show without them first
+    if (user?.role === 'admin' || user?.role === 'home_lord') {
+      authFetch('/buildings/stats')
+        .then(res => res.ok ? res.json() : [])
+        .then((list: BuildingStats[]) => setStats(Object.fromEntries(list.map(s => [s.building_id, s]))))
+        .catch(err => console.error(err));
+    }
   }, [token, router, authLoading, user?.role]);
 
   if (authLoading || !token || loading) return <PageSkeleton variant={user?.role === 'owner' ? 'list' : 'cards'} rows={user?.role === 'owner' ? 2 : 3} />;
@@ -97,6 +116,61 @@ export default function Dashboard() {
       </main>
     );
   }
+
+  const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
+  // "1 jednotka", "3 jednotky", "5 jednotek" (Czech has three plural forms for whole numbers)
+  const unitCount = (n: number) => {
+    const form = new Intl.PluralRules(locale).select(n);
+    const text = form === 'one' ? t.dashboard.unitsOne : form === 'few' ? t.dashboard.unitsFew : t.dashboard.unitsMany;
+    return text.replace('{{count}}', String(n));
+  };
+  // Units, owners, pending invites, latest reading and unusual consumption of a building
+  const renderStats = (buildingId: string, s: BuildingStats) => {
+    const stale = s.last_reading !== null && Date.now() - Date.parse(s.last_reading) > 7 * 86400000;
+    const [uy, um] = s.unusual ? s.unusual.month.split('-').map(Number) : [0, 0];
+    return (
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-4">
+        <div>
+          <dt className="text-xs text-gray-500">{t.building.units}</dt>
+          <dd className="font-medium text-gray-800">{s.units}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-gray-500">{t.dashboard.withOwner}</dt>
+          <dd className="font-medium text-gray-800">
+            {s.units_with_owner} / {s.units}
+            {s.pending_invites > 0 && <span className="ml-1 text-xs font-normal text-amber-700">({t.dashboard.pendingInvites.replace('{{count}}', String(s.pending_invites))})</span>}
+          </dd>
+        </div>
+        {s.last_reading && (
+          <div className="col-span-2">
+            <dt className="sr-only">{t.unit.lastReading}</dt>
+            <dd className={`text-xs ${stale ? 'text-amber-700 font-medium' : 'text-gray-500'}`} title={stale ? t.unit.lastReadingOld : undefined}>
+              {t.unit.lastReading}: {new Date(s.last_reading).toLocaleDateString(locale)}
+            </dd>
+          </div>
+        )}
+        {s.unusual && s.unusual.units > 0 && (
+          <div className="col-span-2">
+            <dt className="sr-only">{t.unit.unusualTitle}</dt>
+            <dd>
+              {/* A link inside the card link would be invalid HTML: navigate by script instead */}
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={e => { e.preventDefault(); router.push(`/buildings/${buildingId}/consumption?year=${uy}&month=${um}&unusual=1`); }}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); router.push(`/buildings/${buildingId}/consumption?year=${uy}&month=${um}&unusual=1`); } }}
+                className="text-xs font-medium text-red-700 hover:underline cursor-pointer"
+              >
+                ⚠ {t.dashboard.unusualUnits
+                  .replace('{{units}}', unitCount(s.unusual.units))
+                  .replace('{{month}}', new Date(uy, um - 1).toLocaleString(locale, { month: 'long', year: 'numeric' }))}
+              </span>
+            </dd>
+          </div>
+        )}
+      </dl>
+    );
+  };
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-8">
@@ -128,6 +202,7 @@ export default function Dashboard() {
                   {building.description}
                 </p>
               )}
+              {stats[building.id] && renderStats(building.id, stats[building.id])}
               <div className="flex justify-between items-center">
                 {user?.role === 'admin' && (
                   <span className={`px-2 py-1 rounded-full text-xs ${building.units_fetched ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
