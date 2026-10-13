@@ -1,6 +1,6 @@
 "use client";
 import { BUTTON_SECONDARY, CARD, EMPTY_STATE, FILTER_LABEL, FILTER_SELECT, PAGE } from '@/lib/ui';
-import React, { useEffect, useState, use } from 'react';
+import React, { useEffect, useEffectEvent, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
@@ -86,10 +86,15 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     // Period from the address (?year=&month=, e.g. a link from the dashboard), read once in
     // the browser before the first fetch; month=0 or no month = whole year
     const [paramsRead, setParamsRead] = useState(false);
+    // Until a period is chosen (address, select, chart), open where the data is: without fresh
+    // readings the last closed month would be empty
+    const [autoPeriod, setAutoPeriod] = useState(true);
+    const choosePeriod = (y: number, m: number) => { setAutoPeriod(false); setYear(y); setMonth(m); };
     useEffect(() => {
         const q = new URLSearchParams(window.location.search);
         const y = parseInt(q.get('year') ?? '');
         if (y >= 2000 && y <= 2100) {
+            setAutoPeriod(false);
             setYear(y);
             const m = parseInt(q.get('month') ?? '0');
             setMonth(m >= 1 && m <= 12 ? m : 0);
@@ -116,6 +121,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             .catch(err => console.error(err));
     }, [id, token, authLoading, user?.role, router]);
 
+    const openOnData = useEffectEvent((lastReading?: string | null) => {
+        if (!autoPeriod || !lastReading) return;
+        const last = new Date(lastReading);
+        if (last < new Date(year, month ? month - 1 : 0, 1)) choosePeriod(last.getFullYear(), last.getMonth() + 1);
+        else setAutoPeriod(false);
+    });
+
     useEffect(() => {
         if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
         // Ignore responses for a period that is no longer selected (fast year + month changes)
@@ -130,7 +142,9 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                if (!stale) setData(json);
+                if (stale) return;
+                setData(json);
+                openOnData(json.last_reading);
             })
             .catch(err => {
                 console.error(err);
@@ -256,7 +270,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     // columnComparable: when false the header already explains the missing change, so cells stay clean
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
-            <span className="font-mono">{format(c.current.value)}</span>
+            <span className="tabular-nums">{format(c.current.value)}</span>
             {c.current.value !== null && !c.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(c.current)}>*</span>}
             {c.current.value !== null && <span className="text-xs text-gray-500 ml-1">{uom}</span>}
             {comparable(c) ? (
@@ -282,13 +296,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 <div className={`${CARD} p-4 flex flex-wrap gap-4 items-center mb-6`}>
                     <div>
                         <label className={FILTER_LABEL}>{t.unit.year}</label>
-                        <select value={year} onChange={e => setYear(parseInt(e.target.value))} className={`mt-1 block w-24 ${FILTER_SELECT}`}>
+                        <select value={year} onChange={e => choosePeriod(parseInt(e.target.value), month)} className={`mt-1 block w-24 ${FILTER_SELECT}`}>
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className={FILTER_LABEL}>{t.consumption.period}</label>
-                        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} className={`mt-1 block w-36 ${FILTER_SELECT}`}>
+                        <select value={month} onChange={e => choosePeriod(year, parseInt(e.target.value))} className={`mt-1 block w-36 ${FILTER_SELECT}`}>
                             <option value={0}>{t.consumption.wholeYear}</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                                 <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString(locale, { month: 'long' })}</option>
@@ -319,6 +333,10 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 {data && data.meter_types.length > 0 && (() => {
                     const type = chartType && data.meter_types.some(mt => mt.type === chartType) ? chartType : data.meter_types[0].type;
                     const uom = data.meter_types.find(mt => mt.type === type)!.unit_of_measure;
+                    // A whole building uses hundreds of thousands of litres: the chart shows m³
+                    const inM3 = uom === 'L';
+                    const toM3 = (values: (number | null)[]) => values.map(v => v === null ? null : v / 1000);
+                    const series = monthly?.months[type];
                     return (
                         <div className={`${CARD} p-4 sm:p-6 mb-6`}>
                             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
@@ -335,13 +353,13 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                     ))}
                                 </div>
                             </div>
-                            {monthly?.months[type] ? (
+                            {series ? (
                                 <ConsumptionChart
-                                    monthly={monthly.months[type]}
+                                    monthly={inM3 ? { current: toM3(series.current), previous: toM3(series.previous) } : series}
                                     year={year}
-                                    unitOfMeasure={uom}
+                                    unitOfMeasure={inM3 ? 'm³' : uom}
                                     selectedMonth={month || null}
-                                    onSelectMonth={setMonth}
+                                    onSelectMonth={m => choosePeriod(year, m)}
                                     format={format}
                                 />
                             ) : (

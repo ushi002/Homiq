@@ -96,7 +96,7 @@ export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure,
                                 onFocus={() => setHovered(m)}
                                 onBlur={() => setHovered(null)}
                                 aria-label={`${monthName(m, 'long')}: ${year} ${formatValue(cur)}, ${year - 1} ${formatValue(previous[m])}`}
-                                className={`flex-1 min-w-0 h-full flex items-end justify-center gap-[2px] rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selectedMonth === m + 1 ? 'bg-blue-50' : hovered === m ? 'bg-gray-50' : ''}`}
+                                className={`flex-1 min-w-0 h-full flex items-end justify-center gap-[2px] rounded-t-md outline-none focus-visible:ring-2 focus-visible:ring-blue-300 ${selectedMonth === m + 1 ? 'bg-blue-50' : hovered === m ? 'bg-gray-500/10' : ''}`}
                             >
                                 <span className="w-[35%] max-w-3 bg-gray-400 rounded-t" style={{ height: height(previous[m]) }} />
                                 <span className="w-[35%] max-w-3 bg-blue-600 rounded-t" style={{ height: height(cur) }} />
@@ -127,7 +127,7 @@ export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure,
                             {[{ y: year, v: current[hovered], key: 'bg-blue-600' }, { y: year - 1, v: previous[hovered], key: 'bg-gray-400' }].map(row => (
                                 <p key={row.y} className="flex items-center gap-2">
                                     <span className={`w-3 h-0.5 ${row.key}`} />
-                                    <span className="font-bold font-mono text-gray-900">{formatValue(row.v)}</span>
+                                    <span className="font-bold tabular-nums text-gray-900">{formatValue(row.v)}</span>
                                     <span className="text-gray-500">{row.y}</span>
                                 </p>
                             ))}
@@ -152,8 +152,8 @@ export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure,
                             {current.map((cur, m) => (
                                 <tr key={m} className="border-t border-gray-100">
                                     <td className="pr-6 py-0.5">{monthName(m, 'long')}</td>
-                                    <td className="text-right pr-6 font-mono">{formatValue(cur)}</td>
-                                    <td className="text-right font-mono">{formatValue(previous[m])}</td>
+                                    <td className="text-right pr-6">{formatValue(cur)}</td>
+                                    <td className="text-right">{formatValue(previous[m])}</td>
                                 </tr>
                             ))}
                         </tbody>
