@@ -3,7 +3,7 @@ Energy overview rules (app/core/energy.py), no database, InfluxDB or weather nee
   docker compose exec -T backend sh -c "PYTHONPATH=/app python /app/tests/test_energy.py"
 """
 from datetime import date, timedelta
-from app.core.energy import meter_daily, building_daily, signature, design_kw_per_k, compare_units
+from app.core.energy import meter_daily, by_unit, building_daily, signature, design_kw_per_k, compare_units
 
 d = lambda day: date(2026, 1, day)
 
@@ -18,6 +18,13 @@ meters["m0"] = {d(2): 1.0, d(3): 2.0}
 days = building_daily(meters, {d(2): -3.0}, d(2), d(4))
 assert days[0] == {"date": "2026-01-02", "kwh": 10.0, "complete": True, "temp": -3.0}, days[0]
 assert days[1] == {"date": "2026-01-03", "kwh": 2.0, "complete": False, "temp": None}, days[1]
+
+# A replaced meter: per unit the old and the new meter together, the days stay complete
+meters = {f"m{i}": {d(2): 1.0, d(3): 1.0} for i in range(9)}
+meters["old"], meters["new"] = {d(2): 2.0}, {d(3): 3.0}
+units = by_unit(meters, {"old": "u9", "new": "u9"})
+assert units["u9"] == {d(2): 2.0, d(3): 3.0}
+assert [x["complete"] for x in building_daily(units, {}, d(2), d(4))] == [True, True]
 
 # Signature: kWh/day = 480 - 24 x T  ->  1 kW/K, heating stops at 20 °C. Left out: days before the
 # heating starts (no consumption at 12 °C), warm days, incomplete days
@@ -34,7 +41,7 @@ assert signature(days[:7]) is None  # too few days
 assert design_kw_per_k([16000, 16000]) == 1.0
 assert design_kw_per_k([]) is None
 
-# Units: expected share by heat loss, flags, position coefficient correction
+# Units: expected share by heat loss, position coefficient correction
 units = [
     {"id": "a", "kwh": 300.0, "complete": True, "heat_loss_w": 1000, "position_coef": 0.5, "area_m2": 50},
     {"id": "b", "kwh": 100.0, "complete": True, "heat_loss_w": 1000, "position_coef": 1.0, "area_m2": 50},
@@ -43,9 +50,9 @@ units = [
     {"id": "e", "kwh": None, "complete": False, "heat_loss_w": None, "position_coef": None, "area_m2": None},
 ]
 out = {u["id"]: u for u in compare_units(units)}
-assert out["a"]["expected_kwh"] == 100.0 and out["a"]["ratio"] == 3.0 and out["a"]["flag"] == "high", out["a"]
-assert out["c"]["expected_kwh"] == 200.0 and out["c"]["flag"] == "low"
-assert out["b"]["flag"] is None and out["b"]["kwh_per_m2"] == 2.0
+assert out["a"]["expected_kwh"] == 100.0 and out["a"]["ratio"] == 3.0, out["a"]
+assert out["c"]["expected_kwh"] == 200.0 and out["c"]["ratio"] == 0.0
+assert out["b"]["ratio"] == 1.0 and out["b"]["kwh_per_m2"] == 2.0
 assert out["d"]["expected_kwh"] is None and out["d"]["ratio"] is None  # incomplete: no comparison
 assert out["a"]["corrected_kwh"] == 150.0 and out["a"]["billing_share"] == 0.5, out["a"]  # 150 / (150+100+0+50)
 assert out["e"]["corrected_kwh"] is None and out["e"]["billing_share"] is None

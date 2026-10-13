@@ -285,9 +285,6 @@ export interface Translations {
         designUnits: string;
         heatingSeason: string;
         incomplete: string;
-        high: string;
-        low: string;
-        onlyDeviations: string;
         noLoss: string;
         invoicesTitle: string;
         invoicesSoon: string;

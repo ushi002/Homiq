@@ -250,6 +250,7 @@ def read_building_energy(
 
     units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]), Meter.type == "heat")).all() if units else []
+    unit_of_serial = {m.serial_number: str(m.unit_id) for m in meters}
     measurements = [name for name, meta in (parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS).items()
                     if meta["type"] == "heat"]
     # The period ends with the last reading at the latest: days without data yet would make every
@@ -279,7 +280,7 @@ def read_building_energy(
                         per_meter[sn] = daily
     temperatures = daily_temperatures(session, building.latitude, building.longitude, start, end) \
         if building.latitude is not None and building.longitude is not None else {}
-    days = energy.building_daily(per_meter, temperatures, start, end)
+    days = energy.building_daily(energy.by_unit(per_meter, unit_of_serial), temperatures, start, end)
 
     # Newest reading of each unit's heat meters: shown for units without data ("silent since")
     last_by_serial = {}
@@ -309,7 +310,7 @@ def read_building_energy(
                    "heat_loss_kw": round(sum(losses) / 1000, 2) if losses else None,
                    "kw_per_k": energy.design_kw_per_k(losses), "units_with_loss": len(losses),
                    "units_with_loss_total": sum(1 for u in units if u.heat_loss_w)},
-        "rules": {"high_ratio": energy.HIGH_RATIO, "low_ratio": energy.LOW_RATIO, "heating_below_c": energy.HEATING_BELOW_C},
+        "rules": {"heating_below_c": energy.HEATING_BELOW_C},
         "days": days,
         "signature": energy.signature(days),
         "units": energy.compare_units(heat_units),

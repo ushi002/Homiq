@@ -23,7 +23,6 @@ interface EnergyUnit {
     kwh_per_m2: number | null;
     expected_kwh: number | null;
     ratio: number | null;
-    flag: 'high' | 'low' | null;
     corrected_kwh: number | null;
     billing_share: number | null;
     has_meter: boolean;
@@ -36,7 +35,7 @@ interface Energy {
     has_location: boolean;
     last_reading: string | null;
     design: { indoor_c: number; outdoor_c: number; heat_loss_kw: number | null; kw_per_k: number | null; units_with_loss: number; units_with_loss_total: number };
-    rules: { high_ratio: number; low_ratio: number; heating_below_c: number };
+    rules: { heating_below_c: number };
     days: EnergyDay[];
     signature: Signature | null;
     units: EnergyUnit[];
@@ -75,7 +74,6 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
     // Requested period (months, inclusive); empty = the heating season up to the last reading
     const [period, setPeriod] = useState<{ from: string; to: string } | null>(null);
     const [mode, setMode] = useState<'daily' | 'monthly'>('monthly');
-    const [onlyDeviations, setOnlyDeviations] = useState(false);
     const [sortKey, setSortKey] = useState<SortKey>('unit');
     const [sortDesc, setSortDesc] = useState(false);
 
@@ -152,12 +150,10 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
     const totalKwh = days.reduce((s, d) => s + (d.kwh ?? 0), 0);
     const temps = days.filter(d => d.temp !== null);
     const avgTemp = temps.length ? temps.reduce((s, d) => s + (d.temp as number), 0) / temps.length : null;
-    const deviations = (data?.units ?? []).filter(u => u.flag).length;
     const hasLoss = (data?.design.units_with_loss ?? 0) > 0;
 
     const sortValue = (u: EnergyUnit) => sortKey === 'unit' ? 0 : (u[sortKey] ?? -Infinity);
     const units = [...(data?.units ?? [])]
-        .filter(u => !onlyDeviations || u.flag)
         .sort((a, b) => {
             const cmp = sortKey === 'unit'
                 ? a.unit_number.localeCompare(b.unit_number, locale, { numeric: true })
@@ -286,17 +282,11 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                         <div className="p-4 sm:p-6 pb-2 sm:pb-2">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <h2 className="text-lg font-semibold">{t.energy.unitsTitle}</h2>
-                                {deviations > 0 && (
-                                    <button onClick={() => setOnlyDeviations(!onlyDeviations)} aria-pressed={onlyDeviations}
-                                            className={`px-3 py-1 rounded-lg border text-sm ${onlyDeviations ? 'bg-red-50 border-red-200 text-red-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}>
-                                        {t.energy.onlyDeviations.replace('{{count}}', String(deviations))}
-                                    </button>
-                                )}
                             </div>
                             {hasLoss ? (
                                 <>
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {t.energy.unitsHint.replace('{{high}}', fmt(data.rules.high_ratio)).replace('{{low}}', fmt(data.rules.low_ratio, 2))}
+                                        {t.energy.unitsHint}
                                     </p>
                                     <p className="text-xs text-gray-500">{t.energy.billingHint}</p>
                                 </>
@@ -320,10 +310,9 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {units.map(u => (
-                                        <tr key={u.id} className={u.flag === 'high' ? 'bg-red-500/10' : u.flag === 'low' ? 'bg-amber-500/10' : ''}>
+                                        <tr key={u.id}>
                                             <td className="px-3 py-2 whitespace-nowrap">
                                                 <Link href={`/units/${u.id}`} className="font-medium text-blue-600 hover:underline">{u.unit_number}</Link>
-                                                {u.flag && <span className="sr-only"> ({u.flag === 'high' ? t.energy.high : t.energy.low})</span>}
                                             </td>
                                             <td className="px-3 py-2 whitespace-nowrap text-gray-600">{u.floor > 0 ? t.building.storey.replace('{{n}}', String(u.floor)) : '–'}</td>
                                             <td className="px-3 py-2 text-right whitespace-nowrap">{u.area_m2 ? `${fmt(u.area_m2, 1)} m²` : '–'}</td>
@@ -333,8 +322,7 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                                             </td>
                                             <td className="px-3 py-2 text-right">{fmt(u.kwh_per_m2, 1)}</td>
                                             <td className="px-3 py-2 text-right text-gray-600">{fmt(u.expected_kwh)}</td>
-                                            <td className={`px-3 py-2 text-right font-medium ${u.flag === 'high' ? 'text-red-700' : u.flag === 'low' ? 'text-amber-800' : ''}`}
-                                                title={u.flag === 'high' ? t.energy.high : u.flag === 'low' ? t.energy.low : undefined}>
+                                            <td className="px-3 py-2 text-right font-medium">
                                                 {u.ratio === null ? '–' : ratioText(u.ratio)}
                                             </td>
                                             <td className="px-3 py-2 text-right text-gray-600">{fmt(u.position_coef, 3)}</td>

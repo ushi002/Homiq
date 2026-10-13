@@ -20,9 +20,6 @@ HEATING_BELOW_C = 15.0
 HEATING_SHARE = 0.1
 DAY_COMPLETE_SHARE = 0.9
 MIN_SIGNATURE_DAYS = 10
-# A unit's consumption against its expected share: at least HIGH or at most LOW times is highlighted
-HIGH_RATIO = 2.0
-LOW_RATIO = 0.25
 
 
 def meter_daily(points: List[Tuple[date, float]], start: date, end: date) -> Dict[date, float]:
@@ -43,12 +40,23 @@ def meter_daily(points: List[Tuple[date, float]], start: date, end: date) -> Dic
     return out
 
 
+def by_unit(meters: Dict[str, Dict[date, float]], unit_of_serial: Dict[str, str]) -> Dict[str, Dict[date, float]]:
+    """Daily consumption of each unit: the sum of its meters (an old and a new meter after a
+    replacement each cover their own days)."""
+    units: Dict[str, Dict[date, float]] = {}
+    for serial, daily in meters.items():
+        unit = units.setdefault(unit_of_serial.get(serial, serial), {})
+        for day, value in daily.items():
+            unit[day] = unit.get(day, 0) + value
+    return units
+
+
 def building_daily(meters: Dict[str, Dict[date, float]], temperatures: Dict[date, float],
                    start: date, end: date) -> List[dict]:
-    """Per day: the building's consumption (sum of the meters with data that day), whether at least
-    DAY_COMPLETE_SHARE of the meters had data (complete; only meters with some data in the period
-    count, a meter silent for the whole period does not make every day incomplete) and the
-    outdoor temperature."""
+    """Per day: the building's consumption (sum of the series with data that day), whether at least
+    DAY_COMPLETE_SHARE of the series had data (complete) and the outdoor temperature. Pass one
+    series per unit (by_unit), so a replaced meter does not make the days after it incomplete;
+    only series with some data in the period count."""
     days = []
     for i in range((end - start).days):
         day = start + timedelta(days=i)
@@ -108,7 +116,7 @@ def design_kw_per_k(heat_losses_w: List[float]) -> Optional[float]:
 def compare_units(units: List[dict]) -> List[dict]:
     """units: {..., "kwh", "complete", "heat_loss_w", "position_coef", "area_m2"}. Adds:
     expected_kwh = the building's consumption x the unit's share of the design heat loss (units with
-    a complete value only), ratio and flag ("high"/"low"), kwh_per_m2, and corrected_kwh = kwh x
+    a complete value only), ratio, kwh_per_m2, and corrected_kwh = kwh x
     position coefficient with billing_share = its share of all corrected consumption."""
     basis = [u for u in units if u["complete"] and u["kwh"] is not None and u.get("heat_loss_w")]
     in_basis = {id(u) for u in basis}
@@ -127,7 +135,6 @@ def compare_units(units: List[dict]) -> List[dict]:
             "kwh_per_m2": round(u["kwh"] / u["area_m2"], 2) if u["kwh"] is not None and u.get("area_m2") else None,
             "expected_kwh": round(expected, 1) if expected is not None else None,
             "ratio": round(ratio, 2) if ratio is not None else None,
-            "flag": "high" if ratio is not None and ratio >= HIGH_RATIO else "low" if ratio is not None and ratio <= LOW_RATIO else None,
             "corrected_kwh": round(c, 1) if c is not None else None,
             "billing_share": round(c / total_corrected, 4) if c is not None and total_corrected else None,
         })
