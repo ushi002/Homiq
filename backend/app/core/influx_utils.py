@@ -202,25 +202,22 @@ def get_period_points(db_name: str, measurement: str, device_tag: str, start: da
     """
     Readings around the period [start, end) for every meter of a measurement, keyed by serial
     number: 'before' (last before the start), 'first' and 'last' (inside the period) and 'after'
-    (first at or after the end). Values are daily MAX stamped at midnight UTC, the same series
-    the unit detail view uses. Each point is (unix timestamp, value).
-    'before' is read from raw readings (a daily aggregate over a year is several times slower);
-    for a cumulative meter the last reading of a day is that day's MAX, so only the time is
-    moved to midnight.
-    See app/core/consumption.py for how the points are turned into consumption.
+    (first at or after the end). Each point is (unix timestamp, value) of a raw reading; plain
+    FIRST/LAST selectors keep InfluxDB from aggregating the whole period, which a small server
+    cannot afford. See app/core/consumption.py for how the points are turned into consumption.
     """
     def fmt(d: datetime) -> str:
         return d.strftime('%Y-%m-%dT%H:%M:%SZ')
 
-    def daily(a: datetime, b: datetime) -> str:
-        return (f'SELECT MAX("value") AS d FROM "{measurement}" WHERE time >= \'{fmt(a)}\' AND time < \'{fmt(b)}\' '
-                f'GROUP BY time(1d), "{device_tag}"')
+    def select(fn: str, a: datetime, b: datetime) -> str:
+        return (f'SELECT {fn}("value") FROM "{measurement}" WHERE time >= \'{fmt(a)}\' AND time < \'{fmt(b)}\' '
+                f'GROUP BY "{device_tag}"')
 
     statements = [
-        ('before', f'SELECT LAST("value") FROM "{measurement}" WHERE time >= \'{fmt(start - BEFORE_WINDOW)}\' AND time < \'{fmt(start)}\' GROUP BY "{device_tag}"'),
-        ('first', f'SELECT FIRST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
-        ('last', f'SELECT LAST("d") FROM ({daily(start, end)}) GROUP BY "{device_tag}"'),
-        ('after', f'SELECT FIRST("d") FROM ({daily(end, end + AFTER_WINDOW)}) GROUP BY "{device_tag}"'),
+        ('before', select('LAST', start - BEFORE_WINDOW, start)),
+        ('first', select('FIRST', start, end)),
+        ('last', select('LAST', start, end)),
+        ('after', select('FIRST', end, end + AFTER_WINDOW)),
     ]
     data = query_influx(db_name, ';'.join(q for _, q in statements))
     if 'results' not in data:
@@ -232,10 +229,7 @@ def get_period_points(db_name: str, measurement: str, device_tag: str, start: da
             sn = series.get('tags', {}).get(device_tag)
             if sn and series.get('values'):
                 time_str, value = series['values'][0][:2]
-                ts = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-                if key == 'before':
-                    ts = ts.replace(hour=0, minute=0, second=0, microsecond=0)
-                ts = ts.timestamp()
+                ts = datetime.fromisoformat(time_str.replace('Z', '+00:00')).timestamp()
                 points.setdefault(sn, {})[key] = (ts, value)
     return points
 
