@@ -34,25 +34,25 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
     their ids (links, owners). After a meter replacement the new meter is added next to the old
     one, which keeps its history.
 
-    Units come from the unit tags of all measurements. A meter reported under several units (e.g.
-    tagged with a wrong unit for a few days after installation) belongs to the unit with its latest
-    reading, i.e. where it is now.
+    Units come from the unit tags of cold water (other measurements may keep old, unused tags). A
+    meter reported under several units (e.g. tagged with a wrong unit for a few days after
+    installation) belongs to the unit with its latest reading, i.e. where it is now.
 
-    Joined tag: a tag made of other tags ("bj-e38bj-e39" = "bj-e38" + "bj-e39", flats once tagged
-    together) is not a unit. Its meters go to the first of those units when new; a meter already in
-    one of them stays where it is (it was assigned on purpose, see scripts/split_joined_unit.py).
+    Joined tag: a unit tag made of tags used in other measurements ("bj-e38bj-e39" = "bj-e38" +
+    "bj-e39", flats tagged together for water but separately for heat) is not a unit; its flats are.
+    Its meters go to the first flat when new; a meter already in one of the flats stays where it is
+    (assigned on purpose, see scripts/split_joined_unit.py).
     """
     units_by_number = {u.unit_number: u for u in session.exec(select(Unit).where(Unit.building_id == building.id)).all()}
     unit_ids = [u.id for u in units_by_number.values()]
     meters_by_serial = {m.serial_number: m for m in session.exec(select(Meter).where(Meter.unit_id.in_(unit_ids))).all()} if unit_ids else {}
     measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
 
-    if building.influx_unit_tag:
-        all_tags = get_unit_tags(building.influx_db_name, building.influx_unit_tag, measurements)
-    else:
-        all_tags = get_unique_units(building.influx_db_name, building.influx_unit_tag)
-    joined = {tag: parts for tag in all_tags if (parts := split_joined(tag, all_tags))}
-    influx_units = sorted(all_tags - set(joined))
+    unit_tags = get_unique_units(building.influx_db_name, building.influx_unit_tag)
+    all_tags = get_unit_tags(building.influx_db_name, building.influx_unit_tag, measurements) | unit_tags \
+        if building.influx_unit_tag else unit_tags
+    joined = {tag: parts for tag in unit_tags if (parts := split_joined(tag, all_tags))}
+    influx_units = sorted((unit_tags - set(joined)) | {part for parts in joined.values() for part in parts})
 
     created_units = 0
     for unit_name in influx_units:
@@ -67,7 +67,7 @@ def sync_units_from_influx(building: Building, session: Session) -> dict:
 
     # serial number -> [(InfluxDB tag, meter data)] as reported by InfluxDB
     reported: Dict[str, List[Tuple[str, dict]]] = {}
-    for tag in sorted(all_tags):
+    for tag in sorted(set(influx_units) | set(joined)):
         for meter_data in get_unit_meters(building.influx_db_name, tag, building.influx_unit_tag,
                                           building.influx_measurements, building.influx_device_tag):
             reported.setdefault(meter_data['serial_number'], []).append((tag, meter_data))
