@@ -240,5 +240,7 @@ export const en: Translations = {
         incompleteNote: '* Incomplete period: data is missing for more than 3 % of the days at the start or end of the period (the meter started or stopped recording, or there is no later reading yet). The value is not final and is not compared. Gaps in the middle of the period and meter replacements do not matter.',
         noMeters: 'There are no meters in this building.',
         categoryElectricity: 'Electricity',
+        buildingChart: 'Building consumption by month',
+        chartLoading: 'Loading the chart… (the first load of a year can take up to half a minute)',
     }
 };

@@ -6,6 +6,7 @@ import { authFetch } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import YoyChange from '@/components/YoyChange';
+import ConsumptionChart from '@/components/ConsumptionChart';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { buildCsv, downloadCsv, fileSlug } from '@/lib/csv';
 import { useToast } from '@/context/ToastContext';
@@ -25,7 +26,13 @@ interface UnitRow {
     values: Record<string, { current: Cell; previous: Cell }>;
 }
 
+interface MonthlyData {
+    meter_types: { type: string; unit_of_measure: string }[];
+    months: Record<string, { current: (number | null)[]; previous: (number | null)[] }>;
+}
+
 interface ConsumptionData {
+    last_reading?: string | null;
     meter_types: { type: string; unit_of_measure: string }[];
     units: UnitRow[];
 }
@@ -72,6 +79,9 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [sortKey, setSortKey] = useState<string>('unit'); // 'unit' or a meter type
     const [sortDesc, setSortDesc] = useState(false);
     const [exporting, setExporting] = useState(false);
+    // Whole building by month for the chart; loaded separately, the first load of a year is slow
+    const [monthly, setMonthly] = useState<MonthlyData | null>(null);
+    const [chartType, setChartType] = useState<string | null>(null);
 
     useEffect(() => {
         if (authLoading) return;
@@ -106,6 +116,17 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             });
         return () => { stale = true; };
     }, [id, token, authLoading, year, month]);
+
+    useEffect(() => {
+        if (authLoading || !token) return;
+        let stale = false;
+        setMonthly(null);
+        authFetch(`/buildings/${id}/consumption_monthly?year=${year}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(json => { if (!stale) setMonthly(json); })
+            .catch(err => console.error(err));
+        return () => { stale = true; };
+    }, [id, token, authLoading, year]);
 
     const format = (v: number | null) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: 2 });
 
@@ -256,6 +277,53 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                         ⬇ {exporting ? t.csv.preparing : t.csv.downloadReadings}
                     </button>
                 </div>
+
+                {data?.last_reading && (() => {
+                    // When data stopped coming (same texts as the unit detail)
+                    const last = new Date(data.last_reading);
+                    const old = Date.now() - last.getTime() > 7 * 86400000;
+                    return (
+                        <p className={`text-sm -mt-3 mb-4 ${old ? 'text-amber-700 cursor-help' : 'text-gray-500'}`} title={old ? t.unit.lastReadingOld : undefined}>
+                            {t.unit.lastReading}: {last.toLocaleDateString(locale)}
+                        </p>
+                    );
+                })()}
+
+                {/* Whole building by month; a meter type at a time, a click on a month selects it below */}
+                {data && data.meter_types.length > 0 && (() => {
+                    const type = chartType && data.meter_types.some(mt => mt.type === chartType) ? chartType : data.meter_types[0].type;
+                    const uom = data.meter_types.find(mt => mt.type === type)!.unit_of_measure;
+                    return (
+                        <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 mb-6">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                <h2 className="text-lg font-semibold">{t.consumption.buildingChart}</h2>
+                                <div className="flex flex-wrap gap-1 text-sm">
+                                    {data.meter_types.map(mt => (
+                                        <button
+                                            key={mt.type}
+                                            onClick={() => setChartType(mt.type)}
+                                            className={`px-3 py-1 rounded-md ${mt.type === type ? 'bg-blue-100 text-blue-800 font-medium' : 'text-gray-600 hover:bg-gray-100'}`}
+                                        >
+                                            {typeLabel(mt.type)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {monthly?.months[type] ? (
+                                <ConsumptionChart
+                                    monthly={monthly.months[type]}
+                                    year={year}
+                                    unitOfMeasure={uom}
+                                    selectedMonth={month || null}
+                                    onSelectMonth={setMonth}
+                                    format={format}
+                                />
+                            ) : (
+                                <p className="h-40 flex items-center justify-center text-sm text-gray-400" aria-busy="true">{t.consumption.chartLoading}</p>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {error && <div className="p-4 mb-6 text-center text-red-600 bg-white rounded-xl border border-red-100">{error}</div>}
                 {!data && loading && <div className="p-8 text-center">{t.common.loading}</div>}

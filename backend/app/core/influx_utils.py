@@ -282,3 +282,14 @@ def get_meter_last_seen_by_unit(db_name: str, measurements: List[str], unit_tag:
                 if unit and series.get('values'):
                     last_seen[unit] = max(last_seen.get(unit, ''), series['values'][0][0])
     return last_seen
+
+
+def get_last_reading_time(db_name: str, measurements: List[str]) -> Optional[str]:
+    """Time of the newest reading of any meter in the database (one database per building)."""
+    times = []
+    for measurement in measurements:
+        for result in query_influx(db_name, f'SELECT LAST("value") FROM "{measurement}"').get('results', []):
+            for series in result.get('series', []):
+                if series.get('values'):
+                    times.append(series['values'][0][0])
+    return max(times) if times else None

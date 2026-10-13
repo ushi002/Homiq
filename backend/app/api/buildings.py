@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User, UnitCreate
 from ..models.telemetry import Meter, MeterCreate
-from ..core.influx_utils import get_raw_readings, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
 from ..core.building_consumption import units_consumption
@@ -130,9 +130,12 @@ def read_building_consumption(
     def cell(r):
         return {"value": r.value, "complete": r.complete, "missing_days": r.missing_days, "period_days": r.period_days}
 
+    measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
     return {
         "year": year,
         "month": month,
+        # newest reading in the building, so the page can say when data stopped coming
+        "last_reading": get_last_reading_time(building.influx_db_name, measurements) if building.influx_db_name else None,
         "meter_types": meter_types,
         "units": [
             {
