@@ -85,6 +85,20 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [monthly, setMonthly] = useState<MonthlyData | null>(null);
     const [chartType, setChartType] = useState<string | null>(null);
     const [onlyUnusual, setOnlyUnusual] = useState(false);
+    // Period from the address (?year=&month=&unusual=1, e.g. a link from the dashboard), read once in
+    // the browser before the first fetch; month=0 or no month = whole year
+    const [paramsRead, setParamsRead] = useState(false);
+    useEffect(() => {
+        const q = new URLSearchParams(window.location.search);
+        const y = parseInt(q.get('year') ?? '');
+        if (y >= 2000 && y <= 2100) {
+            setYear(y);
+            const m = parseInt(q.get('month') ?? '0');
+            setMonth(m >= 1 && m <= 12 ? m : 0);
+        }
+        if (q.get('unusual') === '1') setOnlyUnusual(true);
+        setParamsRead(true);
+    }, []);
 
     const [forbidden, setForbidden] = useState(false);
 
@@ -106,7 +120,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     }, [id, token, authLoading, user?.role]);
 
     useEffect(() => {
-        if (authLoading || !token || user?.role === 'owner') return;
+        if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
         // Ignore responses for a period that is no longer selected (fast year + month changes)
         let stale = false;
         setLoading(true);
@@ -129,10 +143,10 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 if (!stale) setLoading(false);
             });
         return () => { stale = true; };
-    }, [id, token, authLoading, year, month, user?.role]);
+    }, [id, token, authLoading, year, month, user?.role, paramsRead]);
 
     useEffect(() => {
-        if (authLoading || !token || user?.role === 'owner') return;
+        if (authLoading || !token || user?.role === 'owner' || !paramsRead) return;
         let stale = false;
         setMonthly(null);
         authFetch(`/buildings/${id}/consumption_monthly?year=${year}`)
@@ -140,7 +154,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             .then(json => { if (!stale) setMonthly(json); })
             .catch(err => console.error(err));
         return () => { stale = true; };
-    }, [id, token, authLoading, year, user?.role]);
+    }, [id, token, authLoading, year, user?.role, paramsRead]);
 
     const format = (v: number | null) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: 2 });
 
@@ -184,7 +198,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const sortArrow = (key: string) => sortKey === key ? (sortDesc ? ' ↓' : ' ↑') : '';
 
     if (authLoading || !token || user?.role === 'owner') return <div className="p-8 text-center">{t.common.loading}</div>;
-    if (forbidden) return <div className="p-8 text-center text-gray-600">{t.consumption.noAccess}</div>;
+    if (forbidden) return <main className={PAGE}><p className="p-8 text-center text-gray-600">{t.consumption.noAccess}</p></main>;
 
     type Pair = { current: Cell; previous: Cell };
     // A percentage needs both periods complete and a non-zero previous value

@@ -65,6 +65,58 @@ def read_buildings(
     
     return []
 
+@router.get("/stats")
+def read_buildings_stats(
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Numbers for the building cards on the admin's and manager's dashboard: units, units with an
+    owner, owners who have not accepted the invitation, the newest reading, and how many units had
+    unusually high consumption in the last full month with data (the month before the month of the
+    newest reading). Owners get an empty list (their dashboard has its own summary)."""
+    if current_user.role == "admin":
+        buildings = session.exec(select(Building)).all()
+    elif current_user.role == "home_lord":
+        buildings = session.exec(select(Building).where(Building.manager_id == current_user.id)).all()
+    else:
+        return []
+
+    stats = []
+    for building in buildings:
+        units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
+        owners = [u.owner for u in units if u.owner]
+        entry = {
+            "building_id": str(building.id),
+            "units": len(units),
+            "units_with_owner": len(owners),
+            "pending_invites": len({o.id for o in owners if o.status == "pending"}),
+            "last_reading": None,
+            "unusual": None,
+        }
+        if building.influx_db_name and building.influx_device_tag and units:
+            measurements = list(parse_measurements_config(building.influx_measurements) or DEFAULT_MEASUREMENTS)
+            last = get_last_reading_time(building.influx_db_name, measurements)
+            entry["last_reading"] = last
+            if last:
+                last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
+                y, m = (last_dt.year, last_dt.month - 1) if last_dt.month > 1 else (last_dt.year - 1, 12)
+                start = datetime(y, m, 1, tzinfo=timezone.utc)
+                end = datetime(y + (m == 12), m % 12 + 1, 1, tzinfo=timezone.utc)
+                meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
+                types, (current, previous) = units_consumption(
+                    building, meters, [(start, end), (start.replace(year=y - 1), end.replace(year=end.year - 1))])
+                medians = {mt["type"]: typical(other.get(mt["type"]) for other in current.values()) for mt in types}
+                flagged = 0
+                for unit_id, by_type in current.items():
+                    for t, r in by_type.items():
+                        median = medians.get(t)
+                        if unusual(r, previous.get(unit_id, {}).get(t), median[0] if median else None):
+                            flagged += 1
+                            break
+                entry["unusual"] = {"month": f"{y}-{m:02d}", "units": flagged}
+        stats.append(entry)
+    return stats
+
 @router.get("/{building_id}", response_model=BuildingRead)
 def read_building(
     building_id: uuid.UUID, 
