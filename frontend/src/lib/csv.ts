@@ -29,6 +29,6 @@ export function downloadCsv(filename: string, content: string) {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// "SVJ Ke Kapličce 469" -> "svj-ke-kaplicce-469"
+// "SVJ Příkladná 12" -> "svj-prikladna-12"
 export const fileSlug = (s: string) =>
     s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
