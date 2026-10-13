@@ -85,7 +85,7 @@ export default function ProfilePage() {
                                 disabled
                                 className="mt-1 block w-full rounded-md border-gray-200 bg-gray-50 text-gray-500 sm:text-sm p-2"
                             />
-                            <p className="text-xs text-gray-400 mt-1">{t.profile.emailReadOnly}</p>
+                            <p className="text-xs text-gray-500 mt-1">{t.profile.emailReadOnly}</p>
                         </div>
 
                         <div>

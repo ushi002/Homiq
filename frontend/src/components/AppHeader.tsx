@@ -29,6 +29,7 @@ export default function AppHeader() {
                             <Link
                                 key={l.href}
                                 href={l.href}
+                                aria-current={l.active ? 'page' : undefined}
                                 className={`px-1.5 sm:px-3 py-1.5 rounded-md ${l.active ? 'bg-blue-50 text-blue-800 font-medium' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
                             >
                                 {l.label}

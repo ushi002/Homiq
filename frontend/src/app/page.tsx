@@ -124,7 +124,7 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold text-gray-800 mb-2">{building.name}</h2>
               <p className="text-gray-500 mb-4">{building.address}</p>
               {building.description && (
-                <p className="text-sm text-gray-400 line-clamp-2 mb-4">
+                <p className="text-sm text-gray-500 line-clamp-2 mb-4">
                   {building.description}
                 </p>
               )}
@@ -135,7 +135,7 @@ export default function Dashboard() {
                   </span>
                 )}
                 {building.manager && (
-                  <span className="text-xs text-gray-400" title={building.manager.email}>
+                  <span className="text-xs text-gray-500" title={building.manager.email}>
                     {t.dashboard.managedBy}: {building.manager.full_name || t.users.roleHomeLord}
                   </span>
                 )}

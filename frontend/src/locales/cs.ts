@@ -260,6 +260,9 @@ export const cs: Translations = {
         users: 'Uživatelé',
         profile: 'Profil',
         unit: 'Jednotka',
+        breadcrumbs: 'Drobečková navigace',
+        switchToCs: 'Přepnout do češtiny',
+        switchToEn: 'Přepnout do angličtiny',
     },
     consumption: {
         title: 'Přehled spotřeby',

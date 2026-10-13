@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/context/LanguageContext';
 
 export interface Crumb {
     label: string;
@@ -8,8 +9,9 @@ export interface Crumb {
 }
 
 export default function Breadcrumbs({ items }: { items: Crumb[] }) {
+    const { t } = useLanguage();
     return (
-        <nav aria-label="breadcrumb" className="text-sm mb-2">
+        <nav aria-label={t.nav.breadcrumbs} className="text-sm mb-2">
             <ol className="flex flex-wrap items-center gap-1 text-gray-500">
                 {items.map((c, i) => (
                     <li key={i} className="flex items-center gap-1 min-w-0">

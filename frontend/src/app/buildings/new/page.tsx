@@ -228,7 +228,7 @@ export default function CreateBuilding() {
                                                     setForm(prev => ({ ...prev, influx_measurements: serializeMeasurements(newList) }));
                                                 }}
                                                 className="text-red-500 hover:text-red-700 p-2"
-                                                title="Remove"
+                                                title={t.common.delete} aria-label={t.common.delete}
                                             >
                                                 &times;
                                             </button>
@@ -241,7 +241,7 @@ export default function CreateBuilding() {
                                         if (category.type === 'heat') return mType.includes('heat') || mType === 'teplo';
                                         return false;
                                     }).length === 0 && (
-                                            <p className="text-xs text-gray-400 italic text-center py-2">
+                                            <p className="text-xs text-gray-500 italic text-center py-2">
                                                 {t.unit.noData}
                                             </p>
                                         )}

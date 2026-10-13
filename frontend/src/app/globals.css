@@ -22,3 +22,9 @@ button,
 a {
   cursor: pointer;
 }
+
+/* Keyboard focus: a clear ring on every control (mouse clicks do not show it) */
+:focus-visible {
+  outline: 2px solid var(--color-blue-500);
+  outline-offset: 2px;
+}

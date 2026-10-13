@@ -231,6 +231,9 @@ export interface Translations {
         users: string;
         profile: string;
         unit: string;
+        breadcrumbs: string;
+        switchToCs: string;
+        switchToEn: string;
     };
     consumption: {
         title: string;

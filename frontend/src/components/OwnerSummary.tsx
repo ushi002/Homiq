@@ -171,7 +171,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
 
                 {failed && <p className="text-sm text-red-600">{t.dashboard.summaryFailed}</p>}
                 {!failed && !data && loading && <div className="h-20 bg-gray-200 rounded animate-pulse" aria-busy="true" />}
-                {data && totals.length === 0 && <p className="text-sm text-gray-400">{t.unit.noData}</p>}
+                {data && totals.length === 0 && <p className="text-sm text-gray-500">{t.unit.noData}</p>}
                 {data && totals.length > 0 && (
                     <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 transition-opacity ${loading ? 'opacity-50' : ''}`}>
                         {totals.map(([key, pair]) => {
@@ -181,7 +181,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                                     <p className="text-xs font-bold text-blue-700 uppercase">{typeLabel(type)}</p>
                                     <p className="text-xl font-bold font-mono text-blue-900 mt-1">
                                         {format(pair.current.value)} <span className="text-xs font-sans font-normal">{uom}</span>
-                                        {pair.current.value !== null && !pair.current.complete && <span className="text-gray-400 cursor-help" title={missingTitle(pair.current)}>*</span>}
+                                        {pair.current.value !== null && !pair.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(pair.current)}>*</span>}
                                     </p>
                                     <p className="text-xs text-gray-600 mt-1">
                                         {t.unit.lastYear}: <span className="font-mono">{pair.previous.value === null ? '–' : `${format(pair.previous.value)} ${uom}`}</span>
@@ -190,7 +190,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                                     <p className="text-xs mt-0.5">
                                         {comparable(pair)
                                             ? <YoyChange current={pair.current.value as number} previous={pair.previous.value as number} previousYear={year - 1} />
-                                            : pair.current.value !== null && <span className="text-gray-400">{t.consumption.noComparison}</span>}
+                                            : pair.current.value !== null && <span className="text-gray-500">{t.consumption.noComparison}</span>}
                                     </p>
                                 </div>
                             );
@@ -211,16 +211,16 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                                         <span className="font-medium text-blue-700 w-full sm:w-32 shrink-0">{t.nav.unit} {u.unit_number}</span>
                                         {values.map(([type, v]) => (
                                             <span key={type} className="text-sm text-gray-600 whitespace-nowrap">
-                                                <span className="text-gray-400">{typeLabel(type)}:</span>{' '}
-                                                <span className="font-mono">{format(v.current.value)}</span> {v.current.value !== null && <span className="text-xs text-gray-400">{v.unit_of_measure}</span>}
-                                                {v.current.value !== null && !v.current.complete && <span className="text-gray-400 cursor-help" title={missingTitle(v.current)}>*</span>}
+                                                <span className="text-gray-500">{typeLabel(type)}:</span>{' '}
+                                                <span className="font-mono">{format(v.current.value)}</span> {v.current.value !== null && <span className="text-xs text-gray-500">{v.unit_of_measure}</span>}
+                                                {v.current.value !== null && !v.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(v.current)}>*</span>}
                                                 {comparable(v) && <> <YoyChange current={v.current.value as number} previous={v.previous.value as number} previousYear={year - 1} compact className="text-xs" /></>}
                                                 {v.unusual && (
                                                     <span className="ml-1 text-red-700 cursor-help" title={`${t.unit.unusualTitle}: ${t.unit.unusualMedian.replace('{{factor}}', factor(v.unusual.median_factor))}`}>⚠</span>
                                                 )}
                                             </span>
                                         ))}
-                                        <span className="ml-auto text-gray-400" aria-hidden="true">→</span>
+                                        <span className="ml-auto text-gray-500" aria-hidden="true">→</span>
                                     </Link>
                                 </li>
                             );
