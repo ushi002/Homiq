@@ -113,10 +113,6 @@ export interface Translations {
         changeOwner: string;
         lastReading: string;
         lastReadingOld: string;
-        unusualTitle: string;
-        unusualMedian: string;
-        unusualPrevious: string;
-        unusualWater: string;
     };
     users: {
         title: string;

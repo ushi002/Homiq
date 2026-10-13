@@ -115,10 +115,6 @@ export const en: Translations = {
         changeOwner: 'Change',
         lastReading: 'Latest reading',
         lastReadingOld: 'No data from the meters for more than a week.',
-        unusualTitle: 'Unusually high consumption',
-        unusualMedian: '{{factor}}× the typical unit of the building',
-        unusualPrevious: '{{factor}}× last year',
-        unusualWater: 'Check for a water leak (dripping tap, running toilet).',
     },
     users: {
         title: 'User management',
