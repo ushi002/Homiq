@@ -124,6 +124,13 @@ expect("auditor", "/users/", 200, lambda users: [u["email"] for u in users] == [
 expect("admin", f"/units/{I['unit_b']}", 200, no_invite_token)
 expect("admin", f"/users/{I['owner_b']}", 200)
 
+# Dashboard stats: admin all buildings, a manager his own, owners and others nothing
+expect("admin", "/buildings/stats", 200, lambda r: len(r) == 2)
+expect("lord1", "/buildings/stats", 200, lambda r: [b["building_id"] for b in r] == [I['b1']] and r[0]["units"] == 2 and r[0]["pending_invites"] == 1)
+for who in ("owner_a", "auditor"):
+    expect(who, "/buildings/stats", 200, lambda r: r == [])
+expect(None, "/buildings/stats", 401)
+
 # Owner summary: only the owner's own units, other roles get nothing
 expect("owner_a", "/units/summary?year=2025&month=3", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["A"])
 expect("owner_b", "/units/summary?year=2025", 200, lambda r: [u["unit_number"] for u in r["units"]] == ["B"])
