@@ -281,5 +281,6 @@ export const cs: Translations = {
         buildingChart: 'Spotřeba domu po měsících',
         chartLoading: 'Načítám graf… (první načtení roku může trvat i půl minuty)',
         onlyUnusual: 'Jen neobvyklé ({{count}})',
+        noAccess: 'K přehledu spotřeby tohoto domu nemáte přístup.',
     }
 };

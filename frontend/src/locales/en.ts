@@ -259,5 +259,6 @@ export const en: Translations = {
         buildingChart: 'Building consumption by month',
         chartLoading: 'Loading the chart… (the first load of a year can take up to half a minute)',
         onlyUnusual: 'Only unusual ({{count}})',
+        noAccess: 'You have no access to the consumption overview of this building.',
     }
 };

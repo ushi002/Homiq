@@ -252,5 +252,6 @@ export interface Translations {
         buildingChart: string;
         chartLoading: string;
         onlyUnusual: string;
+        noAccess: string;
     };
 }
