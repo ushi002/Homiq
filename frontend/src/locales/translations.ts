@@ -60,6 +60,8 @@ export interface Translations {
         categoryHotWater: string;
         categoryHeat: string;
         noOwner: string;
+        dangerZone: string;
+        dangerZoneHint: string;
     };
     unit: {
         assignOwner: string;
@@ -100,6 +102,7 @@ export interface Translations {
         loadingReadings: string;
         prevPeriod: string;
         nextPeriod: string;
+        changeOwner: string;
     };
     users: {
         title: string;
@@ -118,6 +121,14 @@ export interface Translations {
         adminInfo: string;
         homeLordInfo: string;
         assignedTo: string;
+        searchPlaceholder: string;
+        filterAll: string;
+        noMatch: string;
+        nameSaved: string;
+        inviteValid: string;
+        inviteExpired: string;
+        inviteCreated: string;
+        inviteExpires: string;
     };
     profile: {
         title: string;

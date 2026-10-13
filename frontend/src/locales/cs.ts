@@ -62,6 +62,8 @@ export const cs: Translations = {
         categoryHotWater: 'Teplá voda',
         categoryHeat: 'Teplo',
         noOwner: 'bez vlastníka',
+        dangerZone: 'Nebezpečná zóna',
+        dangerZoneHint: 'Smazání nelze vrátit. Budovu lze smazat až po smazání jejích jednotek.',
     },
     unit: {
         assignOwner: 'Přiřadit vlastníka e-mailem',
@@ -102,6 +104,7 @@ export const cs: Translations = {
         loadingReadings: 'Načítám odečty…',
         prevPeriod: 'Předchozí',
         nextPeriod: 'Další',
+        changeOwner: 'Změnit',
     },
     users: {
         title: 'Správa uživatelů',
@@ -120,6 +123,14 @@ export const cs: Translations = {
         adminInfo: "Admini mohou vytvářet správce, vlastníky a další adminy.",
         homeLordInfo: "Správci mohou vytvářet pouze vlastníky.",
         assignedTo: "Přiřazen k",
+        searchPlaceholder: 'Hledat jméno, e-mail, jednotku…',
+        filterAll: 'Všichni',
+        noMatch: 'Žádný uživatel neodpovídá.',
+        nameSaved: 'Jméno uloženo.',
+        inviteValid: 'Platná',
+        inviteExpired: 'Vypršela',
+        inviteCreated: 'Vytvořena',
+        inviteExpires: 'Platí do',
     },
     profile: {
         title: 'Můj profil',

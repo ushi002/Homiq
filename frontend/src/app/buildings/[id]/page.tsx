@@ -445,6 +445,34 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                         rows={3}
                                     />
                                 </div>
+                                <div className="border border-red-200 rounded-md p-4">
+                                    <h3 className="font-semibold text-sm text-red-700">{t.building.dangerZone}</h3>
+                                    <p className="text-xs text-gray-500 mt-1 mb-3">{t.building.dangerZoneHint}</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteUnits}
+                                            disabled={!building.units_fetched}
+                                            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-red-50 text-red-600 hover:bg-red-100"
+                                                }`}
+                                        >
+                                            {t.building.deleteAllUnits}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleDeleteBuilding}
+                                            disabled={building.units_fetched}
+                                            className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
+                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                : "bg-red-600 text-white hover:bg-red-700"
+                                                }`}
+                                        >
+                                            {t.building.deleteBuilding}
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="flex space-x-2">
                                     <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                                         {t.common.save}
@@ -512,26 +540,6 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                     }`}
                             >
                                 {building.units_fetched ? t.building.reloadUnits : t.building.fetchUnits}
-                            </button>
-                            <button
-                                onClick={handleDeleteUnits}
-                                disabled={!building.units_fetched}
-                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : "bg-red-50 text-red-600 hover:bg-red-100"
-                                    }`}
-                            >
-                                {t.building.deleteAllUnits}
-                            </button>
-                            <button
-                                onClick={handleDeleteBuilding}
-                                disabled={building.units_fetched}
-                                className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                    : "bg-red-600 text-white hover:bg-red-700"
-                                    }`}
-                            >
-                                {t.building.deleteBuilding}
                             </button>
                         </div>
                     )}

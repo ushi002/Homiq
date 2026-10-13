@@ -52,10 +52,10 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
     const [meters, setMeters] = useState<MeterWithReadings[]>([]);
     const [unit, setUnit] = useState<any>(null); // Ideally separate Unit interface
     const [buildingName, setBuildingName] = useState<string | null>(null);
-    const [ownerId, setOwnerId] = useState<string>("");
     const [metersLoading, setMetersLoading] = useState(true);
     const [readingsLoading, setReadingsLoading] = useState(true);
     const [unitError, setUnitError] = useState('');
+    const [ownerFormOpen, setOwnerFormOpen] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth(); // Get current user
     const router = useRouter();
     const { t, language } = useLanguage();
@@ -77,7 +77,6 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             })
             .then(data => {
                 setUnit(data);
-                setOwnerId(data.owner_id || "");
                 // Building name for the breadcrumbs
                 return authFetch(`/buildings/${data.building_id}`)
                     .then(res => res.ok ? res.json() : null)
@@ -138,8 +137,8 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
             if (res.ok) {
                 const updatedUnit = await res.json();
                 setUnit(updatedUnit); // Update entire unit object to get populated owner
-                setOwnerId(updatedUnit.owner_id);
-                // toast.success(t.messages.successAssignOwner);
+                setOwnerFormOpen(false);
+                toast.success(t.messages.successAssignOwner);
             } else {
                 const err = await res.json();
                 toast.error(apiError(t.messages.errorAssignOwner, err.detail));
@@ -282,49 +281,58 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                     ]} />
                     <h1 className="text-3xl font-bold">{t.nav.unit} {unit?.unit_number}</h1>
                 </div>
-                {canAssignOwner && (
+                {canAssignOwner && unit && (
                     <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 w-auto sm:w-full lg:max-w-sm">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const form = e.target as HTMLFormElement;
-                            const email = (form.elements.namedItem('email') as HTMLInputElement).value;
-                            handleAssignOwner(email);
-                        }} className="flex space-x-2">
-                            <input
-                                name="email"
-                                type="email"
-                                placeholder={t.unit.assignPlaceholder}
-                                className="flex-1 rounded-md border-gray-300 shadow-sm border p-2 text-sm"
-                                required
-                            />
-                            <button
-                                type="submit"
-                                className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm"
-                            >
-                                {t.unit.assign}
-                            </button>
-                        </form>
-                        <p className="text-xs text-gray-500 mt-1">
-                            {t.unit.inviteInfo}
-                        </p>
-                        {unit?.owner && (
-                            <div className="mt-2 p-2 bg-green-50 text-green-800 text-xs rounded border border-green-100">
-                                <p className="font-semibold">{t.unit.currentOwner}:</p>
-                                <p>{unit.owner.full_name || unit.owner.email}</p>
-                                {unit.owner.full_name && <p className="text-gray-500">{unit.owner.email}</p>}
+                        <div className="flex justify-between items-start gap-3">
+                            <div className="min-w-0">
+                                <p className="text-xs font-bold text-gray-500 uppercase">{t.unit.currentOwner}</p>
+                                {unit.owner ? (
+                                    <>
+                                        <p className="font-medium text-gray-800 truncate">{unit.owner.full_name || unit.owner.email}</p>
+                                        {unit.owner.full_name && <p className="text-xs text-gray-500 truncate">{unit.owner.email}</p>}
+                                    </>
+                                ) : (
+                                    <p className="text-gray-400 italic">{t.building.noOwner}</p>
+                                )}
                             </div>
+                            {!ownerFormOpen && (
+                                <button onClick={() => setOwnerFormOpen(true)} className="shrink-0 text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium">
+                                    {unit.owner ? t.unit.changeOwner : t.unit.assign}
+                                </button>
+                            )}
+                        </div>
+                        {ownerFormOpen && (
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                const form = e.target as HTMLFormElement;
+                                const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                                handleAssignOwner(email);
+                            }} className="mt-3">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t.unit.assignOwner}</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        name="email"
+                                        type="email"
+                                        autoFocus
+                                        placeholder={t.unit.assignPlaceholder}
+                                        className="flex-1 min-w-0 rounded-md border-gray-300 shadow-sm border p-2 text-sm"
+                                        required
+                                    />
+                                    <button type="submit" className="bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm">
+                                        {t.unit.assign}
+                                    </button>
+                                    <button type="button" onClick={() => setOwnerFormOpen(false)} className="px-3 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 text-sm">
+                                        {t.common.cancel}
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-1">{t.unit.inviteInfo}</p>
+                            </form>
                         )}
-                        {!unit?.owner && ownerId && <p className="text-xs text-gray-400 mt-1">{t.unit.ownerId}: {ownerId.slice(0, 8)}...</p>}
                     </div>
                 )}
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold">{t.unit.meters}</h2>
-                </div>
-
                 {/* Comparative Controls */}
                 <div className="bg-white p-4 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 flex flex-wrap gap-4 items-center">
                     <div>
@@ -502,7 +510,6 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         )}
                                     </div>
                                 </div>
-                                <span className="bg-blue-100 text-blue-800 text-xs px-3 py-1.5 rounded-full font-bold shadow-sm">{uom}</span>
                             </div>
 
                             <ConsumptionChart
