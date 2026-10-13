@@ -28,6 +28,8 @@ export interface Translations {
         draft: string;
         myUnits: string;
         noUnits: string;
+        totalFor: string;
+        summaryFailed: string;
     };
     building: {
         name: string;
