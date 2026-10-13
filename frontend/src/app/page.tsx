@@ -1,4 +1,5 @@
 "use client";
+import { BUTTON, CARD } from '@/lib/ui';
 import OwnerSummary from '@/components/OwnerSummary';
 import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
@@ -106,7 +107,7 @@ export default function Dashboard() {
           <div className="mb-8 flex gap-4">
             <Link
               href="/buildings/new"
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              className={BUTTON}
             >
               + {t.dashboard.addBuilding}
             </Link>
@@ -118,7 +119,7 @@ export default function Dashboard() {
             <Link
               href={`/buildings/${building.id}`}
               key={building.id}
-              className="block bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm hover:shadow-md transition-shadow p-4 sm:p-6 border border-gray-100"
+              className={`${CARD} block hover:shadow-md transition-shadow p-4 sm:p-6`}
             >
               <h2 className="text-xl font-semibold text-gray-800 mb-2">{building.name}</h2>
               <p className="text-gray-500 mb-4">{building.address}</p>

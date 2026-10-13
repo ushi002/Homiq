@@ -1,4 +1,5 @@
 "use client";
+import { CARD } from '@/lib/ui';
 import { useLanguage } from '@/context/LanguageContext';
 
 // Grey placeholder of a page while its data loads, roughly in the shape of the page:
@@ -6,7 +7,7 @@ import { useLanguage } from '@/context/LanguageContext';
 export default function PageSkeleton({ variant = 'list', rows = 5 }: { variant?: 'cards' | 'list' | 'form'; rows?: number }) {
     const { t } = useLanguage();
     const bar = 'bg-gray-200 rounded animate-pulse';
-    const box = 'bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100';
+    const box = CARD;
 
     return (
         <main className="min-h-screen bg-gray-50 p-4 sm:p-8" aria-busy="true">

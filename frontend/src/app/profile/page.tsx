@@ -1,4 +1,5 @@
 "use client";
+import { CARD, INPUT, LABEL, PAGE } from '@/lib/ui';
 import PageSkeleton from '@/components/PageSkeleton';
 import { usePageTitle } from '@/lib/pageTitle';
 import React, { useState, useEffect } from 'react';
@@ -62,13 +63,13 @@ export default function ProfilePage() {
     };
 
     return (
-        <main className="min-h-screen p-4 sm:p-8 bg-gray-50 text-gray-900 font-sans">
+        <main className={PAGE}>
             <div className="max-w-md mx-auto">
                 <div className="mb-6">
                     <h1 className="text-3xl font-bold">{t.profile.title}</h1>
                 </div>
 
-                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100">
+                <div className={`${CARD} p-4 sm:p-6`}>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {message && (
                             <div className={`p-3 rounded-md text-sm ${message.includes(t.profile.successUpdate) ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
@@ -88,7 +89,7 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.profile.role}</label>
+                            <label className={LABEL}>{t.profile.role}</label>
                             <div className="mt-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-600 sm:text-sm capitalize">
                                 {(() => {
                                     switch (user?.role) {
@@ -102,12 +103,12 @@ export default function ProfilePage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">{t.profile.fullName}</label>
+                            <label className={LABEL}>{t.profile.fullName}</label>
                             <input
                                 type="text"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                                className={INPUT}
                             />
                         </div>
 
@@ -122,7 +123,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Change Password Section */}
-                <div className="bg-white p-4 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100 mt-6">
+                <div className={`${CARD} p-4 sm:p-6 mt-6`}>
                     <h2 className="text-lg font-semibold mb-4 text-gray-800">{t.profile.changePassword}</h2>
                     <ChangePasswordForm />
                 </div>
@@ -178,31 +179,31 @@ const ChangePasswordForm = () => {
                 </div>
             )}
             <div>
-                <label className="block text-sm font-medium text-gray-700">{t.profile.oldPassword}</label>
+                <label className={LABEL}>{t.profile.oldPassword}</label>
                 <input
                     type="password"
                     required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    className={INPUT}
                     value={passwords.old_password}
                     onChange={e => setPasswords({ ...passwords, old_password: e.target.value })}
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">{t.profile.newPassword}</label>
+                <label className={LABEL}>{t.profile.newPassword}</label>
                 <input
                     type="password"
                     required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    className={INPUT}
                     value={passwords.new_password}
                     onChange={e => setPasswords({ ...passwords, new_password: e.target.value })}
                 />
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">{t.profile.confirmPassword}</label>
+                <label className={LABEL}>{t.profile.confirmPassword}</label>
                 <input
                     type="password"
                     required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+                    className={INPUT}
                     value={passwords.confirm_password}
                     onChange={e => setPasswords({ ...passwords, confirm_password: e.target.value })}
                 />
