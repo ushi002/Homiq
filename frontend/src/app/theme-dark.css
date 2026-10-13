@@ -123,3 +123,13 @@
 :root[data-theme="dark"] :is(.text-yellow-500, .text-yellow-600) {
   color: var(--color-yellow-400);
 }
+
+/* Secondary text: gray 400/500 inverted would be too dark on the dark cards (about 2:1), lifted
+   to at least 4.5:1. Only text: the grey chart bars (bg-gray-400) keep the palette value. */
+:root[data-theme="dark"] .text-gray-500 {
+  color: oklch(62% 0.022 261);
+}
+
+:root[data-theme="dark"] .text-gray-500 {
+  color: oklch(68% 0.022 261);
+}

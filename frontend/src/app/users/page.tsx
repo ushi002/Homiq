@@ -347,6 +347,7 @@ export default function UsersPage() {
                             <h2 className="font-semibold text-gray-700">{t.users.allUsers}</h2>
                             <input
                                 type="search"
+                                aria-label={t.users.searchPlaceholder}
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
                                 placeholder={t.users.searchPlaceholder}
@@ -358,6 +359,7 @@ export default function UsersPage() {
                                 <button
                                     key={f.key}
                                     onClick={() => setRoleFilter(f.key)}
+                                    aria-pressed={roleFilter === f.key}
                                     className={`px-2.5 py-1 rounded-full border ${roleFilter === f.key ? 'bg-blue-100 border-blue-200 text-blue-800 font-medium' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                                 >
                                     {f.label} ({f.count})
@@ -395,7 +397,7 @@ export default function UsersPage() {
                                             </div>
                                         )}
                                         <p className="text-sm text-gray-500">{user.email}</p>
-                                        <p className="text-xs text-gray-400 mt-0.5">
+                                        <p className="text-xs text-gray-500 mt-0.5">
                                             {t.users.createdAt}: {formatDate(user.created_at)}
                                             {user.last_login_at && <> · {t.users.lastLogin}: {formatDate(user.last_login_at)}</>}
                                         </p>
@@ -421,7 +423,7 @@ export default function UsersPage() {
                                 {/* Assignments */}
                                 {user.assignments && user.assignments.length > 0 && (
                                     <div className="mt-2 pl-2 border-l-2 border-gray-100">
-                                        <p className="text-xs text-gray-400 mb-1 font-semibold uppercase">{t.users.assignedTo}:</p>
+                                        <p className="text-xs text-gray-500 mb-1 font-semibold uppercase">{t.users.assignedTo}:</p>
                                         <div className="flex flex-wrap gap-2">
                                             {user.assignments.map((assignment, idx) => (
                                                 <div key={idx} className="flex items-center bg-gray-100 rounded-md px-2 py-1 text-xs text-gray-700 border border-gray-200">
@@ -432,7 +434,7 @@ export default function UsersPage() {
                                                     </span>
                                                     <button
                                                         onClick={() => handleUnassign(assignment)}
-                                                        className="text-gray-400 hover:text-red-600 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
+                                                        className="text-gray-500 hover:text-red-600 ml-1 p-0.5 rounded-full hover:bg-gray-200 transition-colors"
                                                         title={t.common.unassign}
                                                     >
                                                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -494,7 +496,7 @@ export default function UsersPage() {
                             </li>
                         ))}
                         {visibleUsers.length === 0 && (
-                            <li className="px-6 py-8 text-center text-gray-400">{t.users.noMatch}</li>
+                            <li className="px-6 py-8 text-center text-gray-500">{t.users.noMatch}</li>
                         )}
                     </ul>
                 </div>

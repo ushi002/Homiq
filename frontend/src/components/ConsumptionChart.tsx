@@ -46,7 +46,7 @@ export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure,
 
     if (max <= 0) {
         return (
-            <div className="mb-6 p-4 text-center text-xs text-gray-400 italic border border-dashed border-gray-200 rounded-lg">
+            <div className="mb-6 p-4 text-center text-xs text-gray-500 italic border border-dashed border-gray-200 rounded-lg">
                 {t.unit.monthlyConsumption}: {t.unit.noData}
             </div>
         );
@@ -137,7 +137,7 @@ export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure,
             </div>
 
             <div className="flex flex-wrap justify-between items-baseline gap-2 mt-2">
-                <p className="text-[11px] text-gray-400">{t.unit.chartHint}</p>
+                <p className="text-[11px] text-gray-500">{t.unit.chartHint}</p>
                 <details className="text-xs text-gray-600">
                     <summary className="cursor-pointer text-blue-600 hover:underline">{t.unit.showTable}</summary>
                     <table className="mt-2 tabular-nums">

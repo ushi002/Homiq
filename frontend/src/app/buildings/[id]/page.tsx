@@ -436,7 +436,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                                     if (category.type === 'heat') return mType.includes('heat') || mType === 'teplo';
                                                     return false;
                                                 }).length === 0 && (
-                                                        <p className="text-xs text-gray-400 italic text-center py-2">
+                                                        <p className="text-xs text-gray-500 italic text-center py-2">
                                                             {t.unit.noData}
                                                         </p>
                                                     )}
@@ -463,7 +463,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                             onClick={handleDeleteUnits}
                                             disabled={!building.units_fetched}
                                             className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${!building.units_fetched
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                                                 : "bg-red-50 text-red-600 hover:bg-red-100"
                                                 }`}
                                         >
@@ -474,7 +474,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                             onClick={handleDeleteBuilding}
                                             disabled={building.units_fetched}
                                             className={`px-4 py-2 rounded-lg transition-colors text-sm font-medium ${building.units_fetched
-                                                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                                ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                                                 : "bg-red-600 text-white hover:bg-red-700"
                                                 }`}
                                         >
@@ -557,6 +557,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                     <div className="flex flex-wrap items-center gap-3">
                         <input
                             type="search"
+                            aria-label={t.building.searchUnits}
                             value={unitSearch}
                             onChange={e => setUnitSearch(e.target.value)}
                             placeholder={t.building.searchUnits}
@@ -577,7 +578,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                                 <Link href={`/units/${unit.id}`} className="px-4 sm:px-6 py-2.5 flex items-center gap-3">
                                     <span className="font-semibold text-gray-800 w-28 sm:w-36 shrink-0 truncate">{unit.unit_number}</span>
                                     {user?.role !== 'owner' && (
-                                        <span className={`flex-1 min-w-0 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-400 italic'}`} title={unit.owner?.email}>
+                                        <span className={`flex-1 min-w-0 text-sm truncate ${unit.owner ? 'text-gray-600' : 'text-gray-500 italic'}`} title={unit.owner?.email}>
                                             {unit.owner ? (unit.owner.full_name || unit.owner.email) : t.building.noOwner}
                                         </span>
                                     )}
@@ -592,10 +593,10 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
                         ))}
                     </ul>
                     {units.length === 0 && (
-                        <div className="p-6 text-center text-gray-400">{t.building.noUnits}</div>
+                        <div className="p-6 text-center text-gray-500">{t.building.noUnits}</div>
                     )}
                     {units.length > 0 && visibleUnits.length === 0 && (
-                        <div className="p-6 text-center text-gray-400">{t.building.noUnitMatch}</div>
+                        <div className="p-6 text-center text-gray-500">{t.building.noUnitMatch}</div>
                     )}
                 </div>
             </div>

@@ -254,8 +254,8 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
             <span className="font-mono">{format(c.current.value)}</span>
-            {c.current.value !== null && !c.current.complete && <span className="text-gray-400 cursor-help" title={missingTitle(c.current)}>*</span>}
-            {c.current.value !== null && <span className="text-xs text-gray-400 ml-1">{uom}</span>}
+            {c.current.value !== null && !c.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(c.current)}>*</span>}
+            {c.current.value !== null && <span className="text-xs text-gray-500 ml-1">{uom}</span>}
             {c.current.unusual && (
                 <span className="ml-1 text-red-600 font-bold cursor-help" title={unusualText(c.current.unusual)} aria-label={unusualText(c.current.unusual)}>⚠</span>
             )}
@@ -264,7 +264,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                     <YoyChange current={c.current.value as number} previous={c.previous.value as number} previousYear={year - 1} compact />
                 </div>
             ) : c.current.value !== null && columnComparable && (
-                <div className="text-xs text-gray-400 cursor-help" title={noComparisonReason(c)}>{t.consumption.noComparison}</div>
+                <div className="text-xs text-gray-500 cursor-help" title={noComparisonReason(c)}>{t.consumption.noComparison}</div>
             )}
         </>
     );
@@ -354,7 +354,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                     format={format}
                                 />
                             ) : (
-                                <p className="h-40 flex items-center justify-center text-sm text-gray-400" aria-busy="true">{t.consumption.chartLoading}</p>
+                                <p className="h-40 flex items-center justify-center text-sm text-gray-500" aria-busy="true">{t.consumption.chartLoading}</p>
                             )}
                         </div>
                     );
@@ -381,7 +381,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                                             <button onClick={() => toggleSort(mt.type)} className="hover:text-gray-900">
                                                 {typeLabel(mt.type)} ({mt.unit_of_measure}){sortArrow(mt.type)}
                                             </button>
-                                            <div className={`text-xs font-normal ${columnNote(mt.type).comparable ? 'text-gray-400' : 'text-amber-700'}`}>{columnNote(mt.type).text}</div>
+                                            <div className={`text-xs font-normal ${columnNote(mt.type).comparable ? 'text-gray-500' : 'text-amber-700'}`}>{columnNote(mt.type).text}</div>
                                         </th>
                                     ))}
                                 </tr>

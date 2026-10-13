@@ -314,7 +314,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         {unit.owner.full_name && <p className="text-xs text-gray-500 truncate">{unit.owner.email}</p>}
                                     </>
                                 ) : (
-                                    <p className="text-gray-400 italic">{t.building.noOwner}</p>
+                                    <p className="text-gray-500 italic">{t.building.noOwner}</p>
                                 )}
                             </div>
                             {!ownerFormOpen && (
@@ -358,8 +358,9 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                 {/* Comparative Controls */}
                 <div className={`${CARD} p-4 flex flex-wrap gap-4 items-center`}>
                     <div>
-                        <label className={FILTER_LABEL}>{t.unit.year}</label>
+                        <label htmlFor="period-year" className={FILTER_LABEL}>{t.unit.year}</label>
                         <select
+                            id="period-year"
                             value={selectedYear}
                             onChange={(e) => {
                                 const year = parseInt(e.target.value);
@@ -372,16 +373,18 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         </select>
                     </div>
                     <div>
-                        <label className={FILTER_LABEL}>{t.unit.viewMode}</label>
-                        <div className="flex mt-1 border rounded-md overflow-hidden">
+                        <span id="view-mode-label" className={FILTER_LABEL}>{t.unit.viewMode}</span>
+                        <div role="group" aria-labelledby="view-mode-label" className="flex mt-1 border rounded-md overflow-hidden">
                             <button
                                 onClick={() => setViewMode('month')}
+                                aria-pressed={viewMode === 'month'}
                                 className={`px-3 py-1 text-sm ${viewMode === 'month' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-white text-gray-600'}`}
                             >
                                 {t.unit.month}
                             </button>
                             <button
                                 onClick={() => setViewMode('week')}
+                                aria-pressed={viewMode === 'week'}
                                 className={`px-3 py-1 text-sm ${viewMode === 'week' ? 'bg-blue-100 text-blue-800 font-bold' : 'bg-white text-gray-600'}`}
                             >
                                 {t.unit.week}
@@ -389,13 +392,14 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                         </div>
                     </div>
                     <div>
-                        <label className={FILTER_LABEL}>
+                        <label htmlFor="period-select" className={FILTER_LABEL}>
                             {viewMode === 'month' ? t.unit.selectMonth : t.unit.selectWeek}
                         </label>
                         <div className="mt-1 flex items-center gap-1">
                         <button type="button" onClick={() => shiftPeriod(-1)} disabled={atOldestPeriod} className={arrowClass} aria-label={t.unit.prevPeriod} title={t.unit.prevPeriod}>‹</button>
                         {viewMode === 'month' ? (
                             <select
+                                id="period-select"
                                 value={selectedMonth}
                                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
                                 className={`block w-32 ${FILTER_SELECT}`}
@@ -406,6 +410,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                             </select>
                         ) : (
                             <select
+                                id="period-select"
                                 value={selectedWeek}
                                 onChange={(e) => setSelectedWeek(parseInt(e.target.value))}
                                 className={`block w-32 ${FILTER_SELECT}`}
@@ -519,15 +524,15 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                     </div>
                                     {shown.length > 1 && <p className="text-xs text-gray-500 mb-2">{t.unit.meterReplaced}</p>}
 
-                                    {readingsLoading && <p className="text-xs text-gray-400 mb-2 animate-pulse">{t.unit.loadingReadings}</p>}
+                                    {readingsLoading && <p className="text-xs text-gray-500 mb-2 animate-pulse">{t.unit.loadingReadings}</p>}
                                     {/* Yearly Totals Badges */}
                                     <div className="flex flex-wrap gap-2 text-xs">
-                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${currentYearTotal.value ? 'bg-blue-50 border-blue-100 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(yearStart)).replace('{{endDate}}', lastDayLabel(ytdEnd))}:</span>
                                             <span className="font-mono font-bold">{formatConsumption(currentYearTotal.value ?? 0)}</span> {uom}
                                             {currentYearTotal.value !== null && !currentYearTotal.complete && <span className="cursor-help" title={missingTitle(currentYearTotal)}>*</span>}
                                         </span>
-                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-400'}`}>
+                                        <span className={`px-2 py-1 rounded-md border ${prevYearTotal.value ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-gray-50 border-gray-100 text-gray-500'}`}>
                                             <span className="opacity-70 mr-1">{t.building.totalPeriod.replace('{{startDate}}', formatDate(Date.UTC(selectedYear - 1, 0, 1))).replace('{{endDate}}', lastDayLabel(prevYtdEnd))}:</span>
                                             <span className="font-mono font-bold">{formatConsumption(prevYearTotal.value ?? 0)}</span> {uom}
                                             {prevYearTotal.value !== null && !prevYearTotal.complete && <span className="cursor-help" title={missingTitle(prevYearTotal)}>*</span>}
@@ -598,7 +603,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                             {currentConsumption.complete && prevConsumption.complete
                                                 ? <YoyChange current={currentConsumption.value as number} previous={prevConsumption.value as number} previousYear={selectedYear - 1} />
                                                 : currentConsumption.value !== null && (
-                                                    <span className="text-gray-400 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
+                                                    <span className="text-gray-500 cursor-help" title={missingTitle(currentConsumption.complete ? prevConsumption : currentConsumption)}>{t.unit.incompletePeriod}</span>
                                                 )}
                                         </p>
                                     </div>
@@ -611,7 +616,7 @@ export default function UnitDetail({ params }: { params: Promise<{ id: string }>
                                         </div>
                                     </details>
                                 ) : (
-                                    <p className="mt-2 text-xs text-gray-400 italic">{t.unit.noData}</p>
+                                    <p className="mt-2 text-xs text-gray-500 italic">{t.unit.noData}</p>
                                 )}
                             </div>
                         </div>

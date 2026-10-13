@@ -238,6 +238,9 @@ export const en: Translations = {
         users: 'Users',
         profile: 'Profile',
         unit: 'Unit',
+        breadcrumbs: 'Breadcrumbs',
+        switchToCs: 'Switch to Czech',
+        switchToEn: 'Switch to English',
     },
     consumption: {
         title: 'Consumption overview',
