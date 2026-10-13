@@ -69,6 +69,7 @@ export const cs: Translations = {
         searchUnits: 'Hledat jednotku nebo vlastníka…',
         onlyWithoutOwner: 'Jen bez vlastníka',
         noUnitMatch: 'Žádná jednotka neodpovídá.',
+        notFound: 'Dům neexistuje nebo k němu nemáte přístup.',
     },
     unit: {
         assignOwner: 'Přiřadit vlastníka e-mailem',

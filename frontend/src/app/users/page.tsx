@@ -56,8 +56,8 @@ export default function UsersPage() {
             return;
         }
 
-        // Restrict access to Admins only
-        if (currentUser?.role !== 'admin') {
+        // Admins manage everyone, managers the owners they invited (the backend filters the list)
+        if (currentUser?.role !== 'admin' && currentUser?.role !== 'home_lord') {
             router.push('/');
             return;
         }
@@ -70,7 +70,10 @@ export default function UsersPage() {
 
     const fetchUsers = () => {
         authFetch('/users/')
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return res.json();
+            })
             .then(data => setUsers(data))
             .catch(err => console.error(err));
     };
@@ -253,16 +256,19 @@ export default function UsersPage() {
         return date < new Date();
     };
 
-    if (authLoading || !token || currentUser?.role !== 'admin') {
+    if (authLoading || !token || (currentUser?.role !== 'admin' && currentUser?.role !== 'home_lord')) {
         return <PageSkeleton variant="list" rows={8} />;
     }
 
     const isPending = (u: User) => !!u.invite_token && u.status === 'pending';
     const filters = [
         { key: 'all', label: t.users.filterAll, count: users.length },
-        { key: 'admin', label: t.users.roleAdmin, count: users.filter(u => u.role === 'admin').length },
-        { key: 'home_lord', label: t.users.roleHomeLord, count: users.filter(u => u.role === 'home_lord').length },
-        { key: 'owner', label: t.users.roleOwner, count: users.filter(u => u.role === 'owner').length },
+        // A manager sees only owners: role filters would be pointless
+        ...(currentUser?.role === 'admin' ? [
+            { key: 'admin', label: t.users.roleAdmin, count: users.filter(u => u.role === 'admin').length },
+            { key: 'home_lord', label: t.users.roleHomeLord, count: users.filter(u => u.role === 'home_lord').length },
+            { key: 'owner', label: t.users.roleOwner, count: users.filter(u => u.role === 'owner').length },
+        ] : []),
         { key: 'pending', label: t.users.pendingInvite, count: users.filter(isPending).length },
     ];
     // Search in name, e-mail and assigned buildings/units

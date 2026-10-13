@@ -1,17 +1,27 @@
 "use client";
 import { INPUT, LABEL, PAGE } from '@/lib/ui';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Breadcrumbs from '@/components/Breadcrumbs';
 import { useRouter } from 'next/navigation';
 import { authFetch } from '@/lib/api';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 
 export default function CreateBuilding() {
     const router = useRouter();
     const { t } = useLanguage();
     const toast = useToast();
+    const { user, token, isLoading: authLoading } = useAuth();
+
+    // Only admins create buildings (the backend refuses everyone else)
+    useEffect(() => {
+        if (authLoading) return;
+        if (!token) router.push('/login');
+        else if (user?.role !== 'admin') router.replace('/');
+    }, [authLoading, token, user?.role, router]);
+
     const [form, setForm] = useState({
         name: '',
         address: '',

@@ -67,6 +67,7 @@ export interface Translations {
         searchUnits: string;
         onlyWithoutOwner: string;
         noUnitMatch: string;
+        notFound: string;
     };
     unit: {
         assignOwner: string;

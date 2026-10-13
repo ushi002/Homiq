@@ -38,6 +38,7 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
     const { id } = use(params);
     const [building, setBuilding] = useState<any>(null); // Use any to allow manager_id property
     const [units, setUnits] = useState<Unit[]>([]);
+    const [loadError, setLoadError] = useState('');
     const [unitSearch, setUnitSearch] = useState('');
     const [onlyWithoutOwner, setOnlyWithoutOwner] = useState(false);
     const { user, token, isLoading: authLoading } = useAuth();
@@ -138,16 +139,25 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         if (authLoading || !token) return;
 
         // Fetch building
+        // 403/404: the building does not exist or belongs to someone else
+        const failed = (err: Error) => {
+            console.error(err);
+            setLoadError(['403', '404'].includes(err.message) ? t.building.notFound : t.messages.errorGeneric);
+        };
+        const json = async (res: Response) => {
+            if (!res.ok) throw new Error(String(res.status));
+            return res.json();
+        };
         authFetch(`/buildings/${id}`)
-            .then(res => res.json())
+            .then(json)
             .then(data => setBuilding(data))
-            .catch(err => console.error(err));
+            .catch(failed);
 
         // Fetch units
         authFetch(`/buildings/${id}/units`)
-            .then(res => res.json())
+            .then(json)
             .then(data => setUnits(data))
-            .catch(err => console.error(err));
+            .catch(failed);
     }, [id, token, authLoading]);
 
     useEffect(() => {
@@ -165,6 +175,14 @@ export default function BuildingDetail({ params }: { params: Promise<{ id: strin
         }
     }, [building]);
 
+    if (loadError) {
+        return (
+            <main className={PAGE}>
+                <Breadcrumbs items={[{ label: user?.role === 'owner' ? t.dashboard.myUnits : t.nav.buildings, href: '/' }]} />
+                <div className="p-8 bg-white rounded-xl text-center text-red-600 border border-red-100">{loadError}</div>
+            </main>
+        );
+    }
     if (authLoading || !token || !building) return <PageSkeleton variant="list" rows={8} />;
 
     const handleAssignManager = async (newManagerId: string) => {
