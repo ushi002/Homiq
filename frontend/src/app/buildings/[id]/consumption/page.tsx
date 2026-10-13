@@ -62,7 +62,7 @@ const sumCells = (cells: Cell[]): Cell => {
 
 export default function BuildingConsumption({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
-    const { token, isLoading: authLoading } = useAuth();
+    const { token, user, isLoading: authLoading } = useAuth();
     const router = useRouter();
     const { t, language } = useLanguage();
     const toast = useToast();
@@ -86,26 +86,37 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const [chartType, setChartType] = useState<string | null>(null);
     const [onlyUnusual, setOnlyUnusual] = useState(false);
 
+    const [forbidden, setForbidden] = useState(false);
+
     useEffect(() => {
         if (authLoading) return;
         if (!token) {
             router.push('/login');
             return;
         }
+        // The overview shows other owners' consumption: owners go to the building detail (their units)
+        if (user?.role === 'owner') {
+            router.replace(`/buildings/${id}`);
+            return;
+        }
         authFetch(`/buildings/${id}`)
             .then(res => res.json())
             .then(setBuilding)
             .catch(err => console.error(err));
-    }, [id, token, authLoading]);
+    }, [id, token, authLoading, user?.role]);
 
     useEffect(() => {
-        if (authLoading || !token) return;
+        if (authLoading || !token || user?.role === 'owner') return;
         // Ignore responses for a period that is no longer selected (fast year + month changes)
         let stale = false;
         setLoading(true);
         setError('');
         authFetch(`/buildings/${id}/consumption?year=${year}${month ? `&month=${month}` : ''}`)
             .then(async res => {
+                if (res.status === 403) {
+                    if (!stale) setForbidden(true);  // e.g. a manager of another building
+                    return;
+                }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
                 if (!stale) setData(json);
@@ -118,10 +129,10 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                 if (!stale) setLoading(false);
             });
         return () => { stale = true; };
-    }, [id, token, authLoading, year, month]);
+    }, [id, token, authLoading, year, month, user?.role]);
 
     useEffect(() => {
-        if (authLoading || !token) return;
+        if (authLoading || !token || user?.role === 'owner') return;
         let stale = false;
         setMonthly(null);
         authFetch(`/buildings/${id}/consumption_monthly?year=${year}`)
@@ -129,7 +140,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             .then(json => { if (!stale) setMonthly(json); })
             .catch(err => console.error(err));
         return () => { stale = true; };
-    }, [id, token, authLoading, year]);
+    }, [id, token, authLoading, year, user?.role]);
 
     const format = (v: number | null) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: 2 });
 
@@ -172,7 +183,8 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
     const sortArrow = (key: string) => sortKey === key ? (sortDesc ? ' ↓' : ' ↑') : '';
 
-    if (authLoading || !token) return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (authLoading || !token || user?.role === 'owner') return <div className="p-8 text-center">{t.common.loading}</div>;
+    if (forbidden) return <div className="p-8 text-center text-gray-600">{t.consumption.noAccess}</div>;
 
     type Pair = { current: Cell; previous: Cell };
     // A percentage needs both periods complete and a non-zero previous value
