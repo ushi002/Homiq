@@ -9,7 +9,8 @@ interface Reading {
 }
 
 interface ConsumptionChartProps {
-    meters: Reading[][]; // readings of each meter (old and new after a replacement), sorted by time
+    meters?: Reading[][]; // readings of each meter (old and new after a replacement), sorted by time
+    monthly?: { current: (number | null)[]; previous: (number | null)[] }; // or ready monthly values (building overview)
     year: number;
     unitOfMeasure: string;
     selectedMonth: number | null; // 1-12, highlighted column
@@ -31,13 +32,13 @@ const niceScale = (max: number) => {
     return { step, top: Math.ceil(max / step) * step };
 };
 
-export default function ConsumptionChart({ meters, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
+export default function ConsumptionChart({ meters, monthly, year, unitOfMeasure, selectedMonth, onSelectMonth, format }: ConsumptionChartProps) {
     const { t, language } = useLanguage();
     const [hovered, setHovered] = useState<number | null>(null);
     const locale = language === 'cs' ? 'cs-CZ' : 'en-US';
 
-    const current = monthlyConsumption(meters, year);
-    const previous = monthlyConsumption(meters, year - 1);
+    const current = monthly?.current ?? monthlyConsumption(meters ?? [], year);
+    const previous = monthly?.previous ?? monthlyConsumption(meters ?? [], year - 1);
     const max = Math.max(0, ...current.map(v => v ?? 0), ...previous.map(v => v ?? 0));
 
     const monthName = (m: number, style: 'long' | 'short') => new Date(2000, m).toLocaleString(locale, { month: style });

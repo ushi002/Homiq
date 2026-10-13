@@ -235,5 +235,7 @@ export interface Translations {
         incompleteNote: string;
         noMeters: string;
         categoryElectricity: string;
+        buildingChart: string;
+        chartLoading: string;
     };
 }

@@ -262,5 +262,7 @@ export const cs: Translations = {
         incompleteNote: '* Neúplné období: na začátku nebo na konci období chybí data za více než 3 % dní (měřič začal měřit později, přestal měřit, nebo ještě nepřišel další odečet). Hodnota není konečná a neporovnává se. Výpadky uprostřed období a výměna měřiče nevadí.',
         noMeters: 'V tomto domě nejsou žádné měřiče.',
         categoryElectricity: 'Elektřina',
+        buildingChart: 'Spotřeba domu po měsících',
+        chartLoading: 'Načítám graf… (první načtení roku může trvat i půl minuty)',
     }
 };
