@@ -9,33 +9,12 @@ from ..core.database import get_session
 from ..core.consumption import PeriodResult, combine_meters
 from ..core.building_consumption import units_consumption
 from ..core.influx_utils import get_meter_readings, get_meters_last_time, parse_measurements_config, DEFAULT_MEASUREMENTS
-from ..models.property import Unit, UnitCreate, UnitRead, User, Building
+from ..models.property import Unit, UnitRead, User, Building
 from ..models.telemetry import Meter
 from .access import can_access_unit, require
 from .deps import get_current_user
 
 router = APIRouter()
-
-@router.post("/", response_model=UnitRead)
-def create_unit(
-    unit: UnitCreate, 
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role not in ["admin", "home_lord"]:
-         raise HTTPException(status_code=403, detail="Not authorized")
-         
-    # If home_lord, verify they manage the building
-    if current_user.role == "home_lord":
-        building = session.get(Building, unit.building_id)
-        if not building or building.manager_id != current_user.id:
-             raise HTTPException(status_code=403, detail="Not authorized to add unit to this building")
-             
-    db_unit = Unit.model_validate(unit)
-    session.add(db_unit)
-    session.commit()
-    session.refresh(db_unit)
-    return db_unit
 
 @router.get("/", response_model=List[UnitRead])
 def read_units(

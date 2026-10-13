@@ -4,32 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import User, Building, Unit # Import User model
-from ..models.telemetry import Meter, MeterCreate, MeterRead
+from ..models.telemetry import Meter, MeterRead
 from .deps import get_current_user
 from .access import can_access_unit, require
 
 router = APIRouter()
-
-# --- Meters ---
-@router.post("/meters/", response_model=MeterRead)
-def create_meter(
-    meter: MeterCreate, 
-    session: Session = Depends(get_session),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Not authorized")
-        
-    # Check if unit exists
-    unit = session.get(Unit, meter.unit_id)
-    if not unit:
-         raise HTTPException(status_code=404, detail="Unit not found")
-
-    db_meter = Meter.model_validate(meter)
-    session.add(db_meter)
-    session.commit()
-    session.refresh(db_meter)
-    return db_meter
 
 @router.get("/meters/", response_model=List[MeterRead])
 def read_meters(
