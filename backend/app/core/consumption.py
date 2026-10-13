@@ -10,8 +10,9 @@ Same rule as frontend/src/lib/consumption.ts (the unit detail view), keep them i
 - A value is complete when at most 3 % of the period's days are missing.
 """
 import math
+import statistics
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 COVERAGE_THRESHOLD = 0.97
 DAY = 86400.0
@@ -94,3 +95,17 @@ def combine_meters(start: float, end: float, meters: List[Optional[MeterPeriod]]
     value = _round(sum(m.value for m in known), max(m.decimals for m in known))
     missing = ((covered_from - start) + (end - covered_to)) / DAY
     return PeriodResult(value, _round(missing, 1), _round(period_days, 1))
+
+
+# A median is shown only when it comes from at least this many units, so it never reveals a
+# neighbour's consumption
+MIN_UNITS_FOR_MEDIAN = 5
+
+
+def typical(results: Iterable[Optional[PeriodResult]]) -> Optional[tuple]:
+    """Typical unit of a building: (median, number of units) over complete, non-zero values (zero is
+    most likely an empty unit), or None with fewer than MIN_UNITS_FOR_MEDIAN units."""
+    values = [r.value for r in results if r and r.complete and r.value and r.value > 0]
+    if len(values) < MIN_UNITS_FOR_MEDIAN:
+        return None
+    return statistics.median(values), len(values)

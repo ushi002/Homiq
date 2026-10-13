@@ -6,8 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
 from ..core.database import get_session
-from ..core.anomaly import typical, unusual
-from ..core.consumption import PeriodResult, combine_meters
+from ..core.consumption import PeriodResult, combine_meters, typical
 from ..core.building_consumption import units_consumption
 from ..core.influx_utils import get_meter_readings, get_meters_last_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..models.property import Unit, UnitCreate, UnitRead, User, Building
@@ -88,9 +87,7 @@ def read_owner_summary(
     for building in buildings:
         building_id = building.id
         own = sorted((u for u in units if u.building_id == building_id), key=lambda u: natural(u.unit_number))
-        # All meters of the building: the median for the unusual-consumption flag needs every unit
-        all_units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
-        meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in all_units]))).all()
+        meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in own]))).all()
         types, (current, previous) = units_consumption(building, meters, [bounds(year), bounds(year - 1)])
         uom = {mt["type"]: mt["unit_of_measure"] for mt in types}
         # newest reading of the owner's own meters, regardless of the period (to open on data)
@@ -101,7 +98,6 @@ def read_owner_summary(
                                         building.influx_device_tag, [m.serial_number for m in meters if m.unit_id in own_ids])
             if last:
                 last_times.append(last)
-        medians = {t: typical(by_type.get(t) for by_type in current.values()) for t in uom}
         own_types = {t for u in own for t in current.get(str(u.id), {}) | previous.get(str(u.id), {})}
         for mt in types:
             if mt["type"] in own_types and mt not in meter_types:
@@ -109,12 +105,9 @@ def read_owner_summary(
         for u in own:
             values = {}
             for t in sorted(set(current.get(str(u.id), {})) | set(previous.get(str(u.id), {}))):
-                median = medians.get(t)
                 values[t] = {"unit_of_measure": uom.get(t),
                              "current": cell(current.get(str(u.id), {}).get(t), year),
-                             "previous": cell(previous.get(str(u.id), {}).get(t), year - 1),
-                             "unusual": unusual(current.get(str(u.id), {}).get(t), previous.get(str(u.id), {}).get(t),
-                                                median[0] if median else None)}
+                             "previous": cell(previous.get(str(u.id), {}).get(t), year - 1)}
                 total = totals.setdefault(f"{t}|{uom.get(t)}", {"type": t, "unit_of_measure": uom.get(t), "current": [], "previous": []})
                 total["current"].append(values[t]["current"])
                 total["previous"].append(values[t]["previous"])
@@ -302,8 +295,7 @@ def read_building_average(
     """Typical consumption of a unit in the unit's building in [start, end), by meter type, for
     comparison on the unit detail: the median, because a few large consumers (a leak, non-residential
     units) pull the mean up by 10-40 % and most owners would always look "below average". Only the
-    median and the number of units are returned (rules in core/anomaly.py), plus whether this unit's
-    consumption is unusually high."""
+    median and the number of units are returned (rules in core/consumption.py, typical)."""
     unit = session.get(Unit, unit_id)
     if not unit:
         raise HTTPException(status_code=404, detail="Unit not found")
@@ -318,16 +310,13 @@ def read_building_average(
     building = session.get(Building, unit.building_id)
     units = session.exec(select(Unit).where(Unit.building_id == building.id)).all()
     meters = session.exec(select(Meter).where(Meter.unit_id.in_([u.id for u in units]))).all()
-    year_ago = lambda d: d.replace(year=d.year - 1) if not (d.month == 2 and d.day == 29) else d.replace(year=d.year - 1, day=28)
-    meter_types, (period, last_year) = units_consumption(building, meters, [(start, end), (year_ago(start), year_ago(end))])
+    meter_types, (period,) = units_consumption(building, meters, [(start, end)])
 
     types = {}
-    own, own_last_year = period.get(str(unit.id), {}), last_year.get(str(unit.id), {})
     for mt in meter_types:
         t = mt["type"]
         median = typical(by_type.get(t) for by_type in period.values())
         if median:
-            types[t] = {"median": round(median[0], 2), "units": median[1],
-                        "unusual": unusual(own.get(t), own_last_year.get(t), median[0])}
+            types[t] = {"median": round(median[0], 2), "units": median[1]}
     return {"types": types}
 

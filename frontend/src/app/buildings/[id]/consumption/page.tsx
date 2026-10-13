@@ -18,7 +18,6 @@ interface Cell {
     complete: boolean;
     missing_days?: number; // days without data at the start or end of the period
     period_days?: number;
-    unusual?: { median_factor: number; previous_factor: number | null }; // unusually high (core/anomaly.py)
 }
 
 interface UnitRow {
@@ -84,8 +83,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
     // Whole building by month for the chart; loaded separately, the first load of a year is slow
     const [monthly, setMonthly] = useState<MonthlyData | null>(null);
     const [chartType, setChartType] = useState<string | null>(null);
-    const [onlyUnusual, setOnlyUnusual] = useState(false);
-    // Period from the address (?year=&month=&unusual=1, e.g. a link from the dashboard), read once in
+    // Period from the address (?year=&month=, e.g. a link from the dashboard), read once in
     // the browser before the first fetch; month=0 or no month = whole year
     const [paramsRead, setParamsRead] = useState(false);
     useEffect(() => {
@@ -96,7 +94,6 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
             const m = parseInt(q.get('month') ?? '0');
             setMonth(m >= 1 && m <= 12 ? m : 0);
         }
-        if (q.get('unusual') === '1') setOnlyUnusual(true);
         setParamsRead(true);
     }, []);
 
@@ -177,9 +174,7 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
         }
     };
 
-    const isUnusual = (u: UnitRow) => Object.values(u.values).some(v => v.current.unusual);
-    const unusualCount = (data?.units ?? []).filter(isUnusual).length;
-    const rows = [...(data?.units ?? [])].filter(u => !(onlyUnusual && unusualCount > 0) || isUnusual(u)).sort((a, b) => {
+    const rows = [...(data?.units ?? [])].sort((a, b) => {
         let cmp: number;
         if (sortKey === 'unit') {
             cmp = a.unit_number.localeCompare(b.unit_number, locale, { numeric: true });
@@ -258,21 +253,12 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
         }
     };
 
-    // Same texts as the unit detail: "Unusually high consumption: 13.6x the typical unit, 18x last year"
-    const factor = (f: number) => f.toLocaleString(locale, { maximumFractionDigits: f < 10 ? 1 : 0 });
-    const unusualText = (u: { median_factor: number; previous_factor: number | null }) =>
-        `${t.unit.unusualTitle}: ${t.unit.unusualMedian.replace('{{factor}}', factor(u.median_factor))}` +
-        (u.previous_factor !== null ? `, ${t.unit.unusualPrevious.replace('{{factor}}', factor(u.previous_factor))}` : '');
-
     // columnComparable: when false the header already explains the missing change, so cells stay clean
     const renderCell = (c: Pair, uom: string, columnComparable: boolean) => (
         <>
             <span className="font-mono">{format(c.current.value)}</span>
             {c.current.value !== null && !c.current.complete && <span className="text-gray-500 cursor-help" title={missingTitle(c.current)}>*</span>}
             {c.current.value !== null && <span className="text-xs text-gray-500 ml-1">{uom}</span>}
-            {c.current.unusual && (
-                <span className="ml-1 text-red-600 font-bold cursor-help" title={unusualText(c.current.unusual)} aria-label={unusualText(c.current.unusual)}>⚠</span>
-            )}
             {comparable(c) ? (
                 <div className="text-xs">
                     <YoyChange current={c.current.value as number} previous={c.previous.value as number} previousYear={year - 1} compact />
@@ -309,15 +295,6 @@ export default function BuildingConsumption({ params }: { params: Promise<{ id: 
                             ))}
                         </select>
                     </div>
-                    {unusualCount > 0 && (
-                        <button
-                            onClick={() => setOnlyUnusual(!onlyUnusual)}
-                            className={`self-end px-3 py-2 rounded-lg border text-sm font-medium ${onlyUnusual ? 'bg-red-50 border-red-200 text-red-700' : 'border-gray-300 text-gray-700 hover:bg-gray-50'}`}
-                            title={t.unit.unusualTitle}
-                        >
-                            ⚠ {t.consumption.onlyUnusual.replace('{{count}}', String(unusualCount))}
-                        </button>
-                    )}
                     <button
                         onClick={exportReadings}
                         disabled={!data || data.meter_types.length === 0 || exporting}

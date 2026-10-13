@@ -261,7 +261,6 @@ export interface Translations {
         categoryElectricity: string;
         buildingChart: string;
         chartLoading: string;
-        onlyUnusual: string;
         noAccess: string;
     };
 }
