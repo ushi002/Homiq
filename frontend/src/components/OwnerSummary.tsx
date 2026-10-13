@@ -34,7 +34,17 @@ interface Summary {
     units: SummaryUnit[];
     totals: Record<string, Pair>; // key "type|unit_of_measure": litres and m³ are never added up
     meter_types: { type: string; unit_of_measure: string }[];
+    last_reading?: string | null; // latest reading of any of the units, whatever the period
 }
+
+// Meter types in the same order as on the other pages
+const TYPE_ORDER = ['water_cold', 'water_hot', 'heat', 'electricity'];
+const typeRank = (type: string) => {
+    const i = TYPE_ORDER.indexOf(type);
+    return i === -1 ? TYPE_ORDER.length : i;
+};
+const byType = <T,>(entries: [string, T][]) =>
+    [...entries].sort(([a], [b]) => typeRank(a.split('|')[0]) - typeRank(b.split('|')[0]) || a.localeCompare(b));
 
 // Fallback list when the summary cannot be loaded: just links to the units
 export interface OwnedUnitLink {
@@ -58,6 +68,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
     const [data, setData] = useState<Summary | null>(null);
     const [loading, setLoading] = useState(true);
     const [failed, setFailed] = useState(false);
+    const [periodTouched, setPeriodTouched] = useState(false); // the owner chose a period: no automatic jump
 
     useEffect(() => {
         let stale = false; // a newer period was selected meanwhile
@@ -66,7 +77,18 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
             .then(async res => {
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
-                if (!stale) { setData(json); setFailed(false); }
+                if (stale) return;
+                setData(json);
+                setFailed(false);
+                // Without fresh data the last closed month is empty: open the month of the latest reading
+                if (!periodTouched && json.last_reading) {
+                    const last = new Date(json.last_reading);
+                    if (last < new Date(year, month ? month - 1 : 0, 1)) {
+                        setPeriodTouched(true);
+                        setYear(last.getFullYear());
+                        setMonth(last.getMonth() + 1);
+                    }
+                }
             })
             .catch(err => {
                 console.error(err);
@@ -74,7 +96,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
             })
             .finally(() => { if (!stale) setLoading(false); });
         return () => { stale = true; };
-    }, [year, month]);
+    }, [year, month]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const years = Array.from({ length: 4 }, (_, i) => currentYear - i);
     const monthName = (m: number) => new Date(2000, m - 1).toLocaleString(locale, { month: 'long' });
@@ -85,7 +107,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
     const shift = (delta: number) => {
         if (!month) {
             const y = year + delta;
-            if (years.includes(y)) setYear(y);
+            if (years.includes(y)) { setPeriodTouched(true); setYear(y); }
             return;
         }
         let m = month + delta;
@@ -93,6 +115,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
         if (m < 1) { m = 12; y -= 1; }
         if (m > 12) { m = 1; y += 1; }
         if (!years.includes(y)) return;
+        setPeriodTouched(true);
         setYear(y);
         setMonth(m);
     };
@@ -125,7 +148,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
 
     const card = 'bg-white -mx-4 sm:mx-0 rounded-none sm:rounded-xl border-x-0 sm:border-x shadow-sm border border-gray-100';
     const arrow = 'px-2 py-1 rounded-md border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40';
-    const totals = Object.entries(data?.totals ?? {});
+    const totals = byType(Object.entries(data?.totals ?? {}));
 
     return (
         <>
@@ -134,11 +157,11 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                     <h2 className="text-lg font-semibold text-gray-800">{t.dashboard.totalFor.replace('{{period}}', periodLabel)}</h2>
                     <div className="flex items-center gap-1">
                         <button type="button" onClick={() => shift(-1)} disabled={atOldest} className={arrow} aria-label={t.unit.prevPeriod} title={t.unit.prevPeriod}>‹</button>
-                        <select value={month} onChange={e => setMonth(parseInt(e.target.value))} aria-label={t.consumption.period} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <select value={month} onChange={e => { setPeriodTouched(true); setMonth(parseInt(e.target.value)); }} aria-label={t.consumption.period} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
                             <option value={0}>{t.consumption.wholeYear}</option>
                             {Array.from({ length: 12 }, (_, i) => i + 1).map(m => <option key={m} value={m}>{monthName(m)}</option>)}
                         </select>
-                        <select value={year} onChange={e => setYear(parseInt(e.target.value))} aria-label={t.unit.year} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
+                        <select value={year} onChange={e => { setPeriodTouched(true); setYear(parseInt(e.target.value)); }} aria-label={t.unit.year} className="rounded-md border-gray-300 shadow-sm border p-1 text-sm">
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
                         <button type="button" onClick={() => shift(1)} disabled={atLatest} className={arrow} aria-label={t.unit.nextPeriod} title={t.unit.nextPeriod}>›</button>
@@ -180,7 +203,7 @@ export default function OwnerSummary({ fallbackUnits }: { fallbackUnits: OwnedUn
                     <h2 className="text-lg font-semibold text-gray-800">{group.building_name}</h2>
                     <ul className="mt-2 divide-y divide-gray-100">
                         {group.units.map(u => {
-                            const values = Object.entries(valuesOf(u.id));
+                            const values = byType(Object.entries(valuesOf(u.id)));
                             return (
                                 <li key={u.id}>
                                     <Link href={`/units/${u.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3 px-2 -mx-2 rounded-md hover:bg-gray-50">
