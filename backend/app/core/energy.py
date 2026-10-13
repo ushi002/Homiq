@@ -13,8 +13,11 @@ from typing import Dict, List, Optional, Tuple
 # Design temperatures of the heat loss calculation (indoor, outdoor) [°C]
 DESIGN_INDOOR_C = 20.0
 DESIGN_OUTDOOR_C = -12.0
-# Days for the signature: heating days with data from almost all meters
+# Days for the signature: heating days with data from almost all meters. The heating season runs
+# from the first to the last day with at least HEATING_SHARE of the highest daily consumption;
+# days outside it and days without consumption (heating off) are left out.
 HEATING_BELOW_C = 15.0
+HEATING_SHARE = 0.1
 DAY_COMPLETE_SHARE = 0.9
 MIN_SIGNATURE_DAYS = 10
 # A unit's consumption against its expected share: at least HIGH or at most LOW times is highlighted
@@ -42,8 +45,10 @@ def meter_daily(points: List[Tuple[date, float]], start: date, end: date) -> Dic
 
 def building_daily(meters: Dict[str, Dict[date, float]], temperatures: Dict[date, float],
                    start: date, end: date) -> List[dict]:
-    """Per day: the building's consumption (sum of the meters with data that day), whether almost
-    all meters had data (complete) and the outdoor temperature."""
+    """Per day: the building's consumption (sum of the meters with data that day), whether at least
+    DAY_COMPLETE_SHARE of the meters had data (complete; only meters with some data in the period
+    count, a meter silent for the whole period does not make every day incomplete) and the
+    outdoor temperature."""
     days = []
     for i in range((end - start).days):
         day = start + timedelta(days=i)
@@ -61,8 +66,13 @@ def signature(days: List[dict]) -> Optional[dict]:
     """Line kWh/day = intercept + slope x temperature through the complete heating days (least
     squares). kw_per_k is the building's heat loss coefficient it implies, balance_temp_c the
     outdoor temperature at which heating stops. None without enough days."""
-    pts = [(d["temp"], d["kwh"]) for d in days
-           if d["complete"] and d["temp"] is not None and d["kwh"] is not None and d["temp"] < HEATING_BELOW_C]
+    usable = [d for d in days if d["complete"] and d["temp"] is not None and d["kwh"] is not None]
+    if not usable:
+        return None
+    threshold = HEATING_SHARE * max(d["kwh"] for d in usable)
+    heating = [d["date"] for d in usable if d["kwh"] >= threshold]
+    pts = [(d["temp"], d["kwh"]) for d in usable
+           if heating and heating[0] <= d["date"] <= heating[-1] and d["kwh"] > 0 and d["temp"] < HEATING_BELOW_C]
     if len(pts) < MIN_SIGNATURE_DAYS:
         return None
     n = len(pts)
@@ -79,6 +89,8 @@ def signature(days: List[dict]) -> Optional[dict]:
     ss_res = sum((k - (intercept + slope * t)) ** 2 for t, k in pts)
     return {
         "days": n,
+        "from": heating[0],
+        "to": heating[-1],
         "slope": round(slope, 2),
         "intercept": round(intercept, 1),
         "kw_per_k": round(-slope / 24, 3),

@@ -19,12 +19,16 @@ days = building_daily(meters, {d(2): -3.0}, d(2), d(4))
 assert days[0] == {"date": "2026-01-02", "kwh": 10.0, "complete": True, "temp": -3.0}, days[0]
 assert days[1] == {"date": "2026-01-03", "kwh": 2.0, "complete": False, "temp": None}, days[1]
 
-# Signature: kWh/day = 480 - 24 x T  ->  1 kW/K, heating stops at 20 °C; warm days are left out
-days = [{"date": "", "kwh": 480 - 24 * t, "complete": True, "temp": t} for t in range(-5, 15)]
-days += [{"date": "", "kwh": 5, "complete": True, "temp": 18}, {"date": "", "kwh": 999, "complete": False, "temp": 0}]
+# Signature: kWh/day = 480 - 24 x T  ->  1 kW/K, heating stops at 20 °C. Left out: days before the
+# heating starts (no consumption at 12 °C), warm days, incomplete days
+day = lambda i: (date(2025, 10, 1) + timedelta(days=i)).isoformat()
+days = [{"date": day(0), "kwh": 0.0, "complete": True, "temp": 12.0}, {"date": day(1), "kwh": 3.0, "complete": True, "temp": 13.0}]
+days += [{"date": day(2 + i), "kwh": 480 - 24 * t, "complete": True, "temp": t} for i, t in enumerate(range(-5, 15))]
+days += [{"date": day(30), "kwh": 5, "complete": True, "temp": 18}, {"date": day(31), "kwh": 999, "complete": False, "temp": 0}]
 s = signature(days)
 assert s["kw_per_k"] == 1.0 and s["balance_temp_c"] == 20.0 and s["r2"] == 1.0 and s["days"] == 20, s
-assert signature(days[:5]) is None  # too few days
+assert s["from"] == day(2) and s["to"] == day(21), s
+assert signature(days[:7]) is None  # too few days
 
 # Design: 32 kW at ΔT 32 K -> 1 kW/K
 assert design_kw_per_k([16000, 16000]) == 1.0

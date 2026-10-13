@@ -280,6 +280,10 @@ export interface Translations {
         corrected: string;
         share: string;
         noData: string;
+        silentSince: string;
+        noMeter: string;
+        designUnits: string;
+        heatingSeason: string;
         incomplete: string;
         high: string;
         low: string;

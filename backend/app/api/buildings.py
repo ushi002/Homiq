@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from ..core.database import get_session
 from ..models.property import Building, BuildingCreate, BuildingRead, BuildingUpdate, Unit, UnitRead, User
 from ..models.telemetry import Meter
-from ..core.influx_utils import get_daily_max, get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
+from ..core.influx_utils import get_daily_max, get_last_by_serial, get_raw_readings, get_last_reading_time, parse_measurements_config, DEFAULT_MEASUREMENTS
 from ..core.consumption import combine_meters
 from ..core.unit_sync import sync_units_from_influx
 from ..core.building_consumption import units_consumption
@@ -281,16 +281,25 @@ def read_building_energy(
         if building.latitude is not None and building.longitude is not None else {}
     days = energy.building_daily(per_meter, temperatures, start, end)
 
+    # Newest reading of each unit's heat meters: shown for units without data ("silent since")
+    last_by_serial = {}
+    if building.influx_db_name and building.influx_device_tag and meters:
+        for measurement in measurements:
+            last_by_serial.update(get_last_by_serial(building.influx_db_name, measurement, building.influx_device_tag))
     heat_units = []
     _, (results,) = units_consumption(building, meters, [(start_dt, end_dt)])
     for u in units:
         r = results.get(str(u.id), {}).get("heat")
+        times = [last_by_serial[m.serial_number] for m in meters if m.unit_id == u.id and m.serial_number in last_by_serial]
         heat_units.append({
             "id": str(u.id), "unit_number": u.unit_number, "floor": u.floor, "area_m2": u.area_m2 or None,
             "heated_area_m2": u.heated_area_m2, "heat_loss_w": u.heat_loss_w, "position_coef": u.position_coef,
             "kwh": r.value if r else None, "complete": bool(r and r.complete),
+            "has_meter": any(m.unit_id == u.id for m in meters),
+            "last_reading": max(times) if times else None,
         })
-    losses = [u.heat_loss_w for u in units if u.heat_loss_w]
+    # The design coefficient from the same units as the measured one: those with consumption data
+    losses = [u["heat_loss_w"] for u in heat_units if u["heat_loss_w"] and u["kwh"] is not None]
     return {
         "start": start.isoformat(),
         "end": end.isoformat(),
@@ -298,7 +307,8 @@ def read_building_energy(
         "last_reading": last_reading,
         "design": {"indoor_c": energy.DESIGN_INDOOR_C, "outdoor_c": energy.DESIGN_OUTDOOR_C,
                    "heat_loss_kw": round(sum(losses) / 1000, 2) if losses else None,
-                   "kw_per_k": energy.design_kw_per_k(losses), "units_with_loss": len(losses)},
+                   "kw_per_k": energy.design_kw_per_k(losses), "units_with_loss": len(losses),
+                   "units_with_loss_total": sum(1 for u in units if u.heat_loss_w)},
         "rules": {"high_ratio": energy.HIGH_RATIO, "low_ratio": energy.LOW_RATIO, "heating_below_c": energy.HEATING_BELOW_C},
         "days": days,
         "signature": energy.signature(days),

@@ -52,6 +52,15 @@ def get_unique_units(db_name: str, unit_tag: str = None) -> Set[str]:
     
     return units
 
+def get_unit_tags(db_name: str, unit_tag: str, measurements: List[str]) -> Set[str]:
+    """Unit tag values used in any of the measurements (get_unique_units looks at cold water only)."""
+    tags = set()
+    for measurement in measurements:
+        for result in query_influx(db_name, f'SHOW TAG VALUES FROM "{measurement}" WITH KEY = "{unit_tag}"').get('results', []):
+            for series in result.get('series', []):
+                tags.update(value[1] for value in series.get('values', []))
+    return tags
+
 def infer_meter_type(measurement_name: str) -> str:
     """Infers meter type from measurement name."""
     name = measurement_name.lower()
@@ -312,4 +321,15 @@ def get_daily_max(db_name: str, measurement: str, device_tag: str, start: dateti
             points = [(date.fromisoformat(t[:10]), v) for t, v in series.get('values', []) if v is not None]
             if sn and points:
                 out[sn] = points
+    return out
+
+
+def get_last_by_serial(db_name: str, measurement: str, device_tag: str) -> Dict[str, str]:
+    """Time of the newest reading of every meter of a measurement, keyed by serial number."""
+    out: Dict[str, str] = {}
+    for result in query_influx(db_name, f'SELECT LAST("value") FROM "{measurement}" GROUP BY "{device_tag}"').get('results', []):
+        for series in result.get('series', []):
+            sn = series.get('tags', {}).get(device_tag)
+            if sn and series.get('values'):
+                out[sn] = series['values'][0][0]
     return out

@@ -26,6 +26,8 @@ interface EnergyUnit {
     flag: 'high' | 'low' | null;
     corrected_kwh: number | null;
     billing_share: number | null;
+    has_meter: boolean;
+    last_reading: string | null; // newest reading of its heat meters
 }
 
 interface Energy {
@@ -33,7 +35,7 @@ interface Energy {
     end: string; // exclusive
     has_location: boolean;
     last_reading: string | null;
-    design: { indoor_c: number; outdoor_c: number; heat_loss_kw: number | null; kw_per_k: number | null; units_with_loss: number };
+    design: { indoor_c: number; outdoor_c: number; heat_loss_kw: number | null; kw_per_k: number | null; units_with_loss: number; units_with_loss_total: number };
     rules: { high_ratio: number; low_ratio: number; heating_below_c: number };
     days: EnergyDay[];
     signature: Signature | null;
@@ -134,6 +136,11 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
     }
 
     const fmt = (v: number | null, digits = 0) => v === null ? '–' : v.toLocaleString(locale, { maximumFractionDigits: digits, minimumFractionDigits: 0 });
+    const ratioText = (r: number) => r < 0.01 ? `<${(0.01).toLocaleString(locale)}×` : `${r.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}×`;
+    const shortDate = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' });
+    const noDataText = (u: EnergyUnit) => !u.has_meter ? t.energy.noMeter
+        : u.last_reading && u.last_reading.slice(0, 10) < (data?.start ?? '') ? t.energy.silentSince.replace('{{date}}', shortDate(u.last_reading))
+        : t.energy.noData;
     const shownFrom = period?.from ?? data?.start.slice(0, 7) ?? '';
     const lastDay = data ? new Date(new Date(`${data.end}T00:00:00Z`).getTime() - 86400000) : null;
     const shownTo = period?.to ?? (lastDay ? lastDay.toISOString().slice(0, 7) : '');
@@ -220,7 +227,14 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                                 <>
                                     <p className="text-2xl font-bold tabular-nums">{fmt(data.signature.kw_per_k, 2)} <span className="text-base font-normal text-gray-500">kW/K {t.energy.measured}</span></p>
                                     {data.design.kw_per_k !== null && (
-                                        <p className="text-sm tabular-nums text-gray-600">{fmt(data.design.kw_per_k, 2)} kW/K {t.energy.calculated}</p>
+                                        <p className="text-sm tabular-nums text-gray-600">
+                                            {fmt(data.design.kw_per_k, 2)} kW/K {t.energy.calculated}
+                                            {data.design.units_with_loss < data.design.units_with_loss_total && (
+                                                <span className="block text-xs text-gray-500">
+                                                    {t.energy.designUnits.replace('{{n}}', String(data.design.units_with_loss)).replace('{{total}}', String(data.design.units_with_loss_total))}
+                                                </span>
+                                            )}
+                                        </p>
                                     )}
                                     <p className="text-xs text-gray-500 mt-1">
                                         {t.energy.heatingBelow.replace('{{t}}', fmt(data.signature.balance_temp_c, 1))}
@@ -251,7 +265,10 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                     {data.signature && (
                         <div className={`${CARD} p-4 sm:p-6 mb-6`}>
                             <h2 className="text-lg font-semibold mb-1">{t.energy.signatureTitle}</h2>
-                            <p className="text-xs text-gray-500 mb-3">{t.energy.signatureHint.replace('{{t}}', fmt(data.rules.heating_below_c))}</p>
+                            <p className="text-xs text-gray-500 mb-3">
+                                {t.energy.signatureHint.replace('{{t}}', fmt(data.rules.heating_below_c))}{' '}
+                                {t.energy.heatingSeason.replace('{{from}}', shortDate(data.signature.from)).replace('{{to}}', shortDate(data.signature.to))}
+                            </p>
                             <div className="max-w-2xl">
                                 <SignatureChart days={days} signature={data.signature} designKwPerK={data.design.kw_per_k} heatingBelow={data.rules.heating_below_c} />
                             </div>
@@ -310,14 +327,14 @@ export default function BuildingEnergy({ params }: { params: Promise<{ id: strin
                                             <td className="px-3 py-2 whitespace-nowrap text-gray-600">{u.floor > 0 ? t.building.storey.replace('{{n}}', String(u.floor)) : '–'}</td>
                                             <td className="px-3 py-2 text-right whitespace-nowrap">{u.area_m2 ? `${fmt(u.area_m2, 1)} m²` : '–'}</td>
                                             <td className="px-3 py-2 text-right whitespace-nowrap">
-                                                {u.kwh === null ? <span className="text-gray-400">{t.energy.noData}</span> : fmt(u.kwh)}
+                                                {u.kwh === null ? <span className={u.has_meter ? 'text-amber-800' : 'text-gray-500'}>{noDataText(u)}</span> : fmt(u.kwh)}
                                                 {u.kwh !== null && !u.complete && <span className="text-gray-500 cursor-help" title={t.energy.incomplete}>*</span>}
                                             </td>
                                             <td className="px-3 py-2 text-right">{fmt(u.kwh_per_m2, 1)}</td>
                                             <td className="px-3 py-2 text-right text-gray-600">{fmt(u.expected_kwh)}</td>
                                             <td className={`px-3 py-2 text-right font-medium ${u.flag === 'high' ? 'text-red-700' : u.flag === 'low' ? 'text-amber-800' : ''}`}
                                                 title={u.flag === 'high' ? t.energy.high : u.flag === 'low' ? t.energy.low : undefined}>
-                                                {u.ratio === null ? '–' : `${fmt(u.ratio, 2)}×`}
+                                                {u.ratio === null ? '–' : ratioText(u.ratio)}
                                             </td>
                                             <td className="px-3 py-2 text-right text-gray-600">{fmt(u.position_coef, 3)}</td>
                                             <td className="px-3 py-2 text-right">{fmt(u.corrected_kwh)}</td>

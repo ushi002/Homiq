@@ -51,8 +51,11 @@ def daily_temperatures(session: Session, latitude: float, longitude: float, star
         for d, t in (fetched or {}).items():
             if d in missing:
                 stored[d] = t
-                session.add(DailyTemperature(latitude=lat, longitude=lon, day=d, mean_c=t))
-        session.commit()
+                session.merge(DailyTemperature(latitude=lat, longitude=lon, day=d, mean_c=t))  # merge: a parallel request may have stored it
+        try:
+            session.commit()
+        except Exception:  # two first requests at once: the other one stored the days
+            session.rollback()
     recent = [d for d in days if d not in stored and d >= settled_until]
     if recent:
         fetched = _fetch(FORECAST_URL, lat, lon, {"past_days": (today - recent[0]).days + 1, "forecast_days": 1})

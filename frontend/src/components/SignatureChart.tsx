@@ -11,11 +11,14 @@ export interface Signature {
     kw_per_k: number;
     balance_temp_c: number; // heating stops above this
     r2: number | null;
+    from: string; // the heating days used for the line (YYYY-MM-DD)
+    to: string;
 }
 
-const W = 480;
-const H = 280;
-const PAD = { left: 44, right: 10, top: 10, bottom: 34 };
+// Small viewBox: the text scales up with the width, readable on phones too
+const W = 400;
+const H = 250;
+const PAD = { left: 44, right: 8, top: 8, bottom: 34 };
 
 // Energy signature: daily consumption against the outdoor temperature, the line fitted through the
 // heating days and a line with the slope of the heat loss calculation (through the same balance point)
@@ -46,23 +49,23 @@ export default function SignatureChart({ days, signature, designKwPerK, heatingB
             {yTicks.map(v => (
                 <g key={`y${v}`}>
                     <line x1={PAD.left} x2={W - PAD.right} y1={y(v)} y2={y(v)} className="stroke-gray-100" />
-                    <text x={PAD.left - 6} y={y(v)} textAnchor="end" dominantBaseline="middle" fontSize={10} fill="currentColor">{v.toLocaleString(locale)}</text>
+                    <text x={PAD.left - 6} y={y(v)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="currentColor">{v.toLocaleString(locale)}</text>
                 </g>
             ))}
             {xTicks.map(v => (
-                <text key={`x${v}`} x={x(v)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize={10} fill="currentColor">{v}</text>
+                <text key={`x${v}`} x={x(v)} y={H - PAD.bottom + 14} textAnchor="middle" fontSize={11} fill="currentColor">{v}</text>
             ))}
-            <text x={(PAD.left + W - PAD.right) / 2} y={H - 4} textAnchor="middle" fontSize={10} fill="currentColor">{t.energy.outdoorAxis}</text>
-            <text x={12} y={(PAD.top + H - PAD.bottom) / 2} textAnchor="middle" fontSize={10} fill="currentColor"
+            <text x={(PAD.left + W - PAD.right) / 2} y={H - 4} textAnchor="middle" fontSize={11} fill="currentColor">{t.energy.outdoorAxis}</text>
+            <text x={12} y={(PAD.top + H - PAD.bottom) / 2} textAnchor="middle" fontSize={11} fill="currentColor"
                   transform={`rotate(-90 12 ${(PAD.top + H - PAD.bottom) / 2})`}>{t.energy.kwhPerDay}</text>
             <line x1={PAD.left} x2={W - PAD.right} y1={H - PAD.bottom} y2={H - PAD.bottom} className="stroke-gray-300" />
             {points.map(p => (
                 <circle key={p.date} cx={x(p.temp)} cy={y(p.kwh)} r={2.5}
-                        className={p.temp < heatingBelow ? 'fill-blue-600/60' : 'fill-gray-400/60'}>
+                        className={p.temp < heatingBelow && p.kwh > 0 && p.date >= signature.from && p.date <= signature.to ? 'fill-blue-500/70' : 'fill-gray-400/60'}>
                     <title>{`${new Date(`${p.date}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' })}: ${Math.round(p.kwh).toLocaleString(locale)} kWh, ${p.temp.toLocaleString(locale, { maximumFractionDigits: 1 })} °C`}</title>
                 </circle>
             ))}
-            <line x1={x(xMin)} y1={y(fitAt(xMin))} x2={x(balance)} y2={y(fitAt(balance))} className="stroke-blue-800" strokeWidth={2} />
+            <line x1={x(xMin)} y1={y(fitAt(xMin))} x2={x(balance)} y2={y(fitAt(balance))} className="stroke-blue-700" strokeWidth={2.5} />
             {designSlope !== null && (
                 <line x1={x(xMin)} y1={y(designSlope * (xMin - signature.balance_temp_c))} x2={x(balance)} y2={y(designSlope * (balance - signature.balance_temp_c))}
                       className="stroke-orange-500" strokeWidth={2} strokeDasharray="6 4" />
