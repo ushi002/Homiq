@@ -332,16 +332,18 @@ def read_building_energy_years(
     rows = session.exec(select(BuildingEnergyYear).where(BuildingEnergyYear.building_id == building_id)
                         .order_by(BuildingEnergyYear.year)).all()
     if not rows:
-        return {"years": [], "meter_checks": [], "constants": {}}
+        return {"years": [], "meter_checks": [], "split": None, "constants": {}}
 
     temperatures = {}
     if building.latitude is not None and building.longitude is not None:
         temperatures = daily_temperatures(session, building.latitude, building.longitude,
                                           date(rows[0].year, 1, 1), date(rows[-1].year + 1, 1, 1))
-    years = []
+    years, exact_dd = [], {}
     for row in rows:
         dd = energy_years.degree_days(temperatures, row.year)
         years.append(energy_years.year_summary(row.model_dump(), dd))
+        exact_dd[row.year] = dd["exact"] if dd and dd["complete"] else None
+    split = energy_years.split_info(years)
 
     # Heat meters against the bill's units, for the part of each year with meter data
     units = session.exec(select(Unit).where(Unit.building_id == building_id)).all()
@@ -353,7 +355,7 @@ def read_building_energy_years(
     checks = []
     if building.influx_db_name and building.influx_device_tag and meters and coefs:
         serials = {m.serial_number for m in meters}
-        for row, summary in zip(rows, years):
+        for row in rows:
             start, end = date(row.year, 1, 1), date(row.year + 1, 1, 1)
             per_meter = {}
             for measurement in measurements:
@@ -374,12 +376,12 @@ def read_building_energy_years(
             dd_period = sum(energy_years.DD_INDOOR_C - t for d, t in temperatures.items()
                             if first <= d <= last and t < energy_years.DD_LIMIT_C) or None
             checks.append({"year": row.year, "from": first.isoformat(), "to": last.isoformat(),
-                           **energy_years.meter_check(measured, row.heating_units, dd_period, summary["degree_days"])})
+                           **energy_years.meter_check(measured, row.heating_units, dd_period, exact_dd[row.year])})
     return {
         "years": years,
         "meter_checks": checks,
-        "constants": {"dd_indoor_c": energy_years.DD_INDOOR_C, "dd_limit_c": energy_years.DD_LIMIT_C,
-                      "hot_water_theory_kwh_m3": energy_years.HOT_WATER_THEORY_KWH_M3},
+        "split": split,
+        "constants": {"dd_indoor_c": energy_years.DD_INDOOR_C, "dd_limit_c": energy_years.DD_LIMIT_C},
     }
 
 @router.get("/{building_id}/readings")

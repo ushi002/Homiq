@@ -290,6 +290,10 @@ export interface Translations {
         loading: string;
     };
     energyYears: {
+        warnPrice: string;
+        warnSplit: string;
+        splitFixed: string;
+        splitHeatingNote: string;
         title: string;
         intro: string;
         heatTitle: string;
@@ -305,14 +309,11 @@ export interface Translations {
         waterTitle: string;
         hotWaterM3: string;
         kwhPerM3: string;
-        losses: string;
         coldDiff: string;
         hotDiff: string;
-        lossesTip: string;
         diffHint: string;
         unreliable: string;
         unreliableLabel: string;
-        warnSameGj: string;
         warnDegreeDays: string;
         noteFromSource: string;
         checkTitle: string;

@@ -3,11 +3,11 @@ Yearly energy balance rules (app/core/energy_years.py), no database, InfluxDB or
   docker compose exec -T backend sh -c "PYTHONPATH=/app python /app/tests/test_energy_years.py"
 """
 from datetime import date, timedelta
-from app.core.energy_years import degree_days, year_summary, meter_check, KWH_PER_GJ, HOT_WATER_THEORY_KWH_M3
+from app.core.energy_years import degree_days, year_summary, split_info, meter_check, KWH_PER_GJ
 
 # Degree days: Σ(20 − t) over days below 13 °C; complete only with (almost) every day of the year
 temps = {date(2023, 1, 1) + timedelta(days=i): (0.0 if i < 100 else 15.0) for i in range(365)}
-assert degree_days(temps, 2023) == {"value": 2000, "days": 365, "complete": True}
+assert degree_days(temps, 2023) == {"value": 2000, "exact": 2000.0, "days": 365, "complete": True}
 assert degree_days({d: t for d, t in temps.items() if d.month < 6}, 2023)["complete"] is False
 assert degree_days(temps, 2024) is None
 
@@ -20,7 +20,6 @@ s = year_summary(row, {"value": 2000, "days": 365, "complete": True})
 assert s["price_per_gj"] == 500.0 and s["total_cost"] == 500000.0 and s["hot_water_share"] == 0.4, s
 assert s["heating_kwh_per_dd"] == round(600 * KWH_PER_GJ / 2000, 1)
 assert s["hot_water_kwh_per_m3"] == round(400 * KWH_PER_GJ / 1000, 1)  # 111.1 kWh/m3
-assert s["hot_water_losses"] == round(1 - HOT_WATER_THEORY_KWH_M3 / (400 * KWH_PER_GJ / 1000), 3)
 assert s["cold_water_diff"] == 0.1 and s["hot_water_diff"] == -0.25
 assert s["warnings"] == [] and s["unreliable"] is False
 
@@ -31,15 +30,27 @@ assert s["warnings"] == [{"code": "degree_days", "billing": 3000.0, "own": 2000}
 s = year_summary(row, {"value": 900, "days": 150, "complete": False})
 assert s["degree_days"] is None and s["heating_kwh_per_dd"] is None
 
-# An evidently wrong bill (same GJ for both, different prices): warnings
+# Heating and hot water at different prices: a warning
 bad = {**row, "heating_gj": 500.0, "hot_water_gj": 500.0, "heating_price": 600.0, "hot_water_price": 400.0}
 s = year_summary(bad, None)
-assert [w["code"] for w in s["warnings"]] == ["same_gj", "price_mismatch"], s["warnings"]
+assert [w["code"] for w in s["warnings"]] == ["price_mismatch"], s["warnings"]
 # An unreliable year: billed figures only, nothing derived, no warnings
 s = year_summary({**bad, "unreliable": True, "degree_days_billing": 9999.0}, {"value": 2000, "days": 365, "complete": True})
 assert s["unreliable"] and s["warnings"] == [] and s["heating_gj"] == 500.0 and s["total_cost"] == 500000.0
 assert all(s[k] is None for k in ("price_per_gj", "heating_kwh_per_dd", "heating_kwh_per_m2", "hot_water_kwh_per_m3",
-                                  "hot_water_losses", "cold_water_diff", "hot_water_diff", "hot_water_share")), s
+                                  "cold_water_diff", "hot_water_diff", "hot_water_share")), s
+
+# The bills split the heat by a fixed share: energy per m3 of hot water is removed
+years = [year_summary({**row, "year": y}, None) for y in (2022, 2023, 2024)]
+assert split_info(years) == {"hot_water_share": 0.4, "fixed": True}
+assert all(y["hot_water_kwh_per_m3"] is None and y["warnings"] == [] for y in years)
+# A measured split varies; a year far from the usual share gets a warning
+years = [year_summary({**row, "year": 2022, "hot_water_gj": 380.0}, None), year_summary({**row, "year": 2023}, None),
+         year_summary({**row, "year": 2024, "hot_water_gj": 600.0}, None)]
+info = split_info(years)
+assert info["fixed"] is False and years[1]["hot_water_kwh_per_m3"] is not None
+assert [w["code"] for w in years[2]["warnings"]] == ["split_differs"] and years[0]["warnings"] == [], years
+assert split_info([year_summary({**row, "unreliable": True}, None)]) is None
 
 # Heat meters against the bill: part of the year extrapolated by the degree days
 c = meter_check(20000.0, 70000.0, 1000.0, 3500.0)

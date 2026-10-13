@@ -1,22 +1,26 @@
 """
 Yearly energy balance of a building from its heating bills (BuildingEnergyYear), for the energy
 overview: heat for heating and hot water, prices, heating against the heating degree days (own,
-from the outdoor temperature; the bill's figure is shown only for information), energy per m3 of
-hot water against the theoretical heating, water billed against metered, and a check of the
-bill's meter units against the heat meters. Pure calculations; data are read in api/buildings.py.
+from the outdoor temperature; the bill's figure is shown only for information), water billed
+against metered, and a check of the bill's meter units against the heat meters. Pure
+calculations; data are read in api/buildings.py.
+
+The heat for hot water is often not measured: the bill splits the boiler room's heat by a fixed
+share. split_info finds such a split; then nothing about hot water efficiency can be derived from
+the bill (energy per m3 is left out).
 """
 from datetime import date
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 KWH_PER_GJ = 1000 / 3.6
 # Heating degree days: Σ(DD_INDOOR_C − t) over the days with a mean temperature below DD_LIMIT_C
 DD_INDOOR_C = 20.0
 DD_LIMIT_C = 13.0
 DD_MIN_DAYS = 360  # a year counts only with (almost) every day's temperature
-# Heating 1 m3 of water from 10 to 55 °C: 1.163 kWh/(m3·K) × 45 K
-HOT_WATER_THEORY_KWH_M3 = round(1.163 * 45, 1)
 # Differences worth a warning
 PRICE_MISMATCH = 0.02  # heating and hot water at a different price per GJ
+SPLIT_FIXED = 0.005  # hot water share of every year within this of the usual one: a fixed split
+SPLIT_DIFFERS = 0.02  # one year's hot water share this far from the usual one
 DEGREE_DAYS_MISMATCH = 0.15  # the bill's degree days against our own
 
 
@@ -26,7 +30,7 @@ def degree_days(temperatures: Dict[date, float], year: int) -> Optional[dict]:
     if not days:
         return None
     value = sum(DD_INDOOR_C - t for t in days.values() if t < DD_LIMIT_C)
-    return {"value": round(value), "days": len(days), "complete": len(days) >= DD_MIN_DAYS}
+    return {"value": round(value), "exact": value, "days": len(days), "complete": len(days) >= DD_MIN_DAYS}
 
 
 def year_summary(row: dict, dd: Optional[dict]) -> dict:
@@ -36,8 +40,6 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
     heating_gj, hot_gj = row.get("heating_gj"), row.get("hot_water_gj")
     unreliable = bool(row.get("unreliable"))
     if not unreliable:
-        if heating_gj is not None and hot_gj is not None and heating_gj == hot_gj:
-            warnings.append({"code": "same_gj"})
         prices = [p for p in (row.get("heating_price"), row.get("hot_water_price")) if p]
         if len(prices) == 2 and abs(prices[0] - prices[1]) > PRICE_MISMATCH * max(prices):
             warnings.append({"code": "price_mismatch", "heating": prices[0], "hot_water": prices[1]})
@@ -77,8 +79,6 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
         "heating_kwh_per_dd": round(heating_kwh / own_dd, 1) if heating_kwh and own_dd else None,
         "heating_kwh_per_m2": round(heating_kwh / row["heated_area_m2"], 1) if heating_kwh and row.get("heated_area_m2") else None,
         "hot_water_kwh_per_m3": round(hot_kwh_m3, 1) if hot_kwh_m3 else None,
-        # Part of the hot water energy beyond heating the water (circulation and storage losses)
-        "hot_water_losses": round(1 - HOT_WATER_THEORY_KWH_M3 / hot_kwh_m3, 3) if hot_kwh_m3 and hot_kwh_m3 > HOT_WATER_THEORY_KWH_M3 else None,
         "cold_water_diff": diff(row.get("cold_water_billed_m3"), row.get("cold_water_metered_m3")),
         "hot_water_diff": diff(row.get("hot_water_billed_m3"), row.get("hot_water_metered_m3")),
         "hot_water_metered_m3": hot_m3,
@@ -89,6 +89,24 @@ def year_summary(row: dict, dd: Optional[dict]) -> dict:
         "note": row.get("note"),
         "warnings": warnings,
     }
+
+
+def split_info(years: List[dict]) -> Optional[dict]:
+    """How the bills split the heat between heating and hot water: the usual hot water share
+    (median of the reliable years) and whether it is fixed (every year the same). With a fixed
+    split the energy per m3 of hot water says nothing and is removed; a year far from the usual
+    share gets a warning. Changes the year summaries in place."""
+    shares = sorted(y["hot_water_share"] for y in years if y["hot_water_share"] is not None)
+    if not shares:
+        return None
+    usual = shares[len(shares) // 2] if len(shares) % 2 else (shares[len(shares) // 2 - 1] + shares[len(shares) // 2]) / 2
+    fixed = len(shares) > 1 and all(abs(s - usual) <= SPLIT_FIXED for s in shares)
+    for y in years:
+        if fixed:
+            y["hot_water_kwh_per_m3"] = None
+        if y["hot_water_share"] is not None and abs(y["hot_water_share"] - usual) > SPLIT_DIFFERS:
+            y["warnings"].append({"code": "split_differs", "share": y["hot_water_share"], "usual": round(usual, 3)})
+    return {"hot_water_share": round(usual, 3), "fixed": fixed}
 
 
 def meter_check(measured_units: float, billed_units: Optional[float], dd_period: Optional[float],

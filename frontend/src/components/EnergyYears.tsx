@@ -5,7 +5,9 @@ import { useLanguage } from '@/context/LanguageContext';
 import { CARD } from '@/lib/ui';
 
 interface YearWarning {
-    code: 'same_gj' | 'price_mismatch' | 'degree_days';
+    code: 'price_mismatch' | 'degree_days' | 'split_differs';
+    share?: number;
+    usual?: number;
     heating?: number;
     hot_water?: number;
     billing?: number;
@@ -25,7 +27,6 @@ interface EnergyYear {
     heating_kwh_per_m2: number | null;
     hot_water_metered_m3: number | null;
     hot_water_kwh_per_m3: number | null;
-    hot_water_losses: number | null;
     cold_water_diff: number | null;
     hot_water_diff: number | null;
     note: string | null;
@@ -46,7 +47,7 @@ interface MeterCheck {
 interface EnergyYears {
     years: EnergyYear[];
     meter_checks: MeterCheck[];
-    constants: { hot_water_theory_kwh_m3?: number };
+    split: { hot_water_share: number; fixed: boolean } | null; // how the bills split the boiler room's heat
 }
 
 const TH = 'px-3 py-2 font-medium text-right';
@@ -86,9 +87,14 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
     const warnings = data.years.flatMap(y => {
         const out: string[] = [];
         const mismatch = y.warnings.find(w => w.code === 'price_mismatch');
-        if (y.warnings.some(w => w.code === 'same_gj')) {
-            out.push(t.energyYears.warnSameGj.replace('{{year}}', String(y.year))
-                .replace('{{heating}}', fmt(mismatch?.heating ?? null, 2)).replace('{{hotWater}}', fmt(mismatch?.hot_water ?? null, 2)));
+        if (mismatch) {
+            out.push(t.energyYears.warnPrice.replace('{{year}}', String(y.year))
+                .replace('{{heating}}', fmt(mismatch.heating ?? null, 2)).replace('{{hotWater}}', fmt(mismatch.hot_water ?? null, 2)));
+        }
+        const split = y.warnings.find(w => w.code === 'split_differs');
+        if (split) {
+            out.push(t.energyYears.warnSplit.replace('{{year}}', String(y.year))
+                .replace('{{share}}', fmt((split.share ?? 0) * 100)).replace('{{usual}}', fmt((split.usual ?? 0) * 100)));
         }
         const dd = y.warnings.find(w => w.code === 'degree_days');
         if (dd) {
@@ -97,8 +103,8 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
         }
         return out;
     });
-    const perM3 = data.years.map(y => y.hot_water_kwh_per_m3).filter((v): v is number => v !== null);
-    const losses = data.years.map(y => y.hot_water_losses).filter((v): v is number => v !== null);
+    // A fixed split: the heat for hot water is not measured, energy per m3 would only echo the split
+    const fixedSplit = data.split?.fixed ? data.split : null;
     const notes = data.years.filter(y => y.note);
 
     return (
@@ -151,6 +157,7 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
             </div>
             <p className="px-4 sm:px-6 pt-2 text-xs text-gray-500">
                 {t.energyYears.degreeDaysHint}
+                {fixedSplit && <> {t.energyYears.splitHeatingNote.replace('{{heating}}', fmt((1 - fixedSplit.hot_water_share) * 100))}</>}
                 {data.years.some(y => y.unreliable) && <> <span className="text-gray-400">{t.energyYears.unreliableLabel}</span> = {t.energyYears.unreliable}.</>}
             </p>
 
@@ -161,8 +168,7 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
                         <tr>
                             <th className="px-3 py-2 font-medium text-left">{t.energyYears.year}</th>
                             <th className={TH}>{t.energyYears.hotWaterM3}</th>
-                            <th className={TH}>{t.energyYears.kwhPerM3}</th>
-                            <th className={TH}>{t.energyYears.losses}</th>
+                            {!fixedSplit && <th className={TH}>{t.energyYears.kwhPerM3}</th>}
                             <th className={TH}>{t.energyYears.coldDiff}</th>
                             <th className={TH}>{t.energyYears.hotDiff}</th>
                         </tr>
@@ -174,8 +180,7 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
                                     {y.year}{y.unreliable && <span className="block text-xs font-normal">{t.energyYears.unreliableLabel}</span>}
                                 </td>
                                 <td className={TD}>{fmt(y.hot_water_metered_m3)}</td>
-                                <td className={TD}>{fmt(y.hot_water_kwh_per_m3)}</td>
-                                <td className={TD}>{pct(y.hot_water_losses)}</td>
+                                {!fixedSplit && <td className={TD}>{fmt(y.hot_water_kwh_per_m3)}</td>}
                                 <td className={TD}>{signedPct(y.cold_water_diff)}</td>
                                 <td className={TD}>{signedPct(y.hot_water_diff)}</td>
                             </tr>
@@ -185,12 +190,11 @@ export default function EnergyYears({ buildingId }: { buildingId: string }) {
             </div>
             <div className="px-4 sm:px-6 pt-2 space-y-2">
                 <p className="text-xs text-gray-500">{t.energyYears.diffHint}</p>
-                {perM3.length > 0 && losses.length > 0 && data.constants.hot_water_theory_kwh_m3 && (
-                    <p className="p-3 rounded-lg bg-blue-50 text-blue-900 text-sm">
-                        💡 {t.energyYears.lossesTip
-                            .replace('{{theory}}', fmt(data.constants.hot_water_theory_kwh_m3))
-                            .replace('{{min}}', fmt(Math.min(...perM3))).replace('{{max}}', fmt(Math.max(...perM3)))
-                            .replace('{{lossMin}}', fmt(Math.min(...losses) * 100)).replace('{{lossMax}}', fmt(Math.max(...losses) * 100))}
+                {fixedSplit && (
+                    <p className="p-3 rounded-lg bg-amber-50 text-amber-900 text-sm">
+                        {t.energyYears.splitFixed
+                            .replace('{{heating}}', fmt((1 - fixedSplit.hot_water_share) * 100))
+                            .replace('{{hotWater}}', fmt(fixedSplit.hot_water_share * 100))}
                     </p>
                 )}
             </div>
